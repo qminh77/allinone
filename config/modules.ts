@@ -28,6 +28,8 @@ import {
     Thermometer,
     Gauge,
     HardDrive,
+    Mail,
+    Scissors,
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -370,6 +372,26 @@ export const modules: Module[] = [
         icon: HardDrive,
         category: 'Utilities',
         isNew: true
+    },
+    {
+        key: 'shortlinks',
+        name: 'Shortlinks',
+        description: 'Tạo và quản lý URL rút gọn với mật khẩu bảo vệ và thời gian hết hạn.',
+        href: '/dashboard/shortlinks',
+        icon: Scissors,
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'mail-system',
+        name: 'Mail System',
+        description: 'Gửi email qua SMTP, quản lý tài khoản và theo dõi lịch sử gửi mail.',
+        href: '/dashboard/mail',
+        icon: Mail,
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
     }
 ]
 
