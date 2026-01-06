@@ -27,6 +27,7 @@ export function AccountForm() {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
+    // @ts-ignore - Zod coerce causes type inference issues with react-hook-form
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
