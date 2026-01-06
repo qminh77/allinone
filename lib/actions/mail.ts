@@ -10,7 +10,7 @@ export async function getSmtpConfigs() {
     if (!user) return []
 
     const { data } = await supabase
-        .from('smtp_configs')
+        .from('smtp_configs' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -35,7 +35,7 @@ export async function createSmtpConfig(formData: FormData) {
         return { error: 'Missing required fields' }
     }
 
-    const { error } = await supabase.from('smtp_configs').insert({
+    const { error } = await supabase.from('smtp_configs' as any).insert({
         user_id: user.id,
         name,
         host,
@@ -44,7 +44,7 @@ export async function createSmtpConfig(formData: FormData) {
         username: username || null,
         password: password || null, // Storing plain text for MVP as discussed
         from_email: fromEmail
-    })
+    } as any)
 
     if (error) return { error: error.message }
     revalidatePath('/dashboard/mail')
@@ -57,7 +57,7 @@ export async function deleteSmtpConfig(id: string) {
     if (!user) return { error: 'Unauthorized' }
 
     const { error } = await supabase
-        .from('smtp_configs')
+        .from('smtp_configs' as any)
         .delete()
         .eq('id', id)
         .eq('user_id', user.id)
@@ -83,7 +83,7 @@ export async function sendMailAction(formData: FormData) {
 
     // 1. Get Config
     const { data: config } = await supabase
-        .from('smtp_configs')
+        .from('smtp_configs' as any)
         .select('*')
         .eq('id', configId)
         .eq('user_id', user.id)
@@ -94,12 +94,12 @@ export async function sendMailAction(formData: FormData) {
     // 2. Transporter
     try {
         const transporter = nodemailer.createTransport({
-            host: config.host,
-            port: config.port,
-            secure: config.secure, // true for 465, false for other ports
-            auth: config.username ? {
-                user: config.username,
-                pass: config.password
+            host: (config as any).host,
+            port: (config as any).port,
+            secure: (config as any).secure,
+            auth: (config as any).username ? {
+                user: (config as any).username,
+                pass: (config as any).password
             } : undefined,
         })
 
@@ -108,21 +108,21 @@ export async function sendMailAction(formData: FormData) {
         const recipients = to.split(',').map(e => e.trim()).filter(Boolean)
 
         await transporter.sendMail({
-            from: `"${config.name}" <${config.from_email}>`, // sender address
+            from: `"${(config as any).name}" <${(config as any).from_email}>`,
             to: recipients.join(', '), // list of receivers
             subject: subject, // Subject line
             html: body, // html body
         })
 
         // 4. Log Success
-        await supabase.from('mail_history').insert({
+        await supabase.from('mail_history' as any).insert({
             user_id: user.id,
-            config_id: config.id,
+            config_id: (config as any).id,
             recipients: recipients,
             subject,
             body, // maybe truncate if too long? keeping full for now
             status: 'success'
-        })
+        } as any)
 
         revalidatePath('/dashboard/mail')
         return { success: true }
@@ -130,15 +130,15 @@ export async function sendMailAction(formData: FormData) {
     } catch (err: any) {
         console.error('Mail Send Error:', err)
         // Log Error
-        await supabase.from('mail_history').insert({
+        await supabase.from('mail_history' as any).insert({
             user_id: user.id,
-            config_id: config.id,
+            config_id: (config as any).id,
             recipients: to.split(',').map(e => e.trim()).filter(Boolean),
             subject,
             body,
             status: 'failed',
             error_message: err.message || 'Unknown error'
-        })
+        } as any)
 
         return { error: err.message || 'Failed to send mail' }
     }
@@ -150,7 +150,7 @@ export async function getMailHistory() {
     if (!user) return []
 
     const { data } = await supabase
-        .from('mail_history')
+        .from('mail_history' as any)
         .select(`
             *,
             smtp_configs ( name )
