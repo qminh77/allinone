@@ -7,6 +7,7 @@ import {
     Activity,
     Hash,
     FileCode,
+    Key
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -95,6 +96,15 @@ export const modules: Module[] = [
         description: 'Chuyển đổi Markdown sang HTML với Live Preview.',
         href: '/tools/markdown-to-html',
         icon: FileCode,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'uuid-generator',
+        name: 'UUID Generator',
+        description: 'Tạo mã UUID v4 ngẫu nhiên (Bulk supported).',
+        href: '/tools/uuid-generator',
+        icon: Key,
         category: 'Utilities',
         isNew: true
     }
