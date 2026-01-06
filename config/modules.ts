@@ -8,7 +8,8 @@ import {
     Hash,
     FileCode,
     Key,
-    Lock
+    Lock,
+    KeyRound
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -115,6 +116,15 @@ export const modules: Module[] = [
         description: 'Tạo mã băm Bcrypt và kiểm tra mật khẩu.',
         href: '/tools/bcrypt-generator',
         icon: Lock,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'password-generator',
+        name: 'Password Generator',
+        description: 'Tạo mật khẩu mạnh ngẫu nhiên (Strong Password).',
+        href: '/tools/password-generator',
+        icon: KeyRound,
         category: 'Utilities',
         isNew: true
     }
