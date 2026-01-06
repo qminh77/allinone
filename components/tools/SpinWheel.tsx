@@ -7,6 +7,16 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Disc, Play, RefreshCw, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const COLORS = [
     '#EF4444', // red-500
@@ -25,6 +35,7 @@ export function SpinWheel() {
     const [isSpinning, setIsSpinning] = useState(false)
     const [rotation, setRotation] = useState(0)
     const [winner, setWinner] = useState<string | null>(null)
+    const [showRemoveDialog, setShowRemoveDialog] = useState(false)
     const wheelRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -37,6 +48,7 @@ export function SpinWheel() {
 
         setIsSpinning(true)
         setWinner(null)
+        setShowRemoveDialog(false)
 
         // Random rotation between 360 * 5 (5 spins) and 360 * 10 (10 spins) + random offset
         const minSpins = 5
@@ -78,7 +90,29 @@ export function SpinWheel() {
 
         // Find index
         const index = Math.floor(pointerAngle / degreesPerItem)
-        setWinner(items[index])
+        const winningItem = items[index]
+        setWinner(winningItem)
+
+        // Show dialog after a short delay to let user see the winner
+        setTimeout(() => {
+            setShowRemoveDialog(true)
+        }, 1000)
+    }
+
+    const handleRemoveWinner = () => {
+        if (!winner) return
+
+        // Create new items list excluding the winner
+        // Note: this removes ALL instances of the winner if duplicates exist. 
+        // If we want only one, we'd need index but calculated index is based on rotation
+        // For simplicity, removing by value is fine for this use case usually.
+        // Or better, filter out only one instance? 
+        // Let's just filter out the item string.
+
+        const newItems = items.filter(item => item !== winner)
+        setInput(newItems.join('\n'))
+        setWinner(null)
+        setShowRemoveDialog(false)
     }
 
     // Generate SVG paths
@@ -243,6 +277,23 @@ export function SpinWheel() {
                     </CardContent>
                 </Card>
             </div>
+
+            <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>We have a winner!</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The winner is <span className="font-bold text-foreground">{winner}</span>.
+                            <br />
+                            Do you want to remove this item from the list for the next spin?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setShowRemoveDialog(false)}>Keep it</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRemoveWinner}>Remove</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

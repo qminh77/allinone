@@ -91,15 +91,7 @@ export const modules: Module[] = [
         category: 'Utilities',
         isNew: true
     },
-    {
-        key: 'spin-wheel',
-        name: 'Spin Wheel',
-        description: 'Công cụ quay số ngẫu nhiên để chọn một mục từ danh sách.',
-        href: '/tools/spin-wheel',
-        icon: Disc,
-        category: 'Utilities',
-        isNew: true,
-    },
+
     {
         key: 'ping-tool',
         name: 'Ping & Port',
