@@ -7,6 +7,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createAuditLog, getRequestInfo } from '@/lib/audit/log'
+import { sanitizeErrorMessage, logError } from '@/lib/error-handling'
+import { validatePasswordStrength } from '@/lib/password-policy'
 
 export async function POST(request: Request) {
     try {
@@ -20,9 +22,14 @@ export async function POST(request: Request) {
             )
         }
 
-        if (password.length < 8) {
+        // ✅ Validate Password Strength
+        const passwordCheck = validatePasswordStrength(password)
+        if (!passwordCheck.isValid) {
             return NextResponse.json(
-                { error: 'Mật khẩu phải có ít nhất 8 ký tự' },
+                {
+                    error: 'Password too weak: ' + passwordCheck.errors.join('. '),
+                    feedback: passwordCheck.feedback
+                },
                 { status: 400 }
             )
         }
@@ -105,9 +112,9 @@ export async function POST(request: Request) {
             message: 'Đăng ký thành công',
         })
     } catch (error: any) {
-        console.error('Register error:', error)
+        logError(error, { action: 'register' })
         return NextResponse.json(
-            { error: error.message || 'Đã có lỗi xảy ra' },
+            { error: sanitizeErrorMessage(error) },
             { status: 500 }
         )
     }

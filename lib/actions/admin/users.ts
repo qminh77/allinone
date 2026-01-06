@@ -4,6 +4,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
+import { EmailSchema } from '@/lib/validation'
 
 // Admin client for user management (needs service role key)
 function getAdminClient() {
@@ -13,6 +15,7 @@ function getAdminClient() {
 }
 
 export async function getUsers() {
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data } = await supabase
@@ -30,6 +33,7 @@ export async function getUsers() {
 }
 
 export async function getUser(id: string) {
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data } = await supabase
@@ -48,12 +52,20 @@ export async function getUser(id: string) {
 }
 
 export async function createUser(formData: FormData) {
+    await requireAdmin()
+
     const email = formData.get('email') as string
     const fullName = formData.get('full_name') as string
     const roleId = formData.get('role_id') as string
 
     if (!email || !fullName || !roleId) {
         return { error: 'Missing required fields' }
+    }
+
+    // ✅ Validate Email
+    const emailValidation = EmailSchema.safeParse(email)
+    if (!emailValidation.success) {
+        return { error: `Invalid email: ${emailValidation.error.issues[0].message}` }
     }
 
     // Generate temporary password
@@ -98,6 +110,8 @@ export async function createUser(formData: FormData) {
 }
 
 export async function updateUser(id: string, formData: FormData) {
+    await requireAdmin()
+
     const fullName = formData.get('full_name') as string
     const roleId = formData.get('role_id') as string
     const isActive = formData.get('is_active') === 'true'
@@ -120,6 +134,8 @@ export async function updateUser(id: string, formData: FormData) {
 }
 
 export async function deleteUser(id: string) {
+    await requireAdmin()
+
     try {
         const adminSupabase = getAdminClient()
 
@@ -136,6 +152,8 @@ export async function deleteUser(id: string) {
 }
 
 export async function resetPassword(userId: string) {
+    await requireAdmin()
+
     const newPassword = generatePassword()
 
     try {
@@ -153,6 +171,8 @@ export async function resetPassword(userId: string) {
 }
 
 export async function bulkImportUsers(csvText: string) {
+    await requireAdmin()
+
     const lines = csvText.trim().split('\n')
     if (lines.length < 2) {
         return { error: 'CSV file is empty or invalid' }

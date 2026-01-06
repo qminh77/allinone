@@ -25,6 +25,11 @@ export type AuditAction =
     | 'settings.update'
     | 'backup.create'
     | 'backup.restore'
+    | 'security.failed_login'
+    | 'security.permission_denied'
+    | 'security.suspicious_activity'
+    | 'security.rate_limit_exceeded'
+    | 'security.admin_action'
 
 export interface CreateAuditLogParams {
     userId?: string | null

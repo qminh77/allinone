@@ -3,6 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import nodemailer from 'nodemailer'
+import { encrypt, decrypt } from '@/lib/encryption'
+import { EmailSchema, DomainSchema, IpSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 export async function getSmtpConfigs() {
     const supabase = await createClient()
@@ -35,6 +38,27 @@ export async function createSmtpConfig(formData: FormData) {
         return { error: 'Missing required fields' }
     }
 
+    // ✅ Input Validation
+    const emailValidation = EmailSchema.safeParse(fromEmail)
+    if (!emailValidation.success) return { error: `Invalid email: ${emailValidation.error.issues[0].message}` }
+
+    // Validate Host (Domain or IP)
+    const hostValidation = DomainSchema.safeParse(host) || IpSchema.safeParse(host)
+    // Note: Zod "safeParse" returns object with success boolean. 
+    // Simplify host check: if it fails both domain and IP check, it's invalid.
+    // DomainSchema is strict on format.
+    const isDomain = DomainSchema.safeParse(host).success
+    const isIp = IpSchema.safeParse(host).success
+
+    if (!isDomain && !isIp && host !== 'localhost') {
+        return { error: 'Invalid host format (must be domain or IP)' }
+    }
+
+    // Validate Port
+    if (isNaN(port) || port < 1 || port > 65535) {
+        return { error: 'Invalid port number' }
+    }
+
     const { error } = await supabase.from('smtp_configs' as any).insert({
         user_id: user.id,
         name,
@@ -42,7 +66,7 @@ export async function createSmtpConfig(formData: FormData) {
         port,
         secure,
         username: username || null,
-        password: password || null, // Storing plain text for MVP as discussed
+        encrypted_password: password ? encrypt(password) : null, // ✅ Encrypt password
         from_email: fromEmail
     } as any)
 
@@ -99,7 +123,9 @@ export async function sendMailAction(formData: FormData) {
             secure: (config as any).secure,
             auth: (config as any).username ? {
                 user: (config as any).username,
-                pass: (config as any).password
+                pass: (config as any).encrypted_password
+                    ? decrypt((config as any).encrypted_password) // ✅ Decrypt password
+                    : undefined
             } : undefined,
         })
 

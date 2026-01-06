@@ -3,8 +3,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
 
 export async function getRoles() {
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data } = await supabase
@@ -27,6 +29,7 @@ export async function getRoles() {
 }
 
 export async function getRole(id: string) {
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data } = await supabase
@@ -49,6 +52,8 @@ export async function getRole(id: string) {
 }
 
 export async function createRole(formData: FormData) {
+    await requireAdmin()
+
     const name = formData.get('name') as string
     const description = formData.get('description') as string
 
@@ -73,6 +78,8 @@ export async function createRole(formData: FormData) {
 }
 
 export async function updateRole(id: string, formData: FormData) {
+    await requireAdmin()
+
     const name = formData.get('name') as string
     const description = formData.get('description') as string
 
@@ -91,6 +98,8 @@ export async function updateRole(id: string, formData: FormData) {
 }
 
 export async function deleteRole(id: string) {
+    await requireAdmin()
+
     const supabase = await createClient()
 
     // Check if role is a system role
@@ -130,6 +139,7 @@ export async function deleteRole(id: string) {
 }
 
 export async function getRolePermissions(roleId: string) {
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data } = await supabase
@@ -141,6 +151,8 @@ export async function getRolePermissions(roleId: string) {
 }
 
 export async function updateRolePermissions(roleId: string, permissionIds: string[]) {
+    await requireAdmin()
+
     const supabase = await createClient()
 
     // Delete existing permissions

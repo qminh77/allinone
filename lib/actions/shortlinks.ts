@@ -1,9 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import bcrypt from 'bcryptjs'
+import { checkRateLimit, RateLimits } from '@/lib/rate-limit'
+import { randomBytes } from 'crypto'
+import { UrlSchema, SlugSchema } from '@/lib/validation'
 
 const RESERVED_SLUGS = [
     'admin', 'admincp', 'dashboard', 'auth', 'api', 'tools', 'settings',
@@ -26,11 +30,25 @@ export async function createShortlink(formData: FormData) {
 
     if (!targetUrl) return { error: 'Target URL is required' }
 
-    // Auto-generate slug if empty (simple random 6 chars)
+    // ✅ Validate URL to prevent SSRF
+    const urlValidation = UrlSchema.safeParse(targetUrl)
+    if (!urlValidation.success) {
+        return { error: 'Invalid URL: ' + urlValidation.error.issues[0].message }
+    }
+
+    // ✅ Auto-generate slug with cryptographically secure random
     if (!slug || !slug.trim()) {
-        slug = Math.random().toString(36).substring(2, 8)
+        slug = randomBytes(4).toString('base64url') // Secure random
     }
     slug = slug.trim().toLowerCase()
+
+    // ✅ Validate slug format
+    const slugValidation = SlugSchema.safeParse(slug)
+    if (!slugValidation.success) {
+        return { error: 'Invalid slug: ' + slugValidation.error.issues[0].message }
+    }
+
+    slug = slugValidation.data
 
     // 1. Reserved Check
     if (RESERVED_SLUGS.includes(slug)) {
@@ -104,41 +122,58 @@ export async function getShortlinks() {
 }
 
 // Logic for Public Redirect [slug] page
+// ✅ Use admin client to bypass RLS (controlled access)
 export async function getPublicShortlink(slug: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const { data } = await supabase
         .from('shortlinks' as any)
-        .select('id, target_url, password_hash, expires_at, clicks')
+        .select('id, target_url, password_hash, expires_at')
         .eq('slug', slug)
         .single()
 
     return data
 }
 
+// ✅ Use secure function to increment clicks
 export async function incrementClicks(id: string) {
-    const supabase = await createClient()
-    await supabase.rpc('increment_clicks' as any, { row_id: id } as any)
-    // Need RPC or just update? Update is easier if RLS allows public update (unsafe).
-    // Better: use direct update with service role OR just ignore click count for now 
-    // since public policy is SELECT only.
-    // Let's rely on a separate RPC call or admin client later.
-    // For now, let's try a direct update but it might fail due to RLS if user is anon.
-    // If fail, just ignore.
+    const supabase = createAdminClient()
+    // Call the SECURITY DEFINER function from migration
+    await supabase.rpc('increment_shortlink_clicks' as any, { shortlink_id: id } as any)
 }
 
 export async function verifyShortlinkPassword(slug: string, passwordInput: string) {
-    const supabase = await createClient()
+    // ✅ Rate limit password attempts
+    try {
+        await checkRateLimit(
+            `shortlink:verify:${slug}`,
+            RateLimits.SHORTLINK_PASSWORD_VERIFY.limit,
+            RateLimits.SHORTLINK_PASSWORD_VERIFY.window
+        )
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Too many attempts' }
+    }
+
+    const supabase = createAdminClient()
     const { data } = await supabase
         .from('shortlinks' as any)
         .select('target_url, password_hash')
         .eq('slug', slug)
         .single()
 
-    if (!data || !(data as any).password_hash) return { error: 'Invalid link' }
+    if (!data || !(data as any).password_hash) {
+        // ✅ Add delay to prevent timing attacks
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        return { error: 'Invalid link' }
+    }
 
     const isValid = await bcrypt.compare(passwordInput, (data as any).password_hash)
-    if (!isValid) return { error: 'Incorrect Password' }
+
+    if (!isValid) {
+        // ✅ Add delay to prevent timing attacks
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        return { error: 'Incorrect Password' }
+    }
 
     return { success: true, url: (data as any).target_url }
 }

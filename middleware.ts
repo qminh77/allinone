@@ -5,10 +5,12 @@
  * - Kiểm tra user có đăng nhập không
  * - Redirect về login nếu cần
  * - Bảo vệ admin routes
+ * - Apply security headers
  */
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { applySecurityHeaders } from '@/lib/security-headers'
 
 export async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
@@ -63,6 +65,28 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
+    // ✅ CSRF Protection for API routes (state-changing requests)
+    if (pathname.startsWith('/api') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+        const origin = request.headers.get('origin')
+        const host = request.headers.get('host')
+
+        // Skip check if no origin (e.g. server-to-server or non-browser)
+        // STRICT MODE: Uncomment following line to enforce origin presence
+        // if (!origin) return new NextResponse('Forbidden: Missing Origin', { status: 403 })
+
+        if (origin) {
+            try {
+                const originUrl = new URL(origin)
+                // Allow requests from same host
+                if (originUrl.host !== host) {
+                    return new NextResponse('Forbidden: CSRF Check Failed', { status: 403 })
+                }
+            } catch {
+                return new NextResponse('Forbidden: Invalid Origin', { status: 403 })
+            }
+        }
+    }
+
     // Admin routes - kiểm tra role Admin
     if (pathname.startsWith('/admin')) {
         if (!user) {
@@ -87,7 +111,8 @@ export async function middleware(request: NextRequest) {
         }
     }
 
-    return supabaseResponse
+    // ✅ Apply security headers to response
+    return applySecurityHeaders(request, supabaseResponse)
 }
 
 export const config = {

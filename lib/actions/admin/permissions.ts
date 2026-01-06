@@ -3,8 +3,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
 
 export async function getPermissions() {
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data } = await supabase
@@ -17,6 +19,7 @@ export async function getPermissions() {
 }
 
 export async function getPermission(id: string) {
+    await requireAdmin()
     const supabase = await createClient()
 
     const { data } = await supabase
@@ -29,6 +32,8 @@ export async function getPermission(id: string) {
 }
 
 export async function createPermission(formData: FormData) {
+    await requireAdmin()
+
     const key = formData.get('key') as string
     const name = formData.get('name') as string
     const description = formData.get('description') as string
@@ -64,6 +69,8 @@ export async function createPermission(formData: FormData) {
 }
 
 export async function updatePermission(id: string, formData: FormData) {
+    await requireAdmin()
+
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const module = formData.get('module') as string
@@ -84,6 +91,8 @@ export async function updatePermission(id: string, formData: FormData) {
 }
 
 export async function deletePermission(id: string) {
+    await requireAdmin()
+
     const supabase = await createClient()
 
     const { data: rolePerms } = await supabase

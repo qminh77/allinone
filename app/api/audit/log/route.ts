@@ -5,14 +5,26 @@
 
 import { NextResponse } from 'next/server'
 import { createAuditLog, getRequestInfo } from '@/lib/audit/log'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
     try {
+        // ✅ NEW: Authenticate request
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            )
+        }
+
         const body = await request.json()
         const { ipAddress, userAgent } = getRequestInfo(request)
 
         await createAuditLog({
-            userId: body.userId,
+            userId: user.id, // ✅ Use authenticated user ID, not from body
             action: body.action,
             resourceType: body.resourceType,
             resourceId: body.resourceId,
