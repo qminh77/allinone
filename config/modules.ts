@@ -12,7 +12,9 @@ import {
     KeyRound,
     Link,
     MonitorSmartphone,
-    Server
+    Server,
+    Type,
+    Link2
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -183,6 +185,24 @@ export const modules: Module[] = [
         href: '/tools/hosting-checker',
         icon: Server,
         category: 'Network',
+        isNew: true
+    },
+    {
+        key: 'character-counter',
+        name: 'Character Counter',
+        description: 'Đếm số ký tự, từ, câu, đoạn văn trong văn bản.',
+        href: '/tools/character-counter',
+        icon: Type,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'url-parser',
+        name: 'URL Parser',
+        description: 'Phân tích URL thành các thành phần: Protocol, Host, Path, Query Params...',
+        href: '/tools/url-parser',
+        icon: Link2,
+        category: 'Utilities',
         isNew: true
     }
 ]
