@@ -4,7 +4,8 @@ import {
     MapPin,
     ShieldCheck,
     FileText,
-    Activity
+    Activity,
+    Hash
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -67,6 +68,15 @@ export const modules: Module[] = [
         href: '/tools/ping',
         icon: Activity,
         category: 'Network',
+        isNew: true
+    },
+    {
+        key: 'md5-generator',
+        name: 'MD5 Generator',
+        description: 'Công cụ tạo mã MD5 Hash nhanh chóng.',
+        href: '/tools/md5-generator',
+        icon: Hash,
+        category: 'Utilities',
         isNew: true
     }
 ]
