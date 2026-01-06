@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ProtectedFeature } from '@/components/auth/ProtectedFeature'
-import { LayoutDashboard, ChevronRight, Command } from 'lucide-react'
+import { LayoutDashboard, ChevronRight, Command, Link as LinkIcon } from 'lucide-react'
 import { modules, categories } from '@/config/modules'
 import { PermissionKey } from '@/types/permissions'
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -73,6 +73,19 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                         >
                             <LayoutDashboard className="h-4 w-4" />
                             <span>Tổng quan</span>
+                        </Link>
+
+                        <Link
+                            href="/dashboard/shortlinks"
+                            className={cn(
+                                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                pathname === '/dashboard/shortlinks'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            )}
+                        >
+                            <LinkIcon className="h-4 w-4" />
+                            <span>Shortlinks</span>
                         </Link>
 
                         <Separator />
