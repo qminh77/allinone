@@ -14,7 +14,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
 export default async function ShortlinkRedirectPage({ params }: { params: { slug: string } }) {
     const { slug } = await params
-    const data = await getPublicShortlink(slug)
+    const data = await getPublicShortlink(slug) as {
+        id: string
+        target_url: string
+        password_hash: string | null
+        expires_at: string | null
+        clicks: number
+    } | null
 
     if (!data) {
         notFound()
