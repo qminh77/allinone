@@ -155,3 +155,60 @@ export async function performHeaderLookup(url: string) {
         return { error: `Lookup failed: ${error.message}` }
     }
 }
+
+import * as cheerio from 'cheerio'
+
+export async function performMetaTagLookup(url: string) {
+    if (!url) return { error: 'URL is required' }
+
+    try {
+        let targetUrl = url.trim()
+        if (!/^https?:\/\//i.test(targetUrl)) {
+            targetUrl = 'https://' + targetUrl
+        }
+
+        const res = await fetch(targetUrl, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; UmtersBot/1.0; +https://umters.club)'
+            }
+        })
+
+        if (!res.ok) {
+            return { error: `Failed to fetch URL: ${res.status} ${res.statusText}` }
+        }
+
+        const html = await res.text()
+        const $ = cheerio.load(html)
+
+        const data = {
+            title: $('title').text() || $('meta[property="og:title"]').attr('content') || '',
+            description: $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '',
+            keywords: $('meta[name="keywords"]').attr('content') || '',
+            og: {
+                title: $('meta[property="og:title"]').attr('content'),
+                description: $('meta[property="og:description"]').attr('content'),
+                image: $('meta[property="og:image"]').attr('content'),
+                url: $('meta[property="og:url"]').attr('content'),
+                site_name: $('meta[property="og:site_name"]').attr('content'),
+                type: $('meta[property="og:type"]').attr('content'),
+            },
+            twitter: {
+                card: $('meta[name="twitter:card"]').attr('content'),
+                title: $('meta[name="twitter:title"]').attr('content'),
+                description: $('meta[name="twitter:description"]').attr('content'),
+                image: $('meta[name="twitter:image"]').attr('content'),
+                site: $('meta[name="twitter:site"]').attr('content'),
+            },
+            favicon: $('link[rel="icon"]').attr('href') || $('link[rel="shortcut icon"]').attr('href'),
+            canonical: $('link[rel="canonical"]').attr('href')
+        }
+
+        return {
+            success: true,
+            data
+        }
+    } catch (error: any) {
+        return { error: `Lookup failed: ${error.message}` }
+    }
+}

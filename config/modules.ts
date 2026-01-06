@@ -19,7 +19,15 @@ import {
     ArrowLeftRight,
     ListFilter,
     Globe2,
-    FileJson
+    FileJson,
+    Code,
+    Binary,
+    SeparatorHorizontal,
+    PenTool,
+    AlignLeft,
+    Thermometer,
+    Gauge,
+    HardDrive,
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -252,6 +260,114 @@ export const modules: Module[] = [
         description: 'Kiểm tra, định dạng (Beautify) và nén (Minify) mã JSON.',
         href: '/tools/json-validator',
         icon: FileJson,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'meta-tag-checker',
+        name: 'Meta Tag Checker',
+        description: 'Phân tích thẻ Meta, SEO và Social Media.',
+        href: '/tools/meta-tag-checker',
+        icon: Search,
+        category: 'Network',
+        isNew: true
+    },
+    {
+        key: 'sql-formatter',
+        name: 'SQL Formatter',
+        description: 'Định dạng và làm đẹp câu lệnh SQL (Beautify).',
+        href: '/tools/sql-formatter',
+        icon: Server, // Reuse Server or Database if imported, else fallback
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'html-entity-converter',
+        name: 'HTML Entity Converter',
+        description: 'Chuyển đổi ký tự đặc biệt sang HTML Entities.',
+        href: '/tools/html-entity-converter',
+        icon: Code,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'binary-converter',
+        name: 'Binary Converter',
+        description: 'Chuyển đổi văn bản sang nhị phân (010101).',
+        href: '/tools/binary-converter',
+        icon: Binary,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'text-separator',
+        name: 'Text Separator',
+        description: 'Tách hoặc gộp danh sách văn bản theo ký tự.',
+        href: '/tools/text-separator',
+        icon: SeparatorHorizontal,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'hex-converter',
+        name: 'Hex Converter',
+        description: 'Chuyển đổi Hex, Decimal và Text.',
+        href: '/tools/hex-converter',
+        icon: Hash,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'signature-generator',
+        name: 'Signature Generator',
+        description: 'Tạo chữ ký điện tử (Digital Signature) online.',
+        href: '/tools/signature-generator',
+        icon: PenTool,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'lorem-ipsum-generator',
+        name: 'Lorem Ipsum Generator',
+        description: 'Tạo văn bản giả (Dummy Text) Lorem Ipsum.',
+        href: '/tools/lorem-ipsum-generator',
+        icon: AlignLeft,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'temperature-converter',
+        name: 'Temperature Converter',
+        description: 'Chuyển đổi nhiệt độ (Celsius, Fahrenheit, Kelvin).',
+        href: '/tools/temperature-converter',
+        icon: Thermometer,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'speed-converter',
+        name: 'Speed Converter',
+        description: 'Chuyển đổi vận tốc (MPH <-> KPH).',
+        href: '/tools/speed-converter',
+        icon: Gauge,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'roman-numeral-converter',
+        name: 'Roman Numeral Converter',
+        description: 'Chuyển đổi số La Mã (Roman Numerals) và số tự nhiên.',
+        href: '/tools/roman-numeral-converter',
+        icon: Hash, // Reusing Hash or bring in Type/Hash
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'data-converter',
+        name: 'Data Unit Converter',
+        description: 'Chuyển đổi đơn vị dữ liệu (Bits, Bytes, KB, MB, GB, TB, KiB, MiB...).',
+        href: '/tools/data-converter',
+        icon: HardDrive,
         category: 'Utilities',
         isNew: true
     }
