@@ -11,7 +11,8 @@ import {
     Lock,
     KeyRound,
     Link,
-    MonitorSmartphone
+    MonitorSmartphone,
+    Server
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -173,6 +174,15 @@ export const modules: Module[] = [
         href: '/tools/user-agent-parser',
         icon: MonitorSmartphone,
         category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'hosting-checker',
+        name: 'Hosting Checker',
+        description: 'Kiểm tra nhà cung cấp Hosting (ISP) và vị trí máy chủ của website.',
+        href: '/tools/hosting-checker',
+        icon: Server,
+        category: 'Network',
         isNew: true
     }
 ]
