@@ -137,6 +137,33 @@ export const modules: Module[] = [
         icon: Link,
         category: 'Utilities',
         isNew: true
+    },
+    {
+        key: 'html-minifier',
+        name: 'HTML Minifier',
+        description: 'Tối ưu hóa và nén mã HTML (remove whitespace/comments).',
+        href: '/tools/html-minifier',
+        icon: FileCode,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'css-minifier',
+        name: 'CSS Minifier',
+        description: 'Nén mã CSS/StyleSheet để tối ưu tốc độ tải trang.',
+        href: '/tools/css-minifier',
+        icon: FileCode, // Or Palette if imported
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'js-minifier',
+        name: 'JS Minifier',
+        description: 'Nén và tối ưu mã JavaScript (Basic Minification).',
+        href: '/tools/js-minifier',
+        icon: FileCode, // Or Braces if imported
+        category: 'Utilities',
+        isNew: true
     }
 ]
 

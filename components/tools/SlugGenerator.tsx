@@ -27,11 +27,13 @@ export function SlugGenerator() {
             result = result.toLowerCase()
         }
 
+        const actualSeparator = separator === 'none' ? '' : separator
+
         result = result
             .replace(/[^a-z0-9\s-]/gi, '') // Remove special characters
             .trim()
-            .replace(/\s+/g, separator) // Replace spaces with separator
-            .replace(new RegExp(`\\${separator}+`, 'g'), separator) // Remove duplicate separators
+            .replace(/\s+/g, actualSeparator) // Replace spaces with separator
+            .replace(new RegExp(`\\${actualSeparator}+`, 'g'), actualSeparator) // Remove duplicate separators
 
         setSlug(result)
     }
@@ -81,7 +83,7 @@ export function SlugGenerator() {
                                     <SelectItem value="-">Gạch ngang (-)</SelectItem>
                                     <SelectItem value="_">Gạch dưới (_)</SelectItem>
                                     <SelectItem value=".">Dấu chấm (.)</SelectItem>
-                                    <SelectItem value="">Không có khoảng cách</SelectItem>
+                                    <SelectItem value="none">Không có khoảng cách</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -58,77 +58,79 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                 </Link>
             </div>
 
-            <ScrollArea className="flex-1 py-4">
-                <div className="space-y-4 px-3">
-                    {/* Dashboard/Overview Link */}
-                    <Link
-                        href="/dashboard"
-                        className={cn(
-                            'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                            pathname === '/dashboard'
-                                ? 'bg-primary/10 text-primary'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                        )}
-                    >
-                        <LayoutDashboard className="h-4 w-4" />
-                        <span>Tổng quan</span>
-                    </Link>
+            <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full">
+                    <div className="space-y-4 px-3 py-4">
+                        {/* Dashboard/Overview Link */}
+                        <Link
+                            href="/dashboard"
+                            className={cn(
+                                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                pathname === '/dashboard'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            )}
+                        >
+                            <LayoutDashboard className="h-4 w-4" />
+                            <span>Tổng quan</span>
+                        </Link>
 
-                    <Separator />
+                        <Separator />
 
-                    {/* Generic Categories */}
-                    {categories.map(cat => {
-                        const catModules = modulesByCategory[cat.key]
-                        if (!catModules || catModules.length === 0) return null
+                        {/* Generic Categories */}
+                        {categories.map(cat => {
+                            const catModules = modulesByCategory[cat.key]
+                            if (!catModules || catModules.length === 0) return null
 
-                        return (
-                            <Collapsible
-                                key={cat.key}
-                                open={openCategories[cat.key]}
-                                onOpenChange={() => toggleCategory(cat.key)}
-                                className="space-y-1"
-                            >
-                                <CollapsibleTrigger className="flex w-full items-center justify-between py-2 px-3 text-sm font-semibold hover:bg-muted/50 rounded-md transition-colors">
-                                    <span className="text-muted-foreground uppercase text-xs tracking-wider">{cat.name}</span>
-                                    <ChevronRight className={cn("h-4 w-4 transition-transform duration-200 text-muted-foreground", openCategories[cat.key] && "rotate-90")} />
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-1 pt-1">
-                                    {catModules.map((item) => {
-                                        const isActive = pathname === item.href
-                                        const Icon = item.icon
+                            return (
+                                <Collapsible
+                                    key={cat.key}
+                                    open={openCategories[cat.key]}
+                                    onOpenChange={() => toggleCategory(cat.key)}
+                                    className="space-y-1"
+                                >
+                                    <CollapsibleTrigger className="flex w-full items-center justify-between py-2 px-3 text-sm font-semibold hover:bg-muted/50 rounded-md transition-colors">
+                                        <span className="text-muted-foreground uppercase text-xs tracking-wider">{cat.name}</span>
+                                        <ChevronRight className={cn("h-4 w-4 transition-transform duration-200 text-muted-foreground", openCategories[cat.key] && "rotate-90")} />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="space-y-1 pt-1">
+                                        {catModules.map((item) => {
+                                            const isActive = pathname === item.href
+                                            const Icon = item.icon
 
-                                        const linkContent = (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                className={cn(
-                                                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-6', // Indent items
-                                                    isActive
-                                                        ? 'bg-primary/10 text-primary font-medium'
-                                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                                )}
-                                            >
-                                                <Icon className="h-4 w-4" />
-                                                <span>{item.name}</span>
-                                            </Link>
-                                        )
-
-                                        if (item.permission) {
-                                            return (
-                                                <ProtectedFeature key={item.href} permission={item.permission as PermissionKey}>
-                                                    {linkContent}
-                                                </ProtectedFeature>
+                                            const linkContent = (
+                                                <Link
+                                                    key={item.href}
+                                                    href={item.href}
+                                                    className={cn(
+                                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-6', // Indent items
+                                                        isActive
+                                                            ? 'bg-primary/10 text-primary font-medium'
+                                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                                    )}
+                                                >
+                                                    <Icon className="h-4 w-4" />
+                                                    <span>{item.name}</span>
+                                                </Link>
                                             )
-                                        }
 
-                                        return linkContent
-                                    })}
-                                </CollapsibleContent>
-                            </Collapsible>
-                        )
-                    })}
-                </div>
-            </ScrollArea>
+                                            if (item.permission) {
+                                                return (
+                                                    <ProtectedFeature key={item.href} permission={item.permission as PermissionKey}>
+                                                        {linkContent}
+                                                    </ProtectedFeature>
+                                                )
+                                            }
+
+                                            return linkContent
+                                        })}
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )
+                        })}
+                    </div>
+                </ScrollArea>
+            </div>
         </div>
     )
 }
