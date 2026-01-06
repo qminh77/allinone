@@ -9,7 +9,8 @@ import {
     FileCode,
     Key,
     Lock,
-    KeyRound
+    KeyRound,
+    Link
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -125,6 +126,15 @@ export const modules: Module[] = [
         description: 'Tạo mật khẩu mạnh ngẫu nhiên (Strong Password).',
         href: '/tools/password-generator',
         icon: KeyRound,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'slug-generator',
+        name: 'Slug Generator',
+        description: 'Tạo URL Slug thân thiện SEO từ văn bản.',
+        href: '/tools/slug-generator',
+        icon: Link,
         category: 'Utilities',
         isNew: true
     }
