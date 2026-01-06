@@ -71,14 +71,14 @@ export async function updatePermission(id: string, formData: FormData) {
     const module = formData.get('module') as string
 
     const supabase = await createClient()
-    const { error } = await supabase
+    const { error } = await (supabase
         .from('permissions' as any)
         .update({
             name,
             description: description || null,
             module: module || null
         } as any)
-        .eq('id', id)
+        .eq('id', id) as any)
 
     if (error) return { error: error.message }
 
