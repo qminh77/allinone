@@ -56,3 +56,35 @@ export async function performDnsLookup(domain: string, type: DnsRecordType = 'A'
         return { error: `Lookup failed: ${error.code || error.message}` }
     }
 }
+
+export async function performIpLookup(query: string = '') {
+    try {
+        // Validation: slightly loose to allow domains which the API might handle, 
+        // but robust enough to prevent obvious injection or massive strings.
+        if (query && query.length > 255) {
+            return { error: 'Input too long' }
+        }
+
+        // api-ip.com endpoint
+        const response = await fetch(`http://ip-api.com/json/${query}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`, {
+            // Cache for a bit to be nice to the free API
+            next: { revalidate: 3600 }
+        })
+
+        if (!response.ok) {
+            return { error: `API Error: ${response.statusText}` }
+        }
+
+        const data = await response.json()
+
+        if (data.status === 'fail') {
+            return { error: `Lookup failed: ${data.message}` }
+        }
+
+        return { success: true, data }
+
+    } catch (error: any) {
+        return { error: `System Error: ${error.message}` }
+    }
+}
+

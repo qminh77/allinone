@@ -13,7 +13,7 @@ export default async function AdminRolesPage() {
     const supabase = await createClient()
 
     // Fetch roles with permission and user counts
-    const { data: roles } = await supabase
+    const { data: roles } = (await supabase
         .from('roles')
         .select(`
             *,
@@ -21,7 +21,7 @@ export default async function AdminRolesPage() {
             user_profiles(count)
         `)
         .order('is_system', { ascending: false })
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false })) as { data: any[] | null }
 
     // Calculate stats
     const totalRoles = roles?.length || 0

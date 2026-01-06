@@ -14,8 +14,8 @@ export async function PATCH(request: NextRequest) {
         const { key, value } = await request.json() as { key: string, value: Database['public']['Tables']['settings']['Row']['value'] }
 
         // Update setting
-        const { error } = await supabase
-            .from('settings')
+        const { error } = await (supabase
+            .from('settings') as any)
             .update({
                 value,
                 updated_at: new Date().toISOString(),
@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest) {
         // Log audit
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-            await supabase.from('audit_logs').insert({
+            await (supabase.from('audit_logs') as any).insert({
                 user_id: user.id,
                 action: 'settings.update',
                 metadata: { key, value },

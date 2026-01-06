@@ -25,10 +25,11 @@ export default async function DashboardLayout({
                     email: user.email,
                     fullName: profile?.full_name,
                 }}
+                enabledModules={enabledModules}
             />
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar enabledModules={enabledModules} />
-                <main className="flex-1 overflow-y-auto p-6">
+                <main className="flex-1 overflow-y-auto p-6 md:pl-64 transition-all duration-300">
                     {children}
                 </main>
             </div>

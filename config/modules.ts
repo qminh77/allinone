@@ -1,6 +1,8 @@
 import {
     Globe,
-    Search
+    Search,
+    MapPin,
+    ShieldCheck
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -27,6 +29,25 @@ export const modules: Module[] = [
         category: 'Network',
         isNew: true,
         isPopular: true
+    },
+    {
+        key: 'ip-lookup',
+        name: 'IP Lookup',
+        description: 'Tra cứu thông tin địa chỉ IP (ISP, Vị trí, ASN) chi tiết.',
+        href: '/tools/ip-lookup',
+        icon: MapPin,
+        category: 'Network',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'ssl-lookup',
+        name: 'SSL Lookup',
+        description: 'Kiểm tra thông tin chứng chỉ SSL/TLS và thời hạn sử dụng.',
+        href: '/tools/ssl-lookup',
+        icon: ShieldCheck,
+        category: 'Utilities',
+        isNew: true
     }
 ]
 

@@ -21,11 +21,11 @@ import {
 export default async function AdminPermissionsPage() {
     const supabase = await createClient()
 
-    const { data: permissions } = await supabase
+    const { data: permissions } = (await supabase
         .from('permissions')
         .select('*')
         .order('module', { ascending: true })
-        .order('key', { ascending: true })
+        .order('key', { ascending: true })) as { data: any[] | null }
 
     // Group permissions by module
     const permissionsByModule: Record<string, any[]> = {}

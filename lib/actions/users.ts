@@ -53,8 +53,8 @@ export async function updateUser(data: z.infer<typeof UpdateUserSchema>) {
     if (data.isActive !== undefined) updates.is_active = data.isActive
     if (data.roleId) updates.role_id = data.roleId
 
-    const { error } = await supabase
-        .from('user_profiles')
+    const { error } = await (supabase
+        .from('user_profiles') as any)
         .update(updates)
         .eq('id', data.id)
 
@@ -68,8 +68,8 @@ export async function deleteUser(userId: string) {
     const supabase = (await createClient()) as SupabaseClient<Database>
 
     // We can soft delete or deactivate
-    const { error } = await supabase
-        .from('user_profiles')
+    const { error } = await (supabase
+        .from('user_profiles') as any)
         .update({ is_active: false })
         .eq('id', userId)
 

@@ -21,12 +21,12 @@ interface LogItemProps {
     log: {
         id: string
         action: string
-        resource_type?: string
-        metadata?: any
-        ip_address?: string
-        user_agent?: string
+        resource_type: string | null
+        metadata: any
+        ip_address: string | null
+        user_agent: string | null
         created_at: string
-        user_id?: string
+        user_id: string | null
     }
 }
 
