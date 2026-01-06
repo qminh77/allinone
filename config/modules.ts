@@ -32,9 +32,12 @@ import {
     Scissors,
     FileSpreadsheet, // Added for Table/Excel tools
     Database, // Added for SQL tools
+    Files, // Added for PDF tools
+    Image as ImageIcon,
+    FileDown,
 } from 'lucide-react'
 
-export type ModuleCategory = 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki'
+export type ModuleCategory = 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF'
 
 export interface Module {
     key: string
@@ -392,6 +395,46 @@ export const modules: Module[] = [
         href: '/dashboard/mail',
         icon: Mail,
         category: 'Utilities',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'merge-pdf',
+        name: 'Merge PDF',
+        description: 'Ghép nhiều file PDF thành một file duy nhất.',
+        href: '/tools/merge-pdf',
+        icon: Files, // Using Files icon for PDF
+        category: 'PDF',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'split-pdf',
+        name: 'Split PDF',
+        description: 'Chia nhỏ file PDF hoặc trích xuất các trang cụ thể.',
+        href: '/tools/split-pdf',
+        icon: Scissors,
+        category: 'PDF',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'pdf-to-image',
+        name: 'PDF to Image',
+        description: 'Chuyển đổi các trang PDF thành hình ảnh (PNG).',
+        href: '/tools/pdf-to-image',
+        icon: ImageIcon,
+        category: 'PDF',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'image-to-pdf',
+        name: 'Image to PDF',
+        description: 'Chuyển đổi hình ảnh (PNG, JPG) thành file PDF.',
+        href: '/tools/image-to-pdf',
+        icon: FileDown,
+        category: 'PDF',
         isNew: true,
         isPopular: true
     },
@@ -795,5 +838,6 @@ export const categories: { key: ModuleCategory; name: string }[] = [
     { key: 'XML', name: 'XML Converter' },
     { key: 'MySQL', name: 'MySQL Converter' },
     { key: 'MediaWiki', name: 'MediaWiki Converter' },
+    { key: 'PDF', name: 'PDF Tools' },
 ]
 

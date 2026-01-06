@@ -128,6 +128,50 @@ export default async function ToolPage({ params }: PageProps) {
         )
     }
 
+    if (module.key === 'merge-pdf') {
+        const { MergePDF } = await import('@/components/tools/pdf/MergePDF') // Dynamic import to avoid heavy bundle if not used
+        return (
+            <MergePDF
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key === 'split-pdf') {
+        const { SplitPDF } = await import('@/components/tools/pdf/SplitPDF')
+        return (
+            <SplitPDF
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key === 'pdf-to-image') {
+        const { PDFToImage } = await import('@/components/tools/pdf/PDFToImage')
+        return (
+            <PDFToImage
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key === 'image-to-pdf') {
+        const { ImageToPDF } = await import('@/components/tools/pdf/ImageToPDF')
+        return (
+            <ImageToPDF
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
     return notFound()
 }
 
@@ -143,7 +187,8 @@ export function generateStaticParams() {
             'LaTeX',
             'XML',
             'MySQL',
-            'MediaWiki'
+            'MediaWiki',
+            'PDF'
         ].includes(m.category))
         .map(m => ({
             slug: m.key
