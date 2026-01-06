@@ -118,7 +118,7 @@ export async function getPublicShortlink(slug: string) {
 
 export async function incrementClicks(id: string) {
     const supabase = await createClient()
-    await supabase.rpc('increment_clicks', { row_id: id })
+    await supabase.rpc('increment_clicks' as any, { row_id: id } as any)
     // Need RPC or just update? Update is easier if RLS allows public update (unsafe).
     // Better: use direct update with service role OR just ignore click count for now 
     // since public policy is SELECT only.
@@ -135,10 +135,10 @@ export async function verifyShortlinkPassword(slug: string, passwordInput: strin
         .eq('slug', slug)
         .single()
 
-    if (!data || !data.password_hash) return { error: 'Invalid link' }
+    if (!data || !(data as any).password_hash) return { error: 'Invalid link' }
 
-    const isValid = await bcrypt.compare(passwordInput, data.password_hash)
+    const isValid = await bcrypt.compare(passwordInput, (data as any).password_hash)
     if (!isValid) return { error: 'Incorrect Password' }
 
-    return { success: true, url: data.target_url }
+    return { success: true, url: (data as any).target_url }
 }
