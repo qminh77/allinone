@@ -14,7 +14,8 @@ import {
     MonitorSmartphone,
     Server,
     Type,
-    Link2
+    Link2,
+    Palette
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -202,6 +203,15 @@ export const modules: Module[] = [
         description: 'Phân tích URL thành các thành phần: Protocol, Host, Path, Query Params...',
         href: '/tools/url-parser',
         icon: Link2,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'color-converter',
+        name: 'Color Converter',
+        description: 'Chuyển đổi mã màu giữa các định dạng Hex, RGB, HSL, CMYK.',
+        href: '/tools/color-converter',
+        icon: Palette,
         category: 'Utilities',
         isNew: true
     }
