@@ -3,7 +3,8 @@ import {
     Search,
     MapPin,
     ShieldCheck,
-    FileText
+    FileText,
+    Activity
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -57,6 +58,15 @@ export const modules: Module[] = [
         href: '/tools/whois-lookup',
         icon: FileText,
         category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'ping-tool',
+        name: 'Ping & Port',
+        description: 'Kiểm tra trạng thái Website (HTTP Ping) và Open Port.',
+        href: '/tools/ping',
+        icon: Activity,
+        category: 'Network',
         isNew: true
     }
 ]
