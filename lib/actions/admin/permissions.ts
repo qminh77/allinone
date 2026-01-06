@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
@@ -5,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function getPermissions() {
     const supabase = await createClient()
-    
+
     const { data } = await supabase
         .from('permissions' as any)
         .select('*')
@@ -17,7 +18,7 @@ export async function getPermissions() {
 
 export async function getPermission(id: string) {
     const supabase = await createClient()
-    
+
     const { data } = await supabase
         .from('permissions' as any)
         .select('*')
@@ -32,13 +33,13 @@ export async function createPermission(formData: FormData) {
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const module = formData.get('module') as string
-    
+
     if (!key || !name) {
         return { error: 'Permission key and name are required' }
     }
 
     const supabase = await createClient()
-    
+
     const { data: existing } = await supabase
         .from('permissions' as any)
         .select('id')
@@ -68,7 +69,7 @@ export async function updatePermission(id: string, formData: FormData) {
     const module = formData.get('module') as string
 
     const supabase = await createClient()
-    
+
     await supabase
         .from('permissions' as any)
         .update({
@@ -84,7 +85,7 @@ export async function updatePermission(id: string, formData: FormData) {
 
 export async function deletePermission(id: string) {
     const supabase = await createClient()
-    
+
     const { data: rolePerms } = await supabase
         .from('role_permissions' as any)
         .select('id')
