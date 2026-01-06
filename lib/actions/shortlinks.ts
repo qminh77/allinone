@@ -43,7 +43,7 @@ export async function createShortlink(formData: FormData) {
 
     // 2. Duplicate Check
     const { data: existing } = await supabase
-        .from('shortlinks')
+        .from('shortlinks' as any)
         .select('slug')
         .eq('slug', slug)
         .single()
@@ -59,13 +59,13 @@ export async function createShortlink(formData: FormData) {
     }
 
     // 4. Insert
-    const { error } = await supabase.from('shortlinks').insert({
+    const { error } = await supabase.from('shortlinks' as any).insert({
         user_id: user.id,
         slug,
         target_url: targetUrl,
         password_hash: passwordHash,
         expires_at: expiresAt || null
-    })
+    } as any)
 
     if (error) return { error: error.message }
 
@@ -79,7 +79,7 @@ export async function deleteShortlink(id: string) {
     if (!user) return { error: 'Unauthorized' }
 
     const { error } = await supabase
-        .from('shortlinks')
+        .from('shortlinks' as any)
         .delete()
         .eq('id', id)
         .eq('user_id', user.id)
@@ -95,7 +95,7 @@ export async function getShortlinks() {
     if (!user) return []
 
     const { data } = await supabase
-        .from('shortlinks')
+        .from('shortlinks' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -108,7 +108,7 @@ export async function getPublicShortlink(slug: string) {
     const supabase = await createClient()
 
     const { data } = await supabase
-        .from('shortlinks')
+        .from('shortlinks' as any)
         .select('id, target_url, password_hash, expires_at, clicks')
         .eq('slug', slug)
         .single()
@@ -130,7 +130,7 @@ export async function incrementClicks(id: string) {
 export async function verifyShortlinkPassword(slug: string, passwordInput: string) {
     const supabase = await createClient()
     const { data } = await supabase
-        .from('shortlinks')
+        .from('shortlinks' as any)
         .select('target_url, password_hash')
         .eq('slug', slug)
         .single()
