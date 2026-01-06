@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 export async function getPermissions() {
     const supabase = await createClient()
-
+    
     const { data } = await supabase
         .from('permissions' as any)
         .select('*')
@@ -17,7 +17,7 @@ export async function getPermissions() {
 
 export async function getPermission(id: string) {
     const supabase = await createClient()
-
+    
     const { data } = await supabase
         .from('permissions' as any)
         .select('*')
@@ -32,14 +32,13 @@ export async function createPermission(formData: FormData) {
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const module = formData.get('module') as string
-
+    
     if (!key || !name) {
         return { error: 'Permission key and name are required' }
     }
 
     const supabase = await createClient()
-
-    // Check if key already exists
+    
     const { data: existing } = await supabase
         .from('permissions' as any)
         .select('id')
@@ -50,7 +49,7 @@ export async function createPermission(formData: FormData) {
         return { error: 'Permission key already exists' }
     }
 
-    const { error } = await supabase
+    await supabase
         .from('permissions' as any)
         .insert({
             key,
@@ -58,8 +57,6 @@ export async function createPermission(formData: FormData) {
             description: description || null,
             module: module || null
         } as any)
-
-    if (error) return { error: error.message }
 
     revalidatePath('/admin/permissions')
     return { success: true }
@@ -71,16 +68,15 @@ export async function updatePermission(id: string, formData: FormData) {
     const module = formData.get('module') as string
 
     const supabase = await createClient()
-    const { error } = await (supabase
+    
+    await supabase
         .from('permissions' as any)
         .update({
             name,
             description: description || null,
             module: module || null
         } as any)
-        .eq('id', id) as any)
-
-    if (error) return { error: error.message }
+        .eq('id', id)
 
     revalidatePath('/admin/permissions')
     return { success: true }
@@ -88,8 +84,7 @@ export async function updatePermission(id: string, formData: FormData) {
 
 export async function deletePermission(id: string) {
     const supabase = await createClient()
-
-    // Check if permission is in use
+    
     const { data: rolePerms } = await supabase
         .from('role_permissions' as any)
         .select('id')
@@ -100,12 +95,10 @@ export async function deletePermission(id: string) {
         return { error: 'Cannot delete permission assigned to roles' }
     }
 
-    const { error } = await supabase
+    await supabase
         .from('permissions' as any)
         .delete()
         .eq('id', id)
-
-    if (error) return { error: error.message }
 
     revalidatePath('/admin/permissions')
     return { success: true }

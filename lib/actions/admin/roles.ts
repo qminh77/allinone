@@ -76,15 +76,14 @@ export async function updateRole(id: string, formData: FormData) {
     const description = formData.get('description') as string
 
     const supabase = await createClient()
-    const { error } = await (supabase
+
+    await supabase
         .from('roles' as any)
         .update({
             name,
             description: description || null
         } as any)
-        .eq('id', id) as any)
-
-    if (error) return { error: error.message }
+        .eq('id', id)
 
     revalidatePath('/admin/roles')
     return { success: true }
