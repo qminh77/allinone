@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ProtectedFeature } from '@/components/auth/ProtectedFeature'
-import { LayoutDashboard, ChevronRight, Command, Link as LinkIcon } from 'lucide-react'
+import { LayoutDashboard, ChevronRight, Command, Link as LinkIcon, Mail, Send, Settings2, History } from 'lucide-react'
 import { modules, categories } from '@/config/modules'
 import { PermissionKey } from '@/types/permissions'
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -26,7 +26,8 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
         'General': true,
         'Network': true,
-        'Utilities': true
+        'Utilities': true,
+        'MailSystem': true
     })
 
     const toggleCategory = (key: string) => {
@@ -79,7 +80,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                             href="/dashboard/shortlinks"
                             className={cn(
                                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                                pathname === '/dashboard/shortlinks'
+                                pathname.startsWith('/dashboard/shortlinks')
                                     ? 'bg-primary/10 text-primary'
                                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                             )}
@@ -87,6 +88,59 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                             <LinkIcon className="h-4 w-4" />
                             <span>Shortlinks</span>
                         </Link>
+
+                        {/* Mail System */}
+                        <Collapsible
+                            open={openCategories['MailSystem']}
+                            onOpenChange={() => toggleCategory('MailSystem')}
+                            className="space-y-1"
+                        >
+                            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 px-3 text-sm font-semibold hover:bg-muted/50 rounded-md transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <Mail className="h-4 w-4" />
+                                    <span>Mail System</span>
+                                </div>
+                                <ChevronRight className={cn("h-4 w-4 transition-transform duration-200 text-muted-foreground", openCategories['MailSystem'] && "rotate-90")} />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="space-y-1 pt-1">
+                                <Link
+                                    href="/dashboard/mail/send"
+                                    className={cn(
+                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
+                                        pathname === '/dashboard/mail/send'
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    )}
+                                >
+                                    <Send className="h-4 w-4" />
+                                    <span>Gửi Mail</span>
+                                </Link>
+                                <Link
+                                    href="/dashboard/mail/accounts"
+                                    className={cn(
+                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
+                                        pathname === '/dashboard/mail/accounts'
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    )}
+                                >
+                                    <Settings2 className="h-4 w-4" />
+                                    <span>Tài khoản</span>
+                                </Link>
+                                <Link
+                                    href="/dashboard/mail/history"
+                                    className={cn(
+                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
+                                        pathname === '/dashboard/mail/history'
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    )}
+                                >
+                                    <History className="h-4 w-4" />
+                                    <span>Lịch sử</span>
+                                </Link>
+                            </CollapsibleContent>
+                        </Collapsible>
 
                         <Separator />
 

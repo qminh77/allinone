@@ -227,6 +227,38 @@ export interface Database {
           storage_path?: string | null
         }
       }
+      shortlinks: {
+        Row: {
+          id: string
+          user_id: string
+          slug: string
+          target_url: string
+          password_hash: string | null
+          expires_at: string | null
+          clicks: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          slug: string
+          target_url: string
+          password_hash?: string | null
+          expires_at?: string | null
+          clicks?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          slug?: string
+          target_url?: string
+          password_hash?: string | null
+          expires_at?: string | null
+          clicks?: number
+          created_at?: string
+        }
+      }
     }
   }
 }
@@ -240,3 +272,4 @@ export type Module = Database['public']['Tables']['modules']['Row']
 export type Setting = Database['public']['Tables']['settings']['Row']
 export type AuditLog = Database['public']['Tables']['audit_logs']['Row']
 export type Backup = Database['public']['Tables']['backups']['Row']
+export type Shortlink = Database['public']['Tables']['shortlinks']['Row']
