@@ -5,6 +5,11 @@ import { JsonConverter } from '@/components/tools/JsonConverter'
 import { CsvConverter } from '@/components/tools/CsvConverter'
 import { MarkdownConverter } from '@/components/tools/MarkdownConverter'
 import { HtmlConverter } from '@/components/tools/HtmlConverter'
+import { SqlConverter } from '@/components/tools/SqlConverter'
+import { LatexConverter } from '@/components/tools/LatexConverter'
+import { XmlConverter } from '@/components/tools/XmlConverter'
+import { MysqlConverter } from '@/components/tools/MysqlConverter'
+import { MediawikiConverter } from '@/components/tools/MediawikiConverter'
 
 interface PageProps {
     params: Promise<{
@@ -73,12 +78,73 @@ export default async function ToolPage({ params }: PageProps) {
         )
     }
 
+    if (module.key.startsWith('sql-to-')) {
+        return (
+            <SqlConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key.startsWith('latex-to-')) {
+        return (
+            <LatexConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key.startsWith('xml-to-')) {
+        return (
+            <XmlConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key.startsWith('mysql-to-')) {
+        return (
+            <MysqlConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key.startsWith('mediawiki-to-')) {
+        return (
+            <MediawikiConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
     return notFound()
 }
 
 export function generateStaticParams() {
     return modules
-        .filter(m => ['Table', 'JSON', 'CSV', 'Markdown', 'HTML'].includes(m.category))
+        .filter(m => [
+            'Table',
+            'JSON',
+            'CSV',
+            'Markdown',
+            'HTML',
+            'SQL',
+            'LaTeX',
+            'XML',
+            'MySQL',
+            'MediaWiki'
+        ].includes(m.category))
         .map(m => ({
             slug: m.key
         }))
