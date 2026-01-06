@@ -54,7 +54,7 @@ export function UserList({ users, onEdit, onImport, onAdd }: UserListProps) {
         }
     }
 
-    const handleResetPassword = async (id: string, name: string) {
+    const handleResetPassword = async (id: string, name: string) => {
         if (!confirm(`Reset mật khẩu cho "${name}"?`)) return
 
         const result = await resetPassword(id)

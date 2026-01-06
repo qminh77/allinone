@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getUsers } from '@/lib/actions/admin/users'
 import { UserManagement } from '@/components/admin/users/UserManagement'
-import ToolShell from '@/components/dashboard/ToolShell'
+import { ToolShell } from '@/components/dashboard/ToolShell'
+import { Users } from 'lucide-react'
 
 export default async function UsersPage() {
     const supabase = await createClient()
@@ -35,6 +36,7 @@ export default async function UsersPage() {
         <ToolShell
             title="Quản lý người dùng"
             description="Thêm, sửa, xóa người dùng và quản lý quyền truy cập"
+            icon={Users}
         >
             <UserManagement users={users} roles={roles || []} />
         </ToolShell>

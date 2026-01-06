@@ -54,7 +54,7 @@ export function UserForm({ open, onClose, user, roles }: UserFormProps) {
         if (result.error) {
             toast.error(result.error)
         } else {
-            if (result.tempPassword) {
+            if ('tempPassword' in result && result.tempPassword) {
                 setTempPassword(result.tempPassword)
                 toast.success('Đã tạo người dùng thành công!')
             } else {
