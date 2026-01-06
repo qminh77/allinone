@@ -7,7 +7,8 @@ import {
     Activity,
     Hash,
     FileCode,
-    Key
+    Key,
+    Lock
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -105,6 +106,15 @@ export const modules: Module[] = [
         description: 'Tạo mã UUID v4 ngẫu nhiên (Bulk supported).',
         href: '/tools/uuid-generator',
         icon: Key,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'bcrypt-generator',
+        name: 'Bcrypt Generator',
+        description: 'Tạo mã băm Bcrypt và kiểm tra mật khẩu.',
+        href: '/tools/bcrypt-generator',
+        icon: Lock,
         category: 'Utilities',
         isNew: true
     }
