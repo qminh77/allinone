@@ -16,7 +16,7 @@ import { Loader2, Plus } from 'lucide-react'
 const formSchema = z.object({
     name: z.string().min(1, 'Tên cấu hình là bắt buộc'),
     host: z.string().min(1, 'Host là bắt buộc'),
-    port: z.string().transform((v) => parseInt(v, 10)).pipe(z.number().min(1)),
+    port: z.coerce.number().min(1, 'Port phải lớn hơn 0'),
     secure: z.boolean().default(false),
     username: z.string().optional(),
     password: z.string().optional(),
