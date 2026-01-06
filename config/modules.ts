@@ -5,7 +5,8 @@ import {
     ShieldCheck,
     FileText,
     Activity,
-    Hash
+    Hash,
+    FileCode
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -76,6 +77,15 @@ export const modules: Module[] = [
         description: 'Công cụ tạo mã MD5 Hash nhanh chóng.',
         href: '/tools/md5-generator',
         icon: Hash,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'base64-converter',
+        name: 'Base64 Converter',
+        description: 'Mã hóa và giải mã Base64 (Encode/Decode).',
+        href: '/tools/base64-converter',
+        icon: FileCode,
         category: 'Utilities',
         isNew: true
     }
