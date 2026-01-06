@@ -9,7 +9,6 @@ export async function getSmtpConfigs() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    // @ts-ignore
     const { data } = await supabase
         .from('smtp_configs')
         .select('*')
@@ -36,7 +35,6 @@ export async function createSmtpConfig(formData: FormData) {
         return { error: 'Missing required fields' }
     }
 
-    // @ts-ignore
     const { error } = await supabase.from('smtp_configs').insert({
         user_id: user.id,
         name,
@@ -58,7 +56,6 @@ export async function deleteSmtpConfig(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    // @ts-ignore
     const { error } = await supabase
         .from('smtp_configs')
         .delete()
@@ -85,7 +82,6 @@ export async function sendMailAction(formData: FormData) {
     }
 
     // 1. Get Config
-    // @ts-ignore
     const { data: config } = await supabase
         .from('smtp_configs')
         .select('*')
@@ -119,7 +115,6 @@ export async function sendMailAction(formData: FormData) {
         })
 
         // 4. Log Success
-        // @ts-ignore
         await supabase.from('mail_history').insert({
             user_id: user.id,
             config_id: config.id,
@@ -135,7 +130,6 @@ export async function sendMailAction(formData: FormData) {
     } catch (err: any) {
         console.error('Mail Send Error:', err)
         // Log Error
-        // @ts-ignore
         await supabase.from('mail_history').insert({
             user_id: user.id,
             config_id: config.id,
@@ -155,7 +149,6 @@ export async function getMailHistory() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    // @ts-ignore
     const { data } = await supabase
         .from('mail_history')
         .select(`

@@ -259,6 +259,82 @@ export interface Database {
           created_at?: string
         }
       }
+      smtp_configs: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          host: string
+          port: number
+          secure: boolean
+          username: string | null
+          password: string | null
+          from_email: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          host: string
+          port: number
+          secure?: boolean
+          username?: string | null
+          password?: string | null
+          from_email: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          host?: string
+          port?: number
+          secure?: boolean
+          username?: string | null
+          password?: string | null
+          from_email?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      mail_history: {
+        Row: {
+          id: string
+          user_id: string
+          config_id: string | null
+          recipients: string[]
+          subject: string
+          body: string | null
+          status: 'success' | 'failed'
+          error_message: string | null
+          sent_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          config_id?: string | null
+          recipients: string[]
+          subject: string
+          body?: string | null
+          status: 'success' | 'failed'
+          error_message?: string | null
+          sent_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          config_id?: string | null
+          recipients?: string[]
+          subject?: string
+          body?: string | null
+          status?: 'success' | 'failed'
+          error_message?: string | null
+          sent_at?: string
+        }
+      }
     }
   }
 }
@@ -273,3 +349,5 @@ export type Setting = Database['public']['Tables']['settings']['Row']
 export type AuditLog = Database['public']['Tables']['audit_logs']['Row']
 export type Backup = Database['public']['Tables']['backups']['Row']
 export type Shortlink = Database['public']['Tables']['shortlinks']['Row']
+export type SmtpConfig = Database['public']['Tables']['smtp_configs']['Row']
+export type MailHistory = Database['public']['Tables']['mail_history']['Row']

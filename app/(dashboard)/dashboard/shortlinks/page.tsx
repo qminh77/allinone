@@ -209,8 +209,8 @@ export default function ShortlinksPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex gap-2">
-                                                {link.password_hash && <Lock className="h-4 w-4 text-orange-500" title="Password Protected" />}
-                                                {link.expires_at && <Clock className="h-4 w-4 text-blue-500" title={`Expires: ${new Date(link.expires_at).toLocaleDateString()}`} />}
+                                                {link.password_hash && <span title="Password Protected"><Lock className="h-4 w-4 text-orange-500" /></span>}
+                                                {link.expires_at && <span title={`Expires: ${new Date(link.expires_at).toLocaleDateString()}`}><Clock className="h-4 w-4 text-blue-500" /></span>}
                                             </div>
                                         </TableCell>
                                         <TableCell>{link.clicks}</TableCell>
