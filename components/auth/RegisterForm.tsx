@@ -1,24 +1,20 @@
-/**
- * Register Form Component
- */
+"use client"
 
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert } from '@/components/ui/alert'
-import Link from 'next/link'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2, CheckCircle2 } from "lucide-react"
 
 export function RegisterForm() {
     const router = useRouter()
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [fullName, setFullName] = useState('')
+    const [fullName, setFullName] = useState("")
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
@@ -28,30 +24,13 @@ export function RegisterForm() {
         setError(null)
         setLoading(true)
 
+        if (password.length < 8) {
+            setError("Mật khẩu phải có ít nhất 8 ký tự")
+            setLoading(false)
+            return
+        }
+
         try {
-            // Kiểm tra setting allow_registration
-            const supabase = createClient()
-
-            const { data: setting } = await supabase
-                .from('settings')
-                .select('value')
-                .eq('key', 'allow_registration')
-                .single()
-
-            if (setting && !setting.value?.enabled) {
-                setError('Đăng ký tạm thời đóng, vui lòng thử lại sau')
-                setLoading(false)
-                return
-            }
-
-            // Validate password
-            if (password.length < 8) {
-                setError('Mật khẩu phải có ít nhất 8 ký tự')
-                setLoading(false)
-                return
-            }
-
-            // Đăng ký qua API (để tạo profile và gán role)
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -65,7 +44,7 @@ export function RegisterForm() {
             const data = await response.json()
 
             if (!response.ok) {
-                setError(data.error || 'Đã có lỗi xảy ra')
+                setError(data.error || "Đã có lỗi xảy ra")
                 setLoading(false)
                 return
             }
@@ -75,42 +54,48 @@ export function RegisterForm() {
                 router.push('/login')
             }, 2000)
         } catch (err: any) {
-            setError(err.message || 'Đã có lỗi xảy ra')
+            setError(err.message || "Đã có lỗi xảy ra")
             setLoading(false)
         }
     }
 
     if (success) {
         return (
-            <Card className="w-full max-w-md">
-                <CardContent className="pt-6">
-                    <Alert>
-                        Đăng ký thành công! Đang chuyển đến trang đăng nhập...
-                    </Alert>
-                </CardContent>
+            <Card className="w-full max-w-sm shadow-lg border-muted/40">
+                <CardHeader>
+                    <div className="flex justify-center mb-4">
+                        <div className="rounded-full bg-green-100 p-3">
+                            <CheckCircle2 className="h-8 w-8 text-green-600" />
+                        </div>
+                    </div>
+                    <CardTitle className="text-center text-xl">Đăng ký thành công!</CardTitle>
+                    <CardDescription className="text-center">
+                        Đang chuyển hướng đến trang đăng nhập...
+                    </CardDescription>
+                </CardHeader>
             </Card>
         )
     }
 
     return (
-        <Card className="w-full max-w-md">
-            <CardHeader>
-                <CardTitle>Đăng ký</CardTitle>
-                <CardDescription>Tạo tài khoản mới để sử dụng hệ thống</CardDescription>
+        <Card className="w-full max-w-sm shadow-lg border-muted/40">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold tracking-tight text-center">Tạo tài khoản</CardTitle>
+                <CardDescription className="text-center">
+                    Nhập thông tin bên dưới để đăng ký tài khoản mới
+                </CardDescription>
             </CardHeader>
             <form onSubmit={handleRegister}>
-                <CardContent className="space-y-4">
+                <CardContent className="grid gap-4">
                     {error && (
-                        <Alert variant="destructive">
-                            {error}
+                        <Alert variant="destructive" className="py-2">
+                            <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
-
-                    <div className="space-y-2">
+                    <div className="grid gap-2">
                         <Label htmlFor="fullName">Họ và tên</Label>
                         <Input
                             id="fullName"
-                            type="text"
                             placeholder="Nguyễn Văn A"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
@@ -118,21 +103,19 @@ export function RegisterForm() {
                             disabled={loading}
                         />
                     </div>
-
-                    <div className="space-y-2">
+                    <div className="grid gap-2">
                         <Label htmlFor="email">Email</Label>
                         <Input
                             id="email"
                             type="email"
-                            placeholder="you@example.com"
+                            placeholder="name@example.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             disabled={loading}
                         />
                     </div>
-
-                    <div className="space-y-2">
+                    <div className="grid gap-2">
                         <Label htmlFor="password">Mật khẩu</Label>
                         <Input
                             id="password"
@@ -145,18 +128,17 @@ export function RegisterForm() {
                         />
                     </div>
                 </CardContent>
-
-                <CardFooter className="flex flex-col space-y-4">
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+                <CardFooter className="flex flex-col gap-4">
+                    <Button className="w-full" type="submit" disabled={loading}>
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {loading ? "Đang tạo tài khoản..." : "Đăng ký"}
                     </Button>
-
-                    <p className="text-sm text-center text-muted-foreground">
-                        Đã có tài khoản?{' '}
-                        <Link href="/login" className="text-primary hover:underline">
-                            Đăng nhập ngay
+                    <div className="text-center text-sm text-muted-foreground">
+                        Đã có tài khoản?{" "}
+                        <Link href="/login" className="text-primary underline-offset-4 hover:underline font-medium">
+                            Đăng nhập
                         </Link>
-                    </p>
+                    </div>
                 </CardFooter>
             </form>
         </Card>

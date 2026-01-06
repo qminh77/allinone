@@ -1,23 +1,24 @@
-/**
- * Login Form Component
- */
+"use client"
 
-'use client'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert } from '@/components/ui/alert'
-import Link from 'next/link'
+// Simple Icons component if not exists, or replace with lucide-react in code
+// For cleanliness, I will stick to Lucide icons imported directly where needed, 
+// but define a logical structure.
 
 export function LoginForm() {
     const router = useRouter()
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -27,79 +28,74 @@ export function LoginForm() {
         setLoading(true)
 
         try {
-            // Kiểm tra setting allow_login
             const supabase = createClient()
 
-            const { data: setting } = await supabase
-                .from('settings')
-                .select('value')
-                .eq('key', 'allow_login')
-                .single()
-
-            if (setting && !setting.value?.enabled) {
-                setError('Hệ thống đang bảo trì, vui lòng thử lại sau')
-                setLoading(false)
-                return
-            }
-
-            // Đăng nhập
+            // Authenticate
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
             if (signInError) {
-                setError(signInError.message)
+                setError("Email hoặc mật khẩu không chính xác")
                 setLoading(false)
                 return
             }
 
-            // Ghi audit log (gọi API)
-            await fetch('/api/audit/log', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'login',
-                    userId: data.user?.id,
-                }),
-            })
+            // Audit log & Sync Profile
+            try {
+                // Sync profile first (in case it's missing)
+                await fetch('/api/auth/sync-profile', {
+                    method: 'POST',
+                })
+
+                // Then audit log
+                await fetch('/api/audit/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'login',
+                        userId: data.user?.id,
+                    }),
+                })
+            } catch (ignore) { }
 
             router.push('/dashboard')
             router.refresh()
         } catch (err: any) {
-            setError(err.message || 'Đã có lỗi xảy ra')
+            setError(err.message || "Đã có lỗi xảy ra")
             setLoading(false)
         }
     }
 
     return (
-        <Card className="w-full max-w-md">
-            <CardHeader>
-                <CardTitle>Đăng nhập</CardTitle>
-                <CardDescription>Nhập email và mật khẩu để tiếp tục</CardDescription>
+        <Card className="w-full max-w-sm shadow-lg border-muted/40">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold tracking-tight text-center">Đăng nhập</CardTitle>
+                <CardDescription className="text-center">
+                    Nhập email của bạn để truy cập hệ thống
+                </CardDescription>
             </CardHeader>
             <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4">
+                <CardContent className="grid gap-4">
                     {error && (
-                        <Alert variant="destructive">
-                            {error}
+                        <Alert variant="destructive" className="py-2">
+                            <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
-
-                    <div className="space-y-2">
+                    <div className="grid gap-2">
                         <Label htmlFor="email">Email</Label>
                         <Input
                             id="email"
                             type="email"
-                            placeholder="you@example.com"
+                            placeholder="name@example.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             disabled={loading}
                         />
                     </div>
-
-                    <div className="space-y-2">
+                    <div className="grid gap-2">
                         <Label htmlFor="password">Mật khẩu</Label>
                         <Input
                             id="password"
@@ -111,18 +107,17 @@ export function LoginForm() {
                         />
                     </div>
                 </CardContent>
-
-                <CardFooter className="flex flex-col space-y-4">
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                <CardFooter className="flex flex-col gap-4">
+                    <Button className="w-full" type="submit" disabled={loading}>
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {loading ? "Đang xử lý..." : "Đăng nhập"}
                     </Button>
-
-                    <p className="text-sm text-center text-muted-foreground">
-                        Chưa có tài khoản?{' '}
-                        <Link href="/register" className="text-primary hover:underline">
+                    <div className="text-center text-sm text-muted-foreground">
+                        Chưa có tài khoản?{" "}
+                        <Link href="/register" className="text-primary underline-offset-4 hover:underline font-medium">
                             Đăng ký ngay
                         </Link>
-                    </p>
+                    </div>
                 </CardFooter>
             </form>
         </Card>

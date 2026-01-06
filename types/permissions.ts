@@ -36,13 +36,16 @@ export interface PermissionCheck {
     hasPermission: (key: PermissionKey) => boolean
     hasAnyPermission: (keys: PermissionKey[]) => boolean
     hasAllPermissions: (keys: PermissionKey[]) => boolean
+    hasRole: (roleName: string) => boolean
     loading: boolean
 }
 
-export interface RoleWithPermissions extends import('./database').Role {
-    permissions?: import('./database').Permission[]
+import type { Role, Permission, UserProfile } from './database'
+
+export interface RoleWithPermissions extends Role {
+    permissions?: Permission[]
 }
 
-export interface UserWithRole extends import('./database').UserProfile {
-    role?: import('./database').Role
+export interface UserWithRole extends UserProfile {
+    role?: Role
 }

@@ -20,11 +20,11 @@ export async function hasPermission(
     const supabase = await createClient()
 
     // Lấy role của user
-    const { data: profile } = await supabase
+    const { data: profile } = (await supabase
         .from('user_profiles')
         .select('role_id')
         .eq('id', userId)
-        .single()
+        .single()) as { data: any }
 
     if (!profile || !profile.role_id) return false
 
@@ -88,20 +88,22 @@ export async function hasRole(
 ): Promise<boolean> {
     const supabase = await createClient()
 
-    const { data: profile } = await supabase
+    // Query profile và role riêng biệt
+    const { data: profile } = (await supabase
         .from('user_profiles')
-        .select(`
-      role:roles (
-        name
-      )
-    `)
+        .select('role_id')
         .eq('id', userId)
-        .single()
+        .single()) as { data: any }
 
-    if (!profile) return false
+    if (!profile?.role_id) return false
 
-    // @ts-ignore - Complex type
-    return profile.role?.name === roleName
+    const { data: roleData } = (await supabase
+        .from('roles')
+        .select('name')
+        .eq('id', profile.role_id)
+        .single()) as { data: any }
+
+    return roleData?.name === roleName
 }
 
 /**
@@ -112,11 +114,11 @@ export async function getUserPermissions(
 ): Promise<string[]> {
     const supabase = await createClient()
 
-    const { data: profile } = await supabase
+    const { data: profile } = (await supabase
         .from('user_profiles')
         .select('role_id')
         .eq('id', userId)
-        .single()
+        .single()) as { data: any }
 
     if (!profile || !profile.role_id) return []
 

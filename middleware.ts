@@ -72,15 +72,15 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(url)
         }
 
-        // Kiểm tra role (cần query database)
+        // Optimized: Single query with JOIN to get profile + role in one call
         const { data: profile } = await supabase
             .from('user_profiles')
             .select('role:roles(name)')
             .eq('id', user.id)
             .single()
 
-        // @ts-ignore - Type checking phức tạp
-        if (!profile || profile.role?.name !== 'Admin') {
+        // @ts-ignore - role is a joined object
+        if (!profile?.role || profile.role.name !== 'Admin') {
             const url = request.nextUrl.clone()
             url.pathname = '/dashboard'
             return NextResponse.redirect(url)

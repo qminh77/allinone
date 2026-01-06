@@ -87,8 +87,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 Vào Supabase Dashboard → SQL Editor, chạy từng file migration theo thứ tự:
 
 1. `supabase/migrations/001_initial_schema.sql`
-2. `supabase/migrations/002_rls_policies.sql`
+2. `supabase/migrations/002_rls_policies_fixed.sql` ⚠️ **Use the FIXED version!**
 3. `supabase/migrations/003_seed_data.sql`
+
+> **Note**: If you already ran `002_rls_policies.sql`, the fixed version will drop and recreate all policies correctly.
 
 ### 5. Chạy Development Server
 

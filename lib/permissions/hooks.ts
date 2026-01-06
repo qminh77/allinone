@@ -23,6 +23,7 @@ import type { PermissionKey, PermissionCheck } from '@/types/permissions'
  */
 export function usePermissions(): PermissionCheck {
     const [permissions, setPermissions] = useState<string[]>([])
+    const [role, setRole] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -40,17 +41,27 @@ export function usePermissions(): PermissionCheck {
                     return
                 }
 
-                // Lấy profile và role
-                const { data: profile } = await supabase
+                // Lấy profile và role (query riêng để tránh RLS error)
+                const { data: profile } = (await supabase
                     .from('user_profiles')
                     .select('role_id')
                     .eq('id', user.id)
-                    .single()
+                    .single()) as { data: any }
 
                 if (!profile || !profile.role_id) {
                     setLoading(false)
                     return
                 }
+
+                // Query role name riêng
+                const { data: roleData } = (await supabase
+                    .from('roles')
+                    .select('name')
+                    .eq('id', profile.role_id)
+                    .single()) as { data: any }
+
+                // Set role name
+                setRole(roleData?.name || null)
 
                 // Lấy permissions của role
                 const { data: rolePerms } = await supabase
@@ -90,10 +101,15 @@ export function usePermissions(): PermissionCheck {
         return keys.every(key => permissions.includes(key))
     }
 
+    const hasRole = (roleName: string): boolean => {
+        return role === roleName
+    }
+
     return {
         hasPermission,
         hasAnyPermission,
         hasAllPermissions,
+        hasRole,
         loading,
     }
 }
@@ -119,19 +135,21 @@ export function useRole() {
                     return
                 }
 
-                const { data: profile } = await supabase
+                // Query profile và role riêng biệt
+                const { data: profile } = (await supabase
                     .from('user_profiles')
-                    .select(`
-            role:roles (
-              name
-            )
-          `)
+                    .select('role_id')
                     .eq('id', user.id)
-                    .single()
+                    .single()) as { data: any }
 
-                if (profile) {
-                    // @ts-ignore
-                    setRole(profile.role?.name || null)
+                if (profile?.role_id) {
+                    const { data: roleData } = (await supabase
+                        .from('roles')
+                        .select('name')
+                        .eq('id', profile.role_id)
+                        .single()) as { data: any }
+
+                    setRole(roleData?.name || null)
                 }
             } catch (error) {
                 console.error('Error loading role:', error)

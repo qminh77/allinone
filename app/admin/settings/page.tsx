@@ -1,75 +1,25 @@
 /**
- * Admin Settings Page
+ * Admin Settings Page - Server Component
  */
 
-'use client'
-
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { toast } from 'sonner'
+import { SettingsForm } from '@/components/admin/SettingsForm'
 
-export default function AdminSettingsPage() {
-    const supabase = createClient()
-    const [allowRegistration, setAllowRegistration] = useState(true)
-    const [allowLogin, setAllowLogin] = useState(true)
-    const [loading, setLoading] = useState(true)
+export default async function AdminSettingsPage() {
+    const supabase = await createClient()
 
-    useEffect(() => {
-        loadSettings()
-    }, [])
+    // Optimized: Fetch only the settings we need
+    const { data: settings } = (await supabase
+        .from('settings')
+        .select('key, value')
+        .in('key', ['allow_registration', 'allow_login'])) as { data: any[] | null }
 
-    const loadSettings = async () => {
-        const { data: settings } = await supabase
-            .from('settings')
-            .select('key, value')
-            .in('key', ['allow_registration', 'allow_login'])
-
-        settings?.forEach((setting) => {
-            if (setting.key === 'allow_registration') {
-                setAllowRegistration(setting.value?.enabled || false)
-            }
-            if (setting.key === 'allow_login') {
-                setAllowLogin(setting.value?.enabled || false)
-            }
-        })
-
-        setLoading(false)
-    }
-
-    const updateSetting = async (key: string, enabled: boolean) => {
-        try {
-            const { error } = await supabase
-                .from('settings')
-                .update({
-                    value: { enabled },
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('key', key)
-
-            if (error) throw error
-
-            toast.success('Cập nhật thành công')
-
-            // Log audit
-            await fetch('/api/audit/log', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'settings.update',
-                    metadata: { key, value: { enabled } },
-                }),
-            })
-        } catch (error: any) {
-            toast.error(error.message || 'Có lỗi xảy ra')
-        }
-    }
-
-    if (loading) {
-        return <div>Loading...</div>
-    }
+    // Transform to easy-to-use object
+    const settingsMap = settings?.reduce((acc, setting) => {
+        acc[setting.key] = setting.value?.enabled || false
+        return acc
+    }, {} as Record<string, boolean>) || {}
 
     return (
         <Card>
@@ -80,37 +30,7 @@ export default function AdminSettingsPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                        <Label>Cho phép đăng ký</Label>
-                        <p className="text-sm text-muted-foreground">
-                            Người dùng mới có thể tạo tài khoản
-                        </p>
-                    </div>
-                    <Switch
-                        checked={allowRegistration}
-                        onCheckedChange={(checked) => {
-                            setAllowRegistration(checked)
-                            updateSetting('allow_registration', checked)
-                        }}
-                    />
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                        <Label>Cho phép đăng nhập</Label>
-                        <p className="text-sm text-muted-foreground">
-                            Người dùng có thể đăng nhập vào hệ thống
-                        </p>
-                    </div>
-                    <Switch
-                        checked={allowLogin}
-                        onCheckedChange={(checked) => {
-                            setAllowLogin(checked)
-                            updateSetting('allow_login', checked)
-                        }}
-                    />
-                </div>
+                <SettingsForm initialSettings={settingsMap} />
             </CardContent>
         </Card>
     )

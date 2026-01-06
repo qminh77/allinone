@@ -53,7 +53,7 @@ export async function createAuditLog(params: CreateAuditLogParams) {
             metadata: params.metadata || null,
             ip_address: params.ipAddress || null,
             user_agent: params.userAgent || null,
-        })
+        } as any)
 
         if (error) {
             console.error('Error creating audit log:', error)

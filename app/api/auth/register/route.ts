@@ -33,7 +33,7 @@ export async function POST(request: Request) {
             .from('settings')
             .select('value')
             .eq('key', 'allow_registration')
-            .single()
+            .single() as { data: any }
 
         if (setting && !setting.value?.enabled) {
             return NextResponse.json(
@@ -51,6 +51,16 @@ export async function POST(request: Request) {
         })
 
         if (authError || !authData.user) {
+            console.error('Supabase Auth Create Error:', authError)
+
+            // Handle "User already registered" specifically
+            if (authError?.code === 'email_exists' || authError?.message?.includes('already been registered')) {
+                return NextResponse.json(
+                    { error: 'Email này đã được sử dụng. Vui lòng đăng nhập.' },
+                    { status: 400 }
+                )
+            }
+
             return NextResponse.json(
                 { error: authError?.message || 'Không thể tạo tài khoản' },
                 { status: 400 }
@@ -58,11 +68,11 @@ export async function POST(request: Request) {
         }
 
         // Lấy role "User" mặc định
-        const { data: defaultRole } = await adminClient
+        const { data: defaultRole } = (await adminClient
             .from('roles')
             .select('id')
             .eq('name', 'User')
-            .single()
+            .single()) as { data: any }
 
         // Tạo profile trong user_profiles
         const { error: profileError } = await adminClient
@@ -72,7 +82,7 @@ export async function POST(request: Request) {
                 full_name: fullName || null,
                 role_id: defaultRole?.id || null,
                 is_active: true,
-            })
+            } as any)
 
         if (profileError) {
             console.error('Error creating profile:', profileError)

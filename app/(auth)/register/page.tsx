@@ -1,9 +1,11 @@
-import { RegisterForm } from '@/components/auth/RegisterForm'
+import { RegisterForm } from "@/components/auth/RegisterForm"
+import { Metadata } from "next"
+
+export const metadata: Metadata = {
+    title: "Đăng ký | Tool Website",
+    description: "Đăng ký tài khoản mới",
+}
 
 export default function RegisterPage() {
-    return (
-        <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-            <RegisterForm />
-        </div>
-    )
+    return <RegisterForm />
 }

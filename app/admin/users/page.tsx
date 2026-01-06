@@ -7,7 +7,6 @@ import {
     Table,
     TableBody,
     TableCell,
-    Table,
     TableHead,
     TableHeader,
     TableRow,
@@ -18,20 +17,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default async function AdminUsersPage() {
     const supabase = await createClient()
 
-    const { data: users } = await supabase
+    // Optimized: Limit to 30 most recent users
+    const { data: users } = (await supabase
         .from('user_profiles')
         .select(`
       *,
       role:roles(name)
     `)
         .order('created_at', { ascending: false })
+        .limit(30)) as { data: any[] }
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Quản lý Users</CardTitle>
                 <CardDescription>
-                    Danh sách tất cả người dùng trong hệ thống
+                    30 người dùng gần nhất
                 </CardDescription>
             </CardHeader>
             <CardContent>

@@ -5,9 +5,9 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/session'
 import { hasRole } from '@/lib/permissions/check'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Home, Users, Shield, Wrench, Settings, FileText, Database, Key } from 'lucide-react'
 
 export default async function AdminLayout({
     children,
@@ -26,39 +26,52 @@ export default async function AdminLayout({
         redirect('/dashboard')
     }
 
+    const navItems = [
+        { href: '/admin/users', label: 'Users', icon: Users },
+        { href: '/admin/roles', label: 'Roles', icon: Shield },
+        { href: '/admin/permissions', label: 'Permissions', icon: Key },
+        { href: '/admin/modules', label: 'Modules', icon: Wrench },
+        { href: '/admin/settings', label: 'Settings', icon: Settings },
+        { href: '/admin/logs', label: 'Audit Logs', icon: FileText },
+        { href: '/admin/backup', label: 'Backups', icon: Database },
+    ]
+
     return (
-        <div className="flex min-h-screen flex-col">
-            <div className="border-b">
-                <div className="flex h-16 items-center px-6">
-                    <h1 className="text-xl font-bold">⚙️ Admin Control Panel</h1>
-                    <Button variant="outline" asChild className="ml-auto">
-                        <Link href="/dashboard">← Về Dashboard</Link>
-                    </Button>
+        <div className="flex min-h-screen">
+            {/* Sidebar */}
+            <aside className="w-64 border-r bg-muted/10">
+                <div className="p-6 border-b">
+                    <h1 className="text-2xl font-bold">Admin Panel</h1>
+                    <p className="text-sm text-muted-foreground mt-1">System Management</p>
                 </div>
-            </div>
+                <nav className="p-4 space-y-1">
+                    {navItems.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
+                        >
+                            <item.icon className="h-4 w-4" />
+                            {item.label}
+                        </Link>
+                    ))}
+                    <div className="pt-4 mt-4 border-t">
+                        <Link
+                            href="/dashboard"
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-sm"
+                        >
+                            <Home className="h-4 w-4" />
+                            Back to Dashboard
+                        </Link>
+                    </div>
+                </nav>
+            </aside>
 
-            <div className="flex-1 p-6">
-                <Tabs defaultValue="users" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="users" asChild>
-                            <Link href="/admin/users">Users</Link>
-                        </TabsTrigger>
-                        <TabsTrigger value="roles" asChild>
-                            <Link href="/admin/roles">Roles</Link>
-                        </TabsTrigger>
-                        <TabsTrigger value="modules" asChild>
-                            <Link href="/admin/modules">Modules</Link>
-                        </TabsTrigger>
-                        <TabsTrigger value="settings" asChild>
-                            <Link href="/admin/settings">Settings</Link>
-                        </TabsTrigger>
-                        <TabsTrigger value="logs" asChild>
-                            <Link href="/admin/logs">Audit Logs</Link>
-                        </TabsTrigger>
-                    </TabsList>
-
+            {/* Main Content */}
+            <div className="flex-1">
+                <div className="p-8">
                     {children}
-                </Tabs>
+                </div>
             </div>
         </div>
     )
