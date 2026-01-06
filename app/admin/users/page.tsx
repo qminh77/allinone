@@ -1,130 +1,42 @@
-/**
- * Admin Users Page
- */
-
 import { createClient } from '@/lib/supabase/server'
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CreateUserDialog, EditUserDialog, DeleteUserAlert } from '@/components/admin/UserDialogs'
-import { UserProfile } from '@/types/database'
+import { redirect } from 'next/navigation'
+import { getUsers } from '@/lib/actions/admin/users'
+import { UserManagement } from '@/components/admin/users/UserManagement'
+import ToolShell from '@/components/dashboard/ToolShell'
 
-export default async function AdminUsersPage() {
+export default async function UsersPage() {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    // Optimized: Limit to 30 most recent users
-    const { data: users } = await supabase
-        .from('user_profiles')
-        .select(`
-      *,
-      role:roles(name)
-    `)
-        .order('created_at', { ascending: false })
-        .limit(30)
-        .returns<(UserProfile & { role: { name: string } | null })[]>()
+    if (!user) {
+        redirect('/login')
+    }
+
+    // Get user profile with role
+    const { data: profile } = await supabase
+        .from('user_profiles' as any)
+        .select('*, roles(name)')
+        .eq('id', user.id)
+        .single()
+
+    // Check if user is admin
+    if ((profile as any)?.roles?.name !== 'Admin') {
+        redirect('/dashboard')
+    }
+
+    // Fetch all users and roles
+    const users = await getUsers()
+    const { data: roles } = await supabase
+        .from('roles' as any)
+        .select('id, name')
+        .order('name')
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle>Người dùng</CardTitle>
-                    <CardDescription>
-                        Quản lý người dùng hệ thống ({users?.length || 0} hiển thị)
-                    </CardDescription>
-                </div>
-                <CreateUserDialog />
-            </CardHeader>
-            <CardContent>
-                <div className="rounded-md border">
-                    <table className="w-full text-sm">
-                        <thead className="bg-muted/50">
-                            <tr className="border-b">
-                                <th className="h-10 px-4 text-left align-middle font-medium">
-                                    Người dùng
-                                </th>
-                                <th className="h-10 px-4 text-left align-middle font-medium">
-                                    Vai trò
-                                </th>
-                                <th className="h-10 px-4 text-left align-middle font-medium">
-                                    Trạng thái
-                                </th>
-                                <th className="h-10 px-4 text-left align-middle font-medium">
-                                    Ngày tham gia
-                                </th>
-                                <th className="h-10 px-4 text-right align-middle font-medium">
-                                    Thao tác
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users?.map((user) => (
-                                <tr
-                                    key={user.id}
-                                    className="border-b transition-colors hover:bg-muted/50"
-                                >
-                                    <td className="p-4 align-middle">
-                                        <div className="font-medium">
-                                            {user.full_name || 'Không tên'}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            ID: {user.id.slice(0, 8)}...
-                                        </div>
-                                    </td>
-                                    <td className="p-4 align-middle">
-                                        <Badge
-                                            variant={
-                                                // @ts-ignore
-                                                user.role?.name === 'Admin'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                        >
-                                            {/* @ts-ignore */}
-                                            {user.role?.name || 'User'}
-                                        </Badge>
-                                    </td>
-                                    <td className="p-4 align-middle">
-                                        <Badge
-                                            variant={
-                                                user.is_active
-                                                    ? 'outline'
-                                                    : 'destructive'
-                                            }
-                                            className={
-                                                user.is_active
-                                                    ? 'text-green-600 border-green-600'
-                                                    : ''
-                                            }
-                                        >
-                                            {user.is_active
-                                                ? 'Hoạt động'
-                                                : 'Bị khóa'}
-                                        </Badge>
-                                    </td>
-                                    <td className="p-4 align-middle">
-                                        {new Date(
-                                            user.created_at
-                                        ).toLocaleDateString('vi-VN')}
-                                    </td>
-                                    <td className="p-4 align-middle text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <EditUserDialog user={user} />
-                                            <DeleteUserAlert userId={user.id} />
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </CardContent>
-        </Card>
+        <ToolShell
+            title="Quản lý người dùng"
+            description="Thêm, sửa, xóa người dùng và quản lý quyền truy cập"
+        >
+            <UserManagement users={users} roles={roles || []} />
+        </ToolShell>
     )
 }
