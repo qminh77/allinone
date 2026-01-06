@@ -35,6 +35,7 @@ import {
     Files, // Added for PDF tools
     Image as ImageIcon,
     FileDown,
+    Disc, // Added for Spin Wheel
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF'
@@ -91,6 +92,15 @@ export const modules: Module[] = [
         isNew: true
     },
     {
+        key: 'spin-wheel',
+        name: 'Spin Wheel',
+        description: 'Công cụ quay số ngẫu nhiên để chọn một mục từ danh sách.',
+        href: '/tools/spin-wheel',
+        icon: Disc,
+        category: 'Utilities',
+        isNew: true,
+    },
+    {
         key: 'ping-tool',
         name: 'Ping & Port',
         description: 'Kiểm tra trạng thái Website (HTTP Ping) và Open Port.',
@@ -143,6 +153,16 @@ export const modules: Module[] = [
         icon: Lock,
         category: 'Utilities',
         isNew: true
+    },
+    {
+        key: 'spin-wheel',
+        name: 'Spin Wheel',
+        description: 'Công cụ quay số ngẫu nhiên để chọn một mục từ danh sách.',
+        href: '/tools/spin-wheel',
+        icon: Disc,
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
     },
     {
         key: 'password-generator',
