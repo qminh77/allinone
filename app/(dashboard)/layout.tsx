@@ -19,17 +19,18 @@ export default async function DashboardLayout({
     const enabledModules = await getModuleStatuses()
 
     return (
-        <div className="flex h-screen flex-col">
-            <Navbar
-                user={{
-                    email: user.email,
-                    fullName: profile?.full_name,
-                }}
-                enabledModules={enabledModules}
-            />
-            <div className="flex flex-1 overflow-hidden">
-                <Sidebar enabledModules={enabledModules} />
-                <main className="flex-1 overflow-y-auto p-6 md:pl-64 transition-all duration-300">
+        <div className="flex h-screen overflow-hidden bg-background">
+            <Sidebar enabledModules={enabledModules} />
+
+            <div className="flex flex-col flex-1 overflow-hidden">
+                <Navbar
+                    user={{
+                        email: user.email,
+                        fullName: profile?.full_name,
+                    }}
+                    enabledModules={enabledModules}
+                />
+                <main className="flex-1 overflow-y-auto p-6 bg-secondary/10">
                     {children}
                 </main>
             </div>

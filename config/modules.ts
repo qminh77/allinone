@@ -2,7 +2,8 @@ import {
     Globe,
     Search,
     MapPin,
-    ShieldCheck
+    ShieldCheck,
+    FileText
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -46,6 +47,15 @@ export const modules: Module[] = [
         description: 'Kiểm tra thông tin chứng chỉ SSL/TLS và thời hạn sử dụng.',
         href: '/tools/ssl-lookup',
         icon: ShieldCheck,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'whois-lookup',
+        name: 'Whois Lookup',
+        description: 'Kiểm tra thông tin tên miền, ngày đăng ký và nhà cung cấp.',
+        href: '/tools/whois-lookup',
+        icon: FileText,
         category: 'Utilities',
         isNew: true
     }

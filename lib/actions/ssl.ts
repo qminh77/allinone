@@ -64,8 +64,12 @@ export async function performSslLookup(domain: string): Promise<SslLookupResult>
                 resolve({ success: true, data: info })
             })
 
-            socket.on('error', (err) => {
-                resolve({ success: false, error: err.message })
+            socket.on('error', (err: any) => {
+                if (err.code === 'ENOTFOUND') {
+                    resolve({ success: false, error: 'Không tìm thấy tên miền (DNS lookup failed)' })
+                } else {
+                    resolve({ success: false, error: err.message || 'Lỗi kết nối SSL' })
+                }
             })
 
             socket.setTimeout(5000, () => {
