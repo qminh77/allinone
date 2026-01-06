@@ -88,3 +88,70 @@ export async function performIpLookup(query: string = '') {
     }
 }
 
+
+export async function performHeaderLookup(url: string) {
+    if (!url) return { error: 'URL is required' }
+
+    try {
+        // Basic cleanup and protocol addition if needed
+        let targetUrl = url.trim()
+        if (!/^https?:\/\//i.test(targetUrl)) {
+            targetUrl = 'https://' + targetUrl
+        }
+
+        const res = await fetch(targetUrl, {
+            method: 'HEAD',
+            redirect: 'manual', // Don't follow redirects automatically so we see the 301/302
+            // headers: { 'User-Agent': ... } // Optional: pretend to be a browser
+        })
+
+        // Depending on redirect mode 'manual', we might get an opaque response or a 0 status 
+        // if mode was 'no-cors' (but we can't use no-cors if we want headers).
+        // With 'manual', Next.js server actions might throw or return weird stuff depending on environment.
+        // Actually, 'manual' redirection in fetch API returns the redirect response status (3xx) 
+        // and we can see the Location header.
+
+        // We can safely return headers
+        const headers: Record<string, string> = {}
+        res.headers.forEach((val, key) => {
+            headers[key] = val
+        })
+
+        return {
+            success: true,
+            data: {
+                status: res.status,
+                statusText: res.statusText,
+                headers,
+                url: res.url
+            }
+        }
+    } catch (error: any) {
+        // Retry with GET if HEAD fails (some servers block HEAD)
+        if (error.cause?.code === 'UND_ERR_HEADERS_TIMEOUT' || error.message.includes('HEAD')) {
+            try {
+                let targetUrl = url.trim()
+                if (!/^https?:\/\//i.test(targetUrl)) {
+                    targetUrl = 'https://' + targetUrl
+                }
+                const res = await fetch(targetUrl, { method: 'GET', redirect: 'manual' })
+                const headers: Record<string, string> = {}
+                res.headers.forEach((val, key) => {
+                    headers[key] = val
+                })
+                return {
+                    success: true,
+                    data: {
+                        status: res.status,
+                        statusText: res.statusText,
+                        headers,
+                        url: res.url
+                    }
+                }
+            } catch (retryError: any) {
+                return { error: `Lookup failed: ${retryError.message}` }
+            }
+        }
+        return { error: `Lookup failed: ${error.message}` }
+    }
+}

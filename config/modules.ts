@@ -15,7 +15,11 @@ import {
     Server,
     Type,
     Link2,
-    Palette
+    Palette,
+    ArrowLeftRight,
+    ListFilter,
+    Globe2,
+    FileJson
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -212,6 +216,42 @@ export const modules: Module[] = [
         description: 'Chuyển đổi mã màu giữa các định dạng Hex, RGB, HSL, CMYK.',
         href: '/tools/color-converter',
         icon: Palette,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'http-header-lookup',
+        name: 'HTTP Header Lookup',
+        description: 'Kiểm tra HTTP Response Headers và Status Code.',
+        href: '/tools/http-header-lookup',
+        icon: ArrowLeftRight,
+        category: 'Network',
+        isNew: true
+    },
+    {
+        key: 'duplicate-lines-remover',
+        name: 'Duplicate Lines Remover',
+        description: 'Lọc và xóa các dòng trùng lặp trong danh sách.',
+        href: '/tools/duplicate-lines-remover',
+        icon: ListFilter,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'idn-punycode-converter',
+        name: 'IDN Punycode Converter',
+        description: 'Chuyển đổi tên miền quốc tế (IDN) sang Punycode và ngược lại.',
+        href: '/tools/idn-punycode-converter',
+        icon: Globe2,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'json-validator',
+        name: 'JSON Validator',
+        description: 'Kiểm tra, định dạng (Beautify) và nén (Minify) mã JSON.',
+        href: '/tools/json-validator',
+        icon: FileJson,
         category: 'Utilities',
         isNew: true
     }
