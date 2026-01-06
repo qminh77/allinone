@@ -6,7 +6,7 @@ import {
     FileText,
     Activity,
     Hash,
-    FileCode
+    FileCode,
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -85,6 +85,15 @@ export const modules: Module[] = [
         name: 'Base64 Converter',
         description: 'Mã hóa và giải mã Base64 (Encode/Decode).',
         href: '/tools/base64-converter',
+        icon: FileCode,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'markdown-to-html',
+        name: 'Markdown to HTML',
+        description: 'Chuyển đổi Markdown sang HTML với Live Preview.',
+        href: '/tools/markdown-to-html',
         icon: FileCode,
         category: 'Utilities',
         isNew: true
