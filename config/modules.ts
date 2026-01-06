@@ -10,7 +10,8 @@ import {
     Key,
     Lock,
     KeyRound,
-    Link
+    Link,
+    MonitorSmartphone
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General'
@@ -162,6 +163,15 @@ export const modules: Module[] = [
         description: 'Nén và tối ưu mã JavaScript (Basic Minification).',
         href: '/tools/js-minifier',
         icon: FileCode, // Or Braces if imported
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'user-agent-parser',
+        name: 'User Agent Parser',
+        description: 'Phân tích chuỗi User Agent để lấy thông tin thiết bị, OS, Browser.',
+        href: '/tools/user-agent-parser',
+        icon: MonitorSmartphone,
         category: 'Utilities',
         isNew: true
     }
