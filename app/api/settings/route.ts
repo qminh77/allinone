@@ -5,14 +5,16 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { Database } from '@/types/database'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 export async function PATCH(request: NextRequest) {
     try {
-        const supabase = await createClient()
-        const { key, value } = await request.json()
+        const supabase = (await createClient()) as SupabaseClient<Database>
+        const { key, value } = await request.json() as { key: string, value: Database['public']['Tables']['settings']['Row']['value'] }
 
         // Update setting
-        const { error } = await (supabase as any)
+        const { error } = await supabase
             .from('settings')
             .update({
                 value,
@@ -25,7 +27,7 @@ export async function PATCH(request: NextRequest) {
         // Log audit
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-            await (supabase as any).from('audit_logs').insert({
+            await supabase.from('audit_logs').insert({
                 user_id: user.id,
                 action: 'settings.update',
                 metadata: { key, value },

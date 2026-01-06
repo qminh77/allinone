@@ -9,19 +9,22 @@ import { LogItem } from '@/components/admin/LogItem'
 import { StatsCard } from '@/components/admin/StatsCard'
 import { Activity, Clock, Users } from 'lucide-react'
 
+import { AuditLog } from '@/types/database'
+
 export default async function AdminLogsPage() {
     const supabase = await createClient()
 
     // Optimized: Fetch only needed columns and limit to 50
-    const { data: logs } = (await supabase
+    const { data: logs } = await supabase
         .from('audit_logs')
         .select('id, user_id, action, created_at, metadata')
         .order('created_at', { ascending: false })
-        .limit(50)) as { data: any[] | null }
+        .limit(50)
+        .returns<AuditLog[]>()
 
     // Optimized stats calculation
     const totalLogs = logs?.length || 0
-    const uniqueUsers = logs ? new Set(logs.map(l => l.user_id).filter(Boolean)).size : 0
+    const uniqueUsers = logs ? new Set(logs.filter(l => l.user_id).map(l => l.user_id)).size : 0
     const dayAgo = Date.now() - 24 * 60 * 60 * 1000
     const recentLogs = logs?.filter(l => new Date(l.created_at).getTime() > dayAgo).length || 0
 

@@ -26,15 +26,18 @@ function formatBytes(bytes: number): string {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
+import { Backup } from '@/types/database'
+
 export default async function AdminBackupPage() {
     const supabase = await createClient()
 
     // Optimized: Limit results and select only needed columns
-    const { data: backups } = (await supabase
+    const { data: backups } = await supabase
         .from('backups')
         .select('id, filename, type, size_bytes, created_at, created_by')
         .order('created_at', { ascending: false })
-        .limit(20)) as { data: any[] | null } // Pagination: show 20 most recent backups
+        .limit(20)
+        .returns<Backup[]>() // Pagination: show 20 most recent backups
 
     // Optimized: Calculate stats from limited dataset
     const totalBackups = backups?.length || 0
