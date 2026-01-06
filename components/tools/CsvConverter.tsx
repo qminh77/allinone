@@ -6,18 +6,17 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
-import { Copy, Download, Upload, FileCode, Trash, FileText } from 'lucide-react'
+import { Copy, Download, Upload, FileSpreadsheet, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
-import { marked } from 'marked'
 
-interface MarkdownConverterProps {
+interface CsvConverterProps {
     slug: string
     title: string
     description: string
 }
 
-export function MarkdownConverter({ slug, title, description }: MarkdownConverterProps) {
+export function CsvConverter({ slug, title, description }: CsvConverterProps) {
     const [inputContent, setInputContent] = useState<string>('')
     const [outputContent, setOutputContent] = useState<string>('')
     const [isProcessing, setIsProcessing] = useState(false)
@@ -27,8 +26,8 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
         const file = e.target.files?.[0]
         if (!file) return
 
-        if (!file.name.match(/\.(md|markdown|txt)$/)) {
-            toast.error('Vui lòng tải lên file Markdown (.md, .markdown, .txt)')
+        if (!file.name.match(/\.(csv|txt)$/)) {
+            toast.error('Vui lòng tải lên file CSV (.csv, .txt)')
             return
         }
 
@@ -49,104 +48,82 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
         else setOutputContent('')
     }
 
-    const parseMarkdownTable = (markdown: string): any[] => {
-        // Find the first markdown table
-        const tableRegex = /\|(.+)\|\n\|([-:| ]+)\|\n((?:\|.+|\|\n)+)/;
-        const match = markdown.match(tableRegex);
-
-        if (!match) return [];
-
-        const headerLine = match[1];
-        const bodyLines = match[3].trim().split('\n');
-
-        const headers = headerLine.split('|').map(h => h.trim()).filter(h => h !== '');
-
-        const data = bodyLines.map(line => {
-            const values = line.split('|').map(v => v.trim()).filter(v => v !== '');
-            // Map values to headers
-            const row: any = {};
-            headers.forEach((header, index) => {
-                row[header] = values[index] || '';
-            });
-            return row;
-        });
-
-        return data;
-    };
-
     const processConversion = (content: string) => {
         setIsProcessing(true)
         try {
-            const result = convertData(content, slug)
+            // Use XLSX to parse CSV string for robustness
+            const workbook = XLSX.read(content, { type: 'string' })
+            const sheetName = workbook.SheetNames[0]
+            const worksheet = workbook.Sheets[sheetName]
+            const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+            const result = convertData(jsonData, slug, worksheet)
             setOutputContent(result)
         } catch (error) {
             console.error(error)
+            // Silent fail or minimal error
         } finally {
             setIsProcessing(false)
         }
     }
 
-    const convertData = (content: string, slug: string): string => {
-        const targetFormat = slug.replace('markdown-to-', '')
+    const convertData = (data: any[], slug: string, worksheet: XLSX.WorkSheet): string => {
+        const targetFormat = slug.replace('csv-to-', '')
 
         switch (targetFormat) {
-            // Document Formats
-            case 'html':
-                return marked.parse(content) as string;
-
-            case 'markdown':
-                // Already markdown, maybe beautify?
-                // For now just return as is or use a formatter if available.
-                return content;
-
-            // Table Data Formats
-            case 'json': {
-                const data = parseMarkdownTable(content);
-                if (data.length === 0) return JSON.stringify({ error: "No markdown table found" });
-                return JSON.stringify(data, null, 2);
-            }
-            case 'jsonlines': {
-                const data = parseMarkdownTable(content);
-                return data.map(row => JSON.stringify(row)).join('\n');
-            }
-            case 'csv': {
-                const data = parseMarkdownTable(content);
-                if (data.length === 0) return '';
-                const worksheet = XLSX.utils.json_to_sheet(data);
-                return XLSX.utils.sheet_to_csv(worksheet);
-            }
+            case 'json':
+                return JSON.stringify(data, null, 2)
+            case 'jsonlines':
+                return data.map(row => JSON.stringify(row)).join('\n')
             case 'sql': {
-                const data = parseMarkdownTable(content);
-                if (data.length === 0) return '-- No table found';
-                const tableName = fileName.split('.')[0] || 'table_name';
-                const columns = Object.keys(data[0]);
+                if (data.length === 0) return ''
+                const tableName = fileName.split('.')[0] || 'table_name'
+                const columns = Object.keys(data[0])
                 const values = data.map(row => {
                     const rowValues = columns.map(col => {
-                        const val = row[col];
-                        return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val;
-                    });
-                    return `(${rowValues.join(', ')})`;
-                }).join(',\n');
-                return `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES\n${values};`;
+                        const val = row[col]
+                        if (val === null || val === undefined) return 'NULL'
+                        return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val
+                    })
+                    return `(${rowValues.join(', ')})`
+                }).join(',\n')
+                return `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES\n${values};`
             }
-            case 'xml': {
-                const data = parseMarkdownTable(content);
-                if (data.length === 0) return '';
+            case 'csv':
+                // Re-formatting/cleaning
+                return XLSX.utils.sheet_to_csv(worksheet)
+            case 'html':
+                return XLSX.utils.sheet_to_html(worksheet)
+            case 'xml':
                 return data.map(row => {
                     return `  <row>\n${Object.entries(row).map(([k, v]) => `    <${k}>${v}</${k}>`).join('\n')}\n  </row>`
                 }).join('\n').replace(/^/, '<root>\n').replace(/$/, '\n</root>')
-            }
-            case 'yaml': {
-                const data = parseMarkdownTable(content);
+
+            case 'yaml':
                 return data.map(row => {
                     return `- ${Object.entries(row).map(([k, v]) => `${k}: ${v}`).join('\n  ')}`
-                }).join('\n');
-            }
+                }).join('\n')
 
-            // Fallbacks for other formats or document conversions
+            case 'markdown':
+                if (data.length === 0) return ''
+                const headers = Object.keys(data[0])
+                const headerRow = `| ${headers.join(' | ')} |`
+                const separatorRow = `| ${headers.map(() => '---').join(' | ')} |`
+                const rows = data.map(row => `| ${headers.map(h => row[h] ?? '').join(' | ')} |`).join('\n')
+                return `${headerRow}\n${separatorRow}\n${rows}`
+
+            case 'php':
+                return `<?php\n$data = ` + JSON.stringify(data, null, 4)
+                    .replace(/{/g, '[')
+                    .replace(/}/g, ']')
+                    .replace(/:/g, ' =>') +
+                    `;\n?>`
+
+            case 'ruby':
+                return JSON.stringify(data, null, 2).replace(/"(\w+)":/g, ':$1 =>')
+
             default:
-                // Attempts to use marked for text based conversions or return raw
-                return `Conversion to ${targetFormat} not fully implemented yet for non-table data. \n\nRaw Content:\n${content}`
+                return JSON.stringify(data, null, 2)
         }
     }
 
@@ -160,7 +137,7 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `converted.${slug.replace('markdown-to-', '')}`
+        a.download = `converted.${slug.replace('csv-to-', '')}`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
@@ -168,29 +145,28 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
     }
 
     return (
-        <ToolShell title={title} description={description} icon={FileCode}>
+        <ToolShell title={title} description={description} icon={FileSpreadsheet}>
             <div className="grid gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>1. Input Markdown</CardTitle>
+                        <CardTitle>1. Input CSV</CardTitle>
                         <CardDescription>
-                            Nhập Markdown trực tiếp hoặc tải file lên. <br />
-                            <span className="text-muted-foreground italic text-xs">Đối với các định dạng dữ liệu (JSON, SQL, CSV...), công cụ sẽ tìm bản bảng trong markdown.</span>
+                            Nhập CSV trực tiếp hoặc tải file lên
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex items-center gap-4">
                             <Label
-                                htmlFor="md-upload"
+                                htmlFor="csv-upload"
                                 className="flex items-center justify-center px-4 py-2 border border-dashed rounded-md cursor-pointer hover:bg-muted/50 transition-colors"
                             >
                                 <Upload className="w-4 h-4 mr-2" />
                                 <span>Upload File</span>
                                 <input
-                                    id="md-upload"
+                                    id="csv-upload"
                                     type="file"
                                     className="hidden"
-                                    accept=".md, .markdown, .txt"
+                                    accept=".csv, .txt"
                                     onChange={handleFileUpload}
                                 />
                             </Label>
@@ -201,7 +177,7 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
                             </Button>
                         </div>
                         <Textarea
-                            placeholder={`# Hello\n\n| ID | Name |\n|---|---|\n| 1 | John |`}
+                            placeholder={`id,name,age\n1,John,30\n2,Jane,25`}
                             className="min-h-[200px] font-mono text-sm whitespace-pre"
                             value={inputContent}
                             onChange={handleInputChange}
@@ -212,7 +188,7 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <div className="space-y-1">
-                            <CardTitle>2. Kết quả ({slug.replace('markdown-to-', '').toUpperCase()})</CardTitle>
+                            <CardTitle>2. Kết quả ({slug.replace('csv-to-', '').toUpperCase()})</CardTitle>
                             <CardDescription>
                                 Xem trước và tải xuống kết quả
                             </CardDescription>
