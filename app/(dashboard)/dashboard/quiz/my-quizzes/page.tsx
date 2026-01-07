@@ -2,7 +2,7 @@ import { ToolShell } from '@/components/dashboard/ToolShell'
 import { ListFilter, Plus, MoreHorizontal, Play, Edit, Trash2, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { getQuizzes } from '@/lib/actions/quiz'
+import { getQuizzes, type Quiz } from '@/lib/actions/quiz'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import {
@@ -50,7 +50,7 @@ export default async function MyQuizzesPage() {
                         <div className="col-span-full text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
                             Chưa có bộ câu hỏi nào. Hãy tạo mới ngay!
                         </div>
-                    ) : quizzes.map((quiz) => (
+                    ) : quizzes.map((quiz: Quiz) => (
                         <Card key={quiz.id} className="hover:shadow-md transition-shadow group relative overflow-hidden">
                             <CardHeader className="pb-3">
                                 <div className="flex justify-between items-start">
