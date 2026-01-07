@@ -25,7 +25,7 @@ import { Loader2 } from 'lucide-react'
 const quizSchema = z.object({
     title: z.string().min(3, 'Tên bộ câu hỏi phải có ít nhất 3 ký tự'),
     description: z.string().optional(),
-    is_public: z.boolean().default(false),
+    is_public: z.boolean(),
 })
 
 type QuizFormValues = z.infer<typeof quizSchema>
@@ -39,7 +39,7 @@ export function QuizForm({ quiz, isEditing = false }: QuizFormProps) {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
 
-    const form = useForm<QuizFormValues>({
+    const form = useForm({
         resolver: zodResolver(quizSchema),
         defaultValues: {
             title: quiz?.title || '',
