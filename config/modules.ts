@@ -140,7 +140,7 @@ export const modules: Module[] = [
     {
         key: 'bcrypt-generator',
         name: 'Bcrypt Generator',
-        description: 'Tạo mã băm Bcrypt và kiểm tra mật khẩu.',
+        description: 'Tạo mã băm Bcrypt và kiểm tra mật k`hẩu.',
         href: '/tools/bcrypt-generator',
         icon: Lock,
         category: 'Utilities',

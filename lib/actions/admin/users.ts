@@ -18,7 +18,8 @@ export async function getUsers() {
     await requireAdmin()
     const supabase = await createClient()
 
-    const { data } = await supabase
+    // 1. Fetch users
+    const { data: users, error } = await supabase
         .from('user_profiles' as any)
         .select(`
             *,
@@ -29,7 +30,33 @@ export async function getUsers() {
         `)
         .order('created_at', { ascending: false })
 
-    return data || []
+    if (error) {
+        console.error('Error fetching users:', error)
+        return []
+    }
+
+    // 2. Fetch latest audit log (login) for each user
+    // Optimization: Fetch all 'login' logs, ordered by time desc
+    // In a real large app, this should be optimized with a specific RPC or better query
+    const { data: logs } = await supabase
+        .from('audit_logs')
+        .select('user_id, ip_address, user_agent, created_at')
+        .eq('action', 'login')
+        .order('created_at', { ascending: false })
+        .limit(1000) // Limit scanning for now
+
+    // Map logs to users
+    const usersWithLogs = users.map((user: any) => {
+        const lastLogin = logs?.find((log: any) => log.user_id === user.id)
+        return {
+            ...user,
+            last_ip: lastLogin?.ip_address,
+            last_device: lastLogin?.user_agent,
+            last_login: lastLogin?.created_at
+        }
+    })
+
+    return usersWithLogs
 }
 
 export async function getUser(id: string) {
@@ -152,21 +179,24 @@ export async function deleteUser(id: string) {
 }
 
 export async function resetPassword(userId: string) {
-    await requireAdmin()
-
     const newPassword = generatePassword()
+    return updateUserPassword(userId, newPassword)
+}
+
+export async function updateUserPassword(userId: string, password: string) {
+    await requireAdmin()
 
     try {
         const adminSupabase = getAdminClient()
         const { error } = await adminSupabase.auth.admin.updateUserById(userId, {
-            password: newPassword
+            password: password
         })
 
         if (error) return { error: error.message }
 
-        return { success: true, newPassword }
+        return { success: true, newPassword: password }
     } catch (err: any) {
-        return { error: err.message || 'Failed to reset password' }
+        return { error: err.message || 'Failed to update password' }
     }
 }
 
