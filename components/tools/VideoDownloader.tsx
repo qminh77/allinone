@@ -167,7 +167,7 @@ export function VideoDownloader() {
                                                     </Badge>
                                                     <span className="ml-2 text-xs text-muted-foreground">{label}</span>
                                                 </TableCell>
-                                                <TableCell text-muted-foreground>
+                                                <TableCell className="text-muted-foreground">
                                                     {format.filesize ? formatBytes(format.filesize) : (format.filesize_approx ? '~' + formatBytes(format.filesize_approx) : 'N/A')}
                                                 </TableCell>
                                                 <TableCell className="text-right">
