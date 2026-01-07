@@ -212,3 +212,36 @@ export async function performMetaTagLookup(url: string) {
         return { error: `Lookup failed: ${error.message}` }
     }
 }
+
+import path from 'path'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+
+const execFileAsync = promisify(execFile)
+
+export async function getVideoInfo(url: string) {
+    try {
+        if (!url) return { error: 'URL is required' }
+
+        console.log(`[VideoDownloader] Fetching info for: ${url}`)
+
+        const binaryPath = path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp')
+
+        const { stdout } = await execFileAsync(binaryPath, [
+            url,
+            '--dump-single-json',
+            '--no-check-certificates',
+            '--no-warnings',
+            '--prefer-free-formats',
+            '--add-header', 'referer:youtube.com',
+            '--add-header', 'user-agent:googlebot'
+        ])
+
+        const output = JSON.parse(stdout)
+        return { success: true, data: output }
+
+    } catch (error: any) {
+        console.error('[VideoDownloader] Error:', error)
+        return { error: `Lỗi khi lấy thông tin video: ${error.message}` }
+    }
+}

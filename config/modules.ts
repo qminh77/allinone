@@ -36,6 +36,7 @@ import {
     Image as ImageIcon,
     FileDown,
     Disc, // Added for Spin Wheel
+    Download,
 } from 'lucide-react'
 
 export type ModuleCategory = 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF'
@@ -152,6 +153,16 @@ export const modules: Module[] = [
         description: 'Công cụ quay số ngẫu nhiên để chọn một mục từ danh sách.',
         href: '/tools/spin-wheel',
         icon: Disc,
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'video-downloader',
+        name: 'Video Downloader',
+        description: 'Tải video chất lượng cao từ YouTube, TikTok, Facebook, Twitter (X) sử dụng yt-dlp.',
+        href: '/tools/video-downloader',
+        icon: Download,
         category: 'Utilities',
         isNew: true,
         isPopular: true

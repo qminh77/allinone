@@ -14,7 +14,7 @@ import { PermissionKey } from '@/types/permissions'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface SidebarProps {
     enabledModules?: Record<string, boolean>
@@ -48,6 +48,27 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
         acc[cat].push(module)
         return acc
     }, {} as Record<string, typeof activeModules>)
+
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
+
+    if (!isMounted) {
+        return (
+            <div className="flex flex-col h-full bg-sidebar-background border-r">
+                <div className="h-16 flex items-center px-6 border-b">
+                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+                            <Command className="h-5 w-5" />
+                        </div>
+                        <span className="text-lg">Tools Admin</span>
+                    </Link>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-col h-full bg-sidebar-background border-r">
