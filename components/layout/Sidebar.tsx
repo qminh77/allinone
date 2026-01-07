@@ -60,9 +60,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
             <div className="flex flex-col h-full bg-sidebar-background border-r">
                 <div className="h-16 flex items-center px-6 border-b">
                     <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-                            <Command className="h-5 w-5" />
-                        </div>
+
                         <span className="text-lg">Tools Admin</span>
                     </Link>
                 </div>
@@ -74,9 +72,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
         <div className="flex flex-col h-full bg-sidebar-background border-r">
             <div className="h-16 flex items-center px-6 border-b">
                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-                        <Command className="h-5 w-5" />
-                    </div>
+
                     <span className="text-lg">Tools Admin</span>
                 </Link>
             </div>
