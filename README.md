@@ -1,229 +1,181 @@
-# Tool Website - Supabase + Next.js
+# 🛠️ Ultimate Tool Website
 
-Hệ thống quản lý công cụ (tools) với phân quyền động, được xây dựng bằng **Next.js 14** (App Router) + **TypeScript** + **Supabase** + **Shadcn UI**.
+![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Shadcn UI](https://img.shields.io/badge/Shadcn_UI-000000?style=for-the-badge&logo=shadcnui&logoColor=white)
 
-## 📋 Tính năng chính
-
-### 🔐 Authentication & Authorization
-- ✅ Đăng ký / Đăng nhập với Supabase Auth
-- ✅ Middleware bảo vệ routes (dashboard, admin)
-- ✅ Row Level Security (RLS) ở database level
-- ✅ Session management với cookies (httpOnly, secure)
-
-### 🎭 Hệ thống phân quyền động
-- ✅ **Roles động**: Admin, User, Guest (có thể thêm/sửa/xóa)
-- ✅ **Permissions**: 24 quyền hạn được chia theo module
-- ✅ **Role-Permission mapping**: Gán quyền linh hoạt cho từng role
-- ✅ **Permission checking**:
-  - Server-side: `hasPermission()`, `requirePermission()`
-  - Client-side: `usePermissions()` hook
-  - UI components: `<ProtectedFeature permission="...">`
-
-### ⚙️ Admin Control Panel
-- ✅ Quản lý Users (xem danh sách, gán role)
-- ✅ Quản lý Roles & Permissions
-- ✅ Quản lý Modules (bật/tắt tools)
-- ✅ Settings: Bật/tắt đăng ký, đăng nhập
-- ✅ Audit Logs viewer
-
-### 🛠️ Tool Modules (Examples)
-- ✅ Text Formatter (uppercase, lowercase, capitalize, reverse)
-- ⏳ Image Compressor (placeholder)
-- ⏳ JSON Validator (placeholder)
-
-### 📊 Audit Logging
-- ✅ Ghi lại các hành động quan trọng:
-  - Login, register, logout
-  - Thay đổi role, permissions
-  - Bật/tắt modules, settings
-- ✅ Lưu metadata: user_id, action, IP, user agent, timestamp
-
-### 🔒 Bảo mật
-- ✅ SQL Injection: Parameterized queries (Supabase ORM)
-- ✅ XSS: React auto-escape HTML
-- ✅ CSRF: Next.js built-in protection
-- ✅ Secrets management: `.env.local` (không commit lên Git)
-- ✅ RLS policies cho tất cả bảng nhạy cảm
+> **Motto:** Hệ thống công cụ trực tuyến mạnh mẽ, đa năng và bảo mật cao dành cho Developer và Power Users.
 
 ---
 
-## 🚀 Setup & Installation
+## 📖 Giới thiệu (Introduction)
 
-### 1. Clone & Install Dependencies
+**Tool Website** là một nền tảng "All-in-One" cung cấp hơn 50+ công cụ tiện ích từ chuyển đổi dữ liệu, mã hóa, format code đến kiểm tra mạng và SEO. Dự án được xây dựng với kiến trúc hiện đại, tập trung vào **hiệu năng**, **bảo mật** và **trải nghiệm người dùng (UX)**.
+
+Điểm đặc biệt của hệ thống là khả năng **Quản lý phân quyền động (Dynamic RBAC)**, cho phép Admin kiểm soát chi tiết quyền hạn truy cập của từng người dùng đối với từng module cụ thể.
+
+## ✨ Tính năng nổi bật (Key Features)
+
+### 🔐 Bảo mật & Xác thực (Security & Auth)
+- **Supabase Auth**: Đăng ký/Đăng nhập an toàn, hỗ trợ Social Login.
+- **Session Management**: Quản lý phiên làm việc bảo mật với HttpOnly Cookies.
+- **Row Level Security (RLS)**: Bảo vệ dữ liệu người dùng ở cấp độ Database.
+- **Security Audit Logs**: Ghi lại mọi hành động quan trọng (Login, đổi quyền, truy cập admin).
+
+### 🎭 Hệ thống phân quyền (Dynamic Permission System)
+- **Roles**: Admin, User, Guest (Customizable).
+- **Permissions**: Hơn 20+ quyền hạn chi tiết (e.g., `users.view`, `tools.manage`).
+- **Role Assignment**: Dễ dàng gán quyền cho Groups hoặc User cụ thể.
+
+### 🛠️ Kho công cụ khổng lồ (Tool Modules)
+Hệ thống tích hợp sẵn hơn 45 công cụ được chia thành các nhóm:
+
+| 🔄 Converters | ⚡ Generators | 🧹 Formatters & Minifiers | 🔍 Lookups & Checkers | 🛠️ Utilities |
+| :--- | :--- | :--- | :--- | :--- |
+| **JSON** ↔ XML/YAML | **UUID/ULID** | **JSON/SQL** Formatter | **DNS** Lookup | **Diff** Viewer |
+| **Base64** Encode/Decode | **Bcrypt/MD5** Hash | **JS/CSS/HTML** Minifier | **Whois** Domain | **Color** Picker |
+| **Hex** / **Binary** | **Password** Strong | **Duplicate** Remover | **SSL** Checker | **QR Code** Gen |
+| **Image** Converter | **Slug** Generator | **Text** Cleaner | **IP** Info | **Unit** Converter |
+| **PDF** Tools | **Lorem Ipsum** | **Case** Converter | **HTTP** Headers | **Spin Wheel** |
+| ... và nhiều hơn nữa | | | | |
+
+### 🎨 Giao diện hiện đại (Modern UI/UX)
+- **Dark/Light Mode**: Tự động theo hệ thống hoặc tùy chỉnh.
+- **Responsive**: Hoạt động mượt mà trên Mobile, Tablet và Desktop.
+- **Interactive**: Hiệu ứng mượt mà, phản hồi tức thì.
+
+---
+
+## 🧰 Danh sách công cụ chi tiết (Tool Catalog)
+
+### 🔄 Converters (Chuyển đổi)
+*   **Base64Converter**: Mã hóa/Giải mã chuỗi Base64.
+*   **Binary/Hex/Decimal**: Chuyển đổi qua lại giữa các hệ cơ số.
+*   **ColorConverter**: HEX ↔ RGB ↔ HSL ↔ CMYK.
+*   **CSV/Excel/JSON**: Chuyển đổi dữ liệu bảng tính.
+*   **HTML/Markdown**: Render và chuyển đổi định dạng văn bản.
+*   **SQL/XML/YAML**: Chuyển đổi cấu trúc dữ liệu.
+*   **Temperature/Speed**: Chuyển đổi đơn vị vật lý.
+
+### ⚡ Generators (Tạo dữ liệu)
+*   **UuidGenerator**: Tạo UUID v4 ngẫu nhiên.
+*   **BcryptGenerator**: Hash mật khẩu chuẩn Bcrypt.
+*   **Md5Generator**: Tạo mã băm MD5.
+*   **Strong Password**: Tạo mật khẩu mạnh, tùy chỉnh độ dài/ký tự.
+*   **LoremIpsum**: Tạo văn bản giả (dummy text).
+*   **SlugGenerator**: Tạo URL slug chuẩn SEO.
+*   **Signature**: Tạo chữ ký điện tử.
+
+### 🧹 Formatters & Minifiers (Định dạng & Tối ưu)
+*   **Css/Js/Html Minifier**: Nén code web để tối ưu tốc độ.
+*   **SqlFormatter**: Format câu lệnh SQL dễ đọc.
+*   **TextSeparator**: Tách/Gộp văn bản.
+*   **DuplicateLinesRemover**: Loại bỏ dòng trùng lặp.
+
+### 🔍 Lookups (Tra cứu)
+*   **WhoisLookup**: Kiểm tra thông tin chủ sở hữu tên miền.
+*   **DNSLookup**: Tra cứu bản ghi DNS (A, MX, CNAME...).
+*   **IPLookup**: Xác định vị trí và thông tin IP.
+*   **SSLLookup**: Kiểm tra chứng chỉ bảo mật.
+*   **UserAgentParser**: Phân tích thông tin trình duyệt.
+
+---
+
+## 🚀 Cài đặt & Sử dụng (Installation)
+
+### Yêu cầu (Prerequisites)
+- [Node.js](https://nodejs.org/) (v18 trở lên)
+- [npm](https://www.npmjs.com/) hoặc `yarn`/`pnpm`
+- Tài khoản [Supabase](https://supabase.com/)
+
+### 1. Clone dự án
 
 ```bash
+git clone https://github.com/qminh77/tool-website.git
 cd tool-website
+```
+
+### 2. Cài đặt thư viện
+
+```bash
 npm install
 ```
 
-### 2. Tạo Supabase Project
-
-1. Truy cập [https://supabase.com](https://supabase.com)
-2. Tạo project mới
-3. Lấy thông tin:
-   - `SUPABASE_URL` (Project URL)
-   - `SUPABASE_ANON_KEY` (anon/public key)
-   - `SUPABASE_SERVICE_ROLE_KEY` (service_role key)
-
 ### 3. Cấu hình môi trường
 
-Tạo file `.env.local`:
+Tạo file `.env.local` tại thư mục gốc và điền thông tin từ Supabase:
 
 ```env
-# Public keys
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
 
-# Service Role Key (DANGEROUS - only for API routes!)
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-
-# App Config
-NEXT_PUBLIC_APP_NAME=Tool Website
+# App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 4. Chạy Database Migrations
+> ⚠️ **Lưu ý:** `SUPABASE_SERVICE_ROLE_KEY` là khóa bí mật, **KHÔNG** được để lộ ra ngoài client-side.
 
-Vào Supabase Dashboard → SQL Editor, chạy từng file migration theo thứ tự:
+### 4. Khởi tạo Database
 
-1. `supabase/migrations/001_initial_schema.sql`
-2. `supabase/migrations/002_rls_policies_fixed.sql` ⚠️ **Use the FIXED version!**
-3. `supabase/migrations/003_seed_data.sql`
+Vào Supabase SQL Editor và chạy các file trong thư mục `supabase/migrations`:
+1.  `001_initial_schema.sql`: Tạo bảng users, roles, permissions.
+2.  `002_rls_policies.sql`: Thiết lập bảo mật RLS.
+3.  `003_seed_data.sql`: Dữ liệu mẫu ban đầu.
 
-> **Note**: If you already ran `002_rls_policies.sql`, the fixed version will drop and recreate all policies correctly.
-
-### 5. Chạy Development Server
+### 5. Chạy dự án
 
 ```bash
 npm run dev
 ```
 
-Mở trình duyệt: [http://localhost:3000](http://localhost:3000)
+Truy cập `http://localhost:3000` để trải nghiệm!
 
 ---
 
-## 👤 Tạo tài khoản Admin đầu tiên
+## 📂 Cấu trúc dự án (Project Structure)
 
-1. Đăng ký tài khoản mới qua UI (mặc định có role User)
-2. Vào Supabase Dashboard → Table Editor → `user_profiles`
-3. Update `role_id` = ID của role "Admin"
-
-Hoặc chạy SQL:
-
-```sql
--- Lấy user_id từ auth.users
-SELECT id, email FROM auth.users;
-
--- Update role thành Admin
-UPDATE user_profiles
-SET role_id = (SELECT id FROM roles WHERE name = 'Admin')
-WHERE id = 'user-id-here';
+```
+tool-website/
+├── app/                  # Next.js App Router
+│   ├── (auth)/           # Route đăng nhập/đăng ký
+│   ├── (dashboard)/      # Dashboard chính
+│   ├── admin/            # Trang quản trị (Admin only)
+│   └── api/              # API Endpoints
+├── components/           # UI Components
+│   ├── tools/            # Source code của 50+ tools
+│   ├── ui/               # Shadcn UI base components
+│   └── ...
+├── lib/                  # Utilities & Helpers
+│   ├── auth/             # Auth logic
+│   ├── supabase/         # Supabase client
+│   └── utils.ts          # Helper functions
+├── public/               # Static assets
+└── supabase/             # Database migrations & types
 ```
 
 ---
 
-## 📊 Database Schema
+## 🤝 Đóng góp (Contributing)
 
-### Bảng chính
-
-| Bảng | Mô tả |
-|------|-------|
-| `user_profiles` | Hồ sơ người dùng (mở rộng từ auth.users) |
-| `roles` | Các vai trò (Admin, User, Guest...) |
-| `permissions` | Danh sách quyền hạn |
-| `role_permissions` | Gán quyền cho role |
-| `modules` | Danh sách tool modules |
-| `settings` | Cấu hình hệ thống |
-| `audit_logs` | Nhật ký hành động |
-| `backups` | Metadata backup (chưa implement) |
+Mọi đóng góp đều được hoan nghênh! Vui lòng:
+1.  Fork dự án.
+2.  Tạo branch mới (`git checkout -b feature/AmazingFeature`).
+3.  Commit thay đổi (`git commit -m 'Add some AmazingFeature'`).
+4.  Push lên branch (`git push origin feature/AmazingFeature`).
+5.  Tạo Pull Request.
 
 ---
 
-## 🔐 Row Level Security (RLS)
+## 📜 License
 
-Tất cả bảng đều có RLS policies:
-
-- **user_profiles**: User xem/sửa profile của mình, Admin xem tất cả
-- **roles, permissions**: Tất cả đọc được, chỉ Admin sửa được
-- **audit_logs**: User xem logs của mình, Admin xem tất cả
-- **settings**: Tất cả đọc được, chỉ Admin sửa được
+Dự án này được phân phối dưới giấy phép **MIT**. Xem file `LICENSE` để biết thêm chi tiết.
 
 ---
 
-## 🛡️ Bảo mật - Lưu ý quan trọng
-
-### ❌ KHÔNG BAO GIỜ:
-1. Commit file `.env.local` lên Git
-2. Expose `SUPABASE_SERVICE_ROLE_KEY` ở client-side
-3. Import `lib/supabase/admin.ts` vào Client Components
-4. Cho phép user tự ghi audit logs (phải qua API)
-
-### ✅ NÊN:
-1. Kiểm tra permissions ở cả frontend VÀ backend
-2. Dùng RLS làm lớp bảo vệ cuối cùng
-3. Validate input trước khi gửi vào database
-4. Ghi audit log cho mọi hành động quan trọng
-
----
-
-## 📚 Cách sử dụng
-
-### Kiểm tra quyền trong Component
-
-```tsx
-import { usePermissions } from '@/lib/permissions/hooks'
-import { ProtectedFeature } from '@/components/auth/ProtectedFeature'
-
-function MyComponent() {
-  const { hasPermission, loading } = usePermissions()
-
-  if (loading) return <div>Loading...</div>
-
-  // Cách 1: Kiểm tra manual
-  if (!hasPermission('users.edit')) {
-    return <div>Không có quyền</div>
-  }
-
-  // Cách 2: Dùng component
-  return (
-    <ProtectedFeature permission="users.edit">
-      <Button>Chỉnh sửa</Button>
-    </ProtectedFeature>
-  )
-}
-```
-
-### Kiểm tra quyền trong API Route
-
-```ts
-import { getCurrentUser } from '@/lib/auth/session'
-import { requirePermission } from '@/lib/permissions/check'
-
-export async function POST(request: Request) {
-  const user = await getCurrentUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  // Require permission
-  await requirePermission(user.id, 'users.edit')
-
-  // ... xử lý logic
-}
-```
-
----
-
-## 💡 Giải thích thuật ngữ đơn giản
-
-**Row Level Security (RLS):** Bảo mật ở mức hàng (row) trong database. PostgreSQL tự động kiểm tra quyền mỗi khi user query dữ liệu. Ngay cả khi hacker bypass frontend/backend, họ vẫn không đọc được data không được phép.
-
-**Permission Key:** Mã định danh duy nhất cho mỗi quyền (ví dụ: `users.edit`). Dùng string thay vì ID để dễ đọc code.
-
-**Service Role Key:** Key có quyền "god mode", bỏ qua mọi RLS. Chỉ dùng trong API routes khi cần thao tác admin (như ghi audit log).
-
-**Middleware:** Code chạy trước khi vào page. Next.js dùng để check auth, redirect nếu chưa login.
-
-**Audit Log:** Nhật ký ghi lại "ai làm gì, khi nào". Quan trọng để điều tra sự cố hoặc vi phạm.
-
----
-
-**Chúc bạn code vui vẻ! 🚀**
+<div align="center">
+  Made with ❤️ by <b>QMinh77</b>
+</div>
