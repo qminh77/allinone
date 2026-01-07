@@ -168,6 +168,16 @@ export const modules: Module[] = [
         isPopular: true
     },
     {
+        key: 'scribd-downloader',
+        name: 'Scribd Downloader',
+        description: 'Tải tài liệu PDF từ Scribd mà không cần tài khoản.',
+        href: '/tools/scribd-downloader',
+        icon: FileText,
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
+    },
+    {
         key: 'password-generator',
         name: 'Password Generator',
         description: 'Tạo mật khẩu mạnh ngẫu nhiên (Strong Password).',
