@@ -28,7 +28,7 @@ export default async function PublicQuizPage({ params }: PageProps) {
         .eq('share_token', token)
         .single()
 
-    let quiz = quizByToken
+    let quiz: any = quizByToken
 
     // 2. If not found by token, try by ID if it's a valid UUID (and IS PUBLIC)
     if (!quiz) {
@@ -55,11 +55,12 @@ export default async function PublicQuizPage({ params }: PageProps) {
     }
 
     // Sort questions and answers
+    // Sort questions and answers
     if (quiz.quiz_questions) {
-        quiz.quiz_questions.sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
-        quiz.quiz_questions.forEach(q => {
+        quiz.quiz_questions.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+        quiz.quiz_questions.forEach((q: any) => {
             if (q.quiz_answers) {
-                q.quiz_answers.sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+                q.quiz_answers.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
             }
         })
     }

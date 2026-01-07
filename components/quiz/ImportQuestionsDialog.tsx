@@ -188,11 +188,43 @@ export function ImportQuestionsDialog({ quizId }: ImportQuestionsDialogProps) {
 
     const downloadSample = () => {
         const ws = XLSX.utils.aoa_to_sheet([
-            ["Câu hỏi", "Loại (single/multiple)", "Đáp án đúng", "Giải thích", "Loại Media (image/youtube)", "Link Media", "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"],
-            ["Thủ đô của Việt Nam là gì?", "single", "A", "Hà Nội là thủ đô ngàn năm văn hiến", "", "", "Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Cần Thơ"],
-            ["Đâu là số nguyên tố?", "multiple", "A,C", "2 và 3 là số nguyên tố", "image", "https://example.com/math.png", "2", "4", "3", "6"],
-            ["1 + 1 = ?", "single", "2", "Toán học cơ bản", "youtube", "https://youtube.com/...", "1", "2", "3", "4"]
+            [
+                "Câu hỏi (Bắt buộc)",
+                "Loại (single/multiple)",
+                "Đáp án đúng (A,B hoặc 1,2)",
+                "Giải thích (Tùy chọn)",
+                "Loại Media (image/youtube)",
+                "Link Media (URL)",
+                "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án E", "Đáp án F"
+            ],
+            // 1. Single Choice - Standard
+            ["Thủ đô của Việt Nam là gì?", "single", "A", "Hà Nội là thủ đô ngàn năm văn hiến", "", "", "Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Cần Thơ", "", ""],
+
+            // 2. Multiple Choice - Letters
+            ["Đâu là số nguyên tố?", "multiple", "A,C", "2 và 3 là số nguyên tố", "", "", "2", "4", "3", "6", "", ""],
+
+            // 3. Media Image - Numeric Correct Answer
+            ["Hình ảnh bên dưới là con gì?", "single", "2", "Là con mèo", "image", "https://example.com/cat.jpg", "Chó", "Mèo", "Chuột", "Gà", "", ""],
+
+            // 4. Media YouTube - Multiple Options
+            ["Xem video và chọn kết quả đúng của 1+1", "single", "B", "Toán học cơ bản", "youtube", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "1", "2", "3", "4", "5", "6"],
+
+            // 5. Many Options
+            ["Các màu cơ bản của ánh sáng (RGB)?", "multiple", "A,B,C", "Red, Green, Blue", "", "", "Đỏ", "Xanh Lục", "Xanh Lam", "Vàng", "Tím", "Cam"]
         ])
+
+        // Auto-width for better visibility
+        const wscols = [
+            { wch: 40 }, // Question
+            { wch: 15 }, // Type
+            { wch: 15 }, // Correct
+            { wch: 30 }, // Explanation
+            { wch: 15 }, // MediaType
+            { wch: 30 }, // MediaURL
+            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 } // Options
+        ];
+        ws['!cols'] = wscols;
+
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, "Mau_Cau_Hoi")
         XLSX.writeFile(wb, "quiz_sample.xlsx")
