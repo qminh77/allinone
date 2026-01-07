@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ProtectedFeature } from '@/components/auth/ProtectedFeature'
-import { LayoutDashboard, ChevronRight, Command, Link as LinkIcon, Mail, Send, Settings2, History } from 'lucide-react'
+import { LayoutDashboard, ChevronRight, Command, Link as LinkIcon, Mail, Send, Settings2, History, FileText, ListFilter, PenTool } from 'lucide-react'
 import { modules, categories } from '@/config/modules'
 import { PermissionKey } from '@/types/permissions'
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -27,7 +27,8 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
         'General': true,
         'Network': true,
         'Utilities': true,
-        'MailSystem': true
+        'MailSystem': true,
+        'QuizSystem': true
     })
 
     const toggleCategory = (key: string) => {
@@ -132,6 +133,59 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                                     className={cn(
                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
                                         pathname === '/dashboard/mail/history'
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    )}
+                                >
+                                    <History className="h-4 w-4" />
+                                    <span>Lịch sử</span>
+                                </Link>
+                            </CollapsibleContent>
+                        </Collapsible>
+
+                        {/* Quiz System */}
+                        <Collapsible
+                            open={openCategories['QuizSystem']}
+                            onOpenChange={() => toggleCategory('QuizSystem')}
+                            className="space-y-1"
+                        >
+                            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 px-3 text-sm font-semibold hover:bg-muted/50 rounded-md transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="h-4 w-4" />
+                                    <span>Quiz System</span>
+                                </div>
+                                <ChevronRight className={cn("h-4 w-4 transition-transform duration-200 text-muted-foreground", openCategories['QuizSystem'] && "rotate-90")} />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="space-y-1 pt-1">
+                                <Link
+                                    href="/dashboard/quiz/my-quizzes"
+                                    className={cn(
+                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
+                                        pathname === '/dashboard/quiz/my-quizzes'
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    )}
+                                >
+                                    <ListFilter className="h-4 w-4" />
+                                    <span>Bộ câu hỏi</span>
+                                </Link>
+                                <Link
+                                    href="/dashboard/quiz/create"
+                                    className={cn(
+                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
+                                        pathname === '/dashboard/quiz/create'
+                                            ? 'bg-primary/10 text-primary font-medium'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    )}
+                                >
+                                    <PenTool className="h-4 w-4" />
+                                    <span>Tạo mới</span>
+                                </Link>
+                                <Link
+                                    href="/dashboard/quiz/history"
+                                    className={cn(
+                                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
+                                        pathname === '/dashboard/quiz/history'
                                             ? 'bg-primary/10 text-primary font-medium'
                                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                     )}

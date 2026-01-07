@@ -335,6 +335,154 @@ export interface Database {
           sent_at?: string
         }
       }
+      quizzes: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          user_id: string
+          is_public: boolean
+          share_token: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          user_id: string
+          is_public?: boolean
+          share_token?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          user_id?: string
+          is_public?: boolean
+          share_token?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      quiz_questions: {
+        Row: {
+          id: string
+          quiz_id: string
+          content: string
+          type: 'single' | 'multiple'
+          explanation: string | null
+          media_url: string | null
+          media_type: 'image' | 'youtube' | null
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          quiz_id: string
+          content: string
+          type?: 'single' | 'multiple'
+          explanation?: string | null
+          media_url?: string | null
+          media_type?: 'image' | 'youtube' | null
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          quiz_id?: string
+          content?: string
+          type?: 'single' | 'multiple'
+          explanation?: string | null
+          media_url?: string | null
+          media_type?: 'image' | 'youtube' | null
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      quiz_answers: {
+        Row: {
+          id: string
+          question_id: string
+          content: string
+          is_correct: boolean
+          order_index: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          content: string
+          is_correct?: boolean
+          order_index?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          question_id?: string
+          content?: string
+          is_correct?: boolean
+          order_index?: number
+          created_at?: string
+        }
+      }
+      quiz_attempts: {
+        Row: {
+          id: string
+          quiz_id: string
+          user_id: string | null
+          score: number
+          total_questions: number
+          started_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          quiz_id: string
+          user_id?: string | null
+          score?: number
+          total_questions?: number
+          started_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          quiz_id?: string
+          user_id?: string | null
+          score?: number
+          total_questions?: number
+          started_at?: string
+          completed_at?: string | null
+        }
+      }
+      quiz_attempt_answers: {
+        Row: {
+          id: string
+          attempt_id: string
+          question_id: string
+          answer_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          attempt_id: string
+          question_id: string
+          answer_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          attempt_id?: string
+          question_id?: string
+          answer_id?: string | null
+          created_at?: string
+        }
+      }
     }
   }
 }

@@ -411,6 +411,16 @@ export const modules: Module[] = [
         isPopular: true
     },
     {
+        key: 'quiz-system',
+        name: 'Quiz System',
+        description: 'Tạo, quản lý và chia sẻ các bài trắc nghiệm kiến thức.',
+        href: '/dashboard/quiz',
+        icon: FileText, // Reusing FileText or use a better one like BookOpen if available, but FileText is consistent with other similar tools
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
+    },
+    {
         key: 'merge-pdf',
         name: 'Merge PDF',
         description: 'Ghép nhiều file PDF thành một file duy nhất.',
