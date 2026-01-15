@@ -1,181 +1,226 @@
-# 🛠️ Ultimate Tool Website
+# allinone
 
-![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Shadcn UI](https://img.shields.io/badge/Shadcn_UI-000000?style=for-the-badge&logo=shadcnui&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-black?style=flat-square&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
 
-> **Motto:** Hệ thống công cụ trực tuyến mạnh mẽ, đa năng và bảo mật cao dành cho Developer và Power Users.
-
----
-
-## 📖 Giới thiệu (Introduction)
-
-**Tool Website** là một nền tảng "All-in-One" cung cấp hơn 50+ công cụ tiện ích từ chuyển đổi dữ liệu, mã hóa, format code đến kiểm tra mạng và SEO. Dự án được xây dựng với kiến trúc hiện đại, tập trung vào **hiệu năng**, **bảo mật** và **trải nghiệm người dùng (UX)**.
-
-Điểm đặc biệt của hệ thống là khả năng **Quản lý phân quyền động (Dynamic RBAC)**, cho phép Admin kiểm soát chi tiết quyền hạn truy cập của từng người dùng đối với từng module cụ thể.
-
-## ✨ Tính năng nổi bật (Key Features)
-
-### 🔐 Bảo mật & Xác thực (Security & Auth)
-- **Supabase Auth**: Đăng ký/Đăng nhập an toàn, hỗ trợ Social Login.
-- **Session Management**: Quản lý phiên làm việc bảo mật với HttpOnly Cookies.
-- **Row Level Security (RLS)**: Bảo vệ dữ liệu người dùng ở cấp độ Database.
-- **Security Audit Logs**: Ghi lại mọi hành động quan trọng (Login, đổi quyền, truy cập admin).
-
-### 🎭 Hệ thống phân quyền (Dynamic Permission System)
-- **Roles**: Admin, User, Guest (Customizable).
-- **Permissions**: Hơn 20+ quyền hạn chi tiết (e.g., `users.view`, `tools.manage`).
-- **Role Assignment**: Dễ dàng gán quyền cho Groups hoặc User cụ thể.
-
-### 🛠️ Kho công cụ khổng lồ (Tool Modules)
-Hệ thống tích hợp sẵn hơn 45 công cụ được chia thành các nhóm:
-
-| 🔄 Converters | ⚡ Generators | 🧹 Formatters & Minifiers | 🔍 Lookups & Checkers | 🛠️ Utilities |
-| :--- | :--- | :--- | :--- | :--- |
-| **JSON** ↔ XML/YAML | **UUID/ULID** | **JSON/SQL** Formatter | **DNS** Lookup | **Diff** Viewer |
-| **Base64** Encode/Decode | **Bcrypt/MD5** Hash | **JS/CSS/HTML** Minifier | **Whois** Domain | **Color** Picker |
-| **Hex** / **Binary** | **Password** Strong | **Duplicate** Remover | **SSL** Checker | **QR Code** Gen |
-| **Image** Converter | **Slug** Generator | **Text** Cleaner | **IP** Info | **Unit** Converter |
-| **PDF** Tools | **Lorem Ipsum** | **Case** Converter | **HTTP** Headers | **Spin Wheel** |
-| ... và nhiều hơn nữa | | | | |
-
-### 🎨 Giao diện hiện đại (Modern UI/UX)
-- **Dark/Light Mode**: Tự động theo hệ thống hoặc tùy chỉnh.
-- **Responsive**: Hoạt động mượt mà trên Mobile, Tablet và Desktop.
-- **Interactive**: Hiệu ứng mượt mà, phản hồi tức thì.
+**One platform. Zero subscriptions. Infinite tools.**
 
 ---
 
-## 🧰 Danh sách công cụ chi tiết (Tool Catalog)
+## The Story
 
-### 🔄 Converters (Chuyển đổi)
-*   **Base64Converter**: Mã hóa/Giải mã chuỗi Base64.
-*   **Binary/Hex/Decimal**: Chuyển đổi qua lại giữa các hệ cơ số.
-*   **ColorConverter**: HEX ↔ RGB ↔ HSL ↔ CMYK.
-*   **CSV/Excel/JSON**: Chuyển đổi dữ liệu bảng tính.
-*   **HTML/Markdown**: Render và chuyển đổi định dạng văn bản.
-*   **SQL/XML/YAML**: Chuyển đổi cấu trúc dữ liệu.
-*   **Temperature/Speed**: Chuyển đổi đơn vị vật lý.
+You know that feeling when you need to convert Base64, then hash a password, then format some JSON, then check DNS records, then... wait, which browser tab was that again? Oh right, you have 47 tabs open across 12 different "free" tools that all want you to:
 
-### ⚡ Generators (Tạo dữ liệu)
-*   **UuidGenerator**: Tạo UUID v4 ngẫu nhiên.
-*   **BcryptGenerator**: Hash mật khẩu chuẩn Bcrypt.
-*   **Md5Generator**: Tạo mã băm MD5.
-*   **Strong Password**: Tạo mật khẩu mạnh, tùy chỉnh độ dài/ký tự.
-*   **LoremIpsum**: Tạo văn bản giả (dummy text).
-*   **SlugGenerator**: Tạo URL slug chuẩn SEO.
-*   **Signature**: Tạo chữ ký điện tử.
+- 💰 Pay $9.99/month for "Premium"
+- 📧 Sign up with your email (hello spam!)
+- 🔒 Create yet another account you'll forget
+- 💳 Subscribe to their "Pro Plan" just to remove ads
+- 🎯 Watch the same "upgrade now" popup 50 times a day
 
-### 🧹 Formatters & Minifiers (Định dạng & Tối ưu)
-*   **Css/Js/Html Minifier**: Nén code web để tối ưu tốc độ.
-*   **SqlFormatter**: Format câu lệnh SQL dễ đọc.
-*   **TextSeparator**: Tách/Gộp văn bản.
-*   **DuplicateLinesRemover**: Loại bỏ dòng trùng lặp.
+I got tired of it. Really tired. 
 
-### 🔍 Lookups (Tra cứu)
-*   **WhoisLookup**: Kiểm tra thông tin chủ sở hữu tên miền.
-*   **DNSLookup**: Tra cứu bản ghi DNS (A, MX, CNAME...).
-*   **IPLookup**: Xác định vị trí và thông tin IP.
-*   **SSLLookup**: Kiểm tra chứng chỉ bảo mật.
-*   **UserAgentParser**: Phân tích thông tin trình duyệt.
+Every month, the subscriptions pile up like dirty dishes:
+- "DevTools Pro": $12/month
+- "ConverterHub Plus": $8/month  
+- "HashMaster Premium": $15/month
+- "SEO Checker Elite": $19/month
+
+**$54/month** just to do basic developer tasks? Are you kidding me?
+
+So I built **allinone**. One platform. Every tool you need. No credit card required. No "7-day free trial" tricks. No "premium" features locked behind paywalls.
+
+Just tools. Working. Free. Forever.
 
 ---
 
-## 🚀 Cài đặt & Sử dụng (Installation)
+## What's Inside
 
-### Yêu cầu (Prerequisites)
-- [Node.js](https://nodejs.org/) (v18 trở lên)
-- [npm](https://www.npmjs.com/) hoặc `yarn`/`pnpm`
-- Tài khoản [Supabase](https://supabase.com/)
+**50+ professional tools** organized into categories:
 
-### 1. Clone dự án
+### 🔄 Converters
+Base64, Binary/Hex/Decimal, Colors (HEX↔RGB↔HSL), CSV/JSON/XML/YAML, HTML/Markdown, Temperature, Speed, and more
+
+### ⚡ Generators  
+UUID, ULID, Bcrypt, MD5, Strong Passwords, Lorem Ipsum, URL Slugs, QR Codes, Signatures
+
+### 🧹 Formatters & Optimizers
+CSS/JS/HTML Minifier, SQL Formatter, JSON Beautifier, Duplicate Remover, Text Separator
+
+### 🔍 Lookups & Checkers
+WHOIS, DNS Records, IP Geolocation, SSL Certificate, User Agent Parser, HTTP Headers
+
+### 🛠️ Utilities
+Diff Viewer, Color Picker, Unit Converter, Image Converter, PDF Tools, Spin Wheel
+
+---
+
+## Why allinone?
+
+| Other "Free" Tools | allinone |
+|:---|:---|
+| ❌ $9.99/month subscription | ✅ Free. Actually free. |
+| ❌ "Sign up to continue" | ✅ No account needed (optional for saving) |
+| ❌ Ads everywhere | ✅ Clean interface |
+| ❌ 3 uses per day limit | ✅ Unlimited usage |
+| ❌ Basic features locked | ✅ Every feature available |
+| ❌ Data sent to their servers | ✅ Client-side processing when possible |
+| ❌ Different UX on each site | ✅ Consistent, modern interface |
+
+---
+
+## Features
+
+**🎨 Modern UI**
+- Dark/Light mode that actually looks good
+- Responsive design (mobile, tablet, desktop)
+- Smooth interactions and instant feedback
+
+**🔐 Security & Privacy**
+- Most tools run 100% in your browser (your data never leaves)
+- Optional account system with Supabase Auth
+- Row-Level Security (RLS) for user data
+- Audit logs for security events
+
+**🎭 Role-based Access Control**
+- Admin dashboard for managing users
+- Customizable permissions system
+- Fine-grained access control for teams
+
+**⚡ Performance**
+- Fast load times
+- Optimized for speed
+- Works offline for many tools
+
+---
+
+## Quick Start
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) v18+
+- [npm](https://www.npmjs.com/) or `yarn`/`pnpm`
+- [Supabase](https://supabase.com/) account (free tier works!)
+
+### Installation
 
 ```bash
-git clone https://github.com/qminh77/tool-website.git
-cd tool-website
-```
+# Clone the repository
+git clone https://github.com/qminh77/allinone.git
+cd allinone
 
-### 2. Cài đặt thư viện
-
-```bash
+# Install dependencies
 npm install
+
+# Set up environment variables
+cp env.template .env.local
+# Edit .env.local with your Supabase credentials
 ```
 
-### 3. Cấu hình môi trường
+### Environment Configuration
 
-Tạo file `.env.local` tại thư mục gốc và điền thông tin từ Supabase:
+Create `.env.local` based on `env.template`:
 
 ```env
 # Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-> ⚠️ **Lưu ý:** `SUPABASE_SERVICE_ROLE_KEY` là khóa bí mật, **KHÔNG** được để lộ ra ngoài client-side.
+### Database Setup
 
-### 4. Khởi tạo Database
+Run migrations in Supabase SQL Editor (`supabase/migrations/`):
 
-Vào Supabase SQL Editor và chạy các file trong thư mục `supabase/migrations`:
-1.  `001_initial_schema.sql`: Tạo bảng users, roles, permissions.
-2.  `002_rls_policies.sql`: Thiết lập bảo mật RLS.
-3.  `003_seed_data.sql`: Dữ liệu mẫu ban đầu.
+1. `001_initial_schema.sql` - Creates tables (users, roles, permissions)
+2. `002_rls_policies.sql` - Row Level Security policies
+3. `003_seed_data.sql` - Initial data
 
-### 5. Chạy dự án
+### Run Development Server
 
 ```bash
 npm run dev
 ```
 
-Truy cập `http://localhost:3000` để trải nghiệm!
+Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 📂 Cấu trúc dự án (Project Structure)
+## Project Structure
 
 ```
-tool-website/
-├── app/                  # Next.js App Router
-│   ├── (auth)/           # Route đăng nhập/đăng ký
-│   ├── (dashboard)/      # Dashboard chính
-│   ├── admin/            # Trang quản trị (Admin only)
-│   └── api/              # API Endpoints
-├── components/           # UI Components
-│   ├── tools/            # Source code của 50+ tools
-│   ├── ui/               # Shadcn UI base components
+allinone/
+├── app/                    # Next.js App Router
+│   ├── (auth)/             # Authentication routes
+│   ├── (dashboard)/        # Main dashboard
+│   ├── admin/              # Admin panel
+│   └── api/                # API endpoints
+├── components/
+│   ├── tools/              # 50+ tool implementations
+│   ├── ui/                 # shadcn/ui components
 │   └── ...
-├── lib/                  # Utilities & Helpers
-│   ├── auth/             # Auth logic
-│   ├── supabase/         # Supabase client
-│   └── utils.ts          # Helper functions
-├── public/               # Static assets
-└── supabase/             # Database migrations & types
+├── lib/                    # Utilities & helpers
+│   ├── auth/               # Authentication logic
+│   ├── supabase/           # Supabase client
+│   └── utils.ts
+├── public/                 # Static assets
+└── supabase/               # Database migrations & types
 ```
 
 ---
 
-## 🤝 Đóng góp (Contributing)
+## Tech Stack
 
-Mọi đóng góp đều được hoan nghênh! Vui lòng:
-1.  Fork dự án.
-2.  Tạo branch mới (`git checkout -b feature/AmazingFeature`).
-3.  Commit thay đổi (`git commit -m 'Add some AmazingFeature'`).
-4.  Push lên branch (`git push origin feature/AmazingFeature`).
-5.  Tạo Pull Request.
+Built with modern, production-ready technologies:
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Database**: Supabase (PostgreSQL)
+- **Auth**: Supabase Auth
+- **Styling**: Tailwind CSS 4
+- **UI Components**: Radix UI + shadcn/ui
+- **Forms**: React Hook Form + Zod
+- **State**: Zustand
 
 ---
 
-## 📜 License
+## Contributing
 
-Dự án này được phân phối dưới giấy phép **MIT**. Xem file `LICENSE` để biết thêm chi tiết.
+Found a bug? Want to add a tool? Contributions are welcome!
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-tool`)
+3. Commit your changes (`git commit -m 'Add amazing tool'`)
+4. Push to the branch (`git push origin feature/amazing-tool`)
+5. Open a Pull Request
+
+---
+
+## License
+
+MIT License - Use it, modify it, share it. Just don't charge people monthly subscriptions for basic tools. 😉
+
+---
+
+## The Bottom Line
+
+Life's too short to juggle 47 browser tabs and remember 23 different passwords just to format some JSON.
+
+**allinone** exists because developers deserve better than subscription fatigue.
+
+Use it. Enjoy it. Build something amazing.
 
 ---
 
 <div align="center">
-  Made with ❤️ by <b>QMinh77</b>
+
+**Made with ☕ and spite against monthly subscriptions**
+
+by [QMinh77](https://github.com/qminh77)
+
+[⭐ Star this repo](https://github.com/qminh77/allinone) if you're also tired of paying $9.99/month for a Base64 encoder
+
 </div>
