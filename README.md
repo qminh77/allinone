@@ -100,7 +100,8 @@ Diff Viewer, Color Picker, Unit Converter, Image Converter, PDF Tools, Spin Whee
 ### Prerequisites
 - [Node.js](https://nodejs.org/) v18+
 - [npm](https://www.npmjs.com/) or `yarn`/`pnpm`
-- [Supabase](https://supabase.com/) account (free tier works!)
+- **Option 1: Local Development** - [Docker](https://www.docker.com/) for Supabase Local ⚡ (Recommended)
+- **Option 2: Cloud** - [Supabase](https://supabase.com/) account (free tier works!)
 
 ### Installation
 
@@ -111,33 +112,57 @@ cd allinone
 
 # Install dependencies
 npm install
+```
 
+### Setup (Choose One)
+
+#### 🚀 Option 1: Local Development (Recommended - 10-50x Faster!)
+
+**Benefits:** 1-10ms latency vs 100-500ms on cloud, unlimited requests, works offline
+
+```bash
+# Install Supabase CLI
+wget -q https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz -O /tmp/supabase.tar.gz
+tar -xzf /tmp/supabase.tar.gz -C /tmp
+sudo mv /tmp/supabase /usr/local/bin/
+
+# Start Supabase local (first time takes 10-15 min to download Docker images)
+supabase start
+
+# Copy environment template
+cp env.template .env.local
+
+# Edit .env.local - uncomment local development section:
+# NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=<from-supabase-start-output>
+# SUPABASE_SERVICE_ROLE_KEY=<from-supabase-start-output>
+
+# Run development server
+npm run dev
+```
+
+**Useful Commands:**
+```bash
+npm run supabase:status  # Check if Supabase is running
+npm run supabase:stop    # Stop Supabase (free RAM)
+npm run supabase:reset   # Reset database to migrations
+```
+
+**Access Supabase Studio:** http://127.0.0.1:54323 (like phpMyAdmin for Supabase)
+
+#### ☁️ Option 2: Cloud Development
+
+```bash
 # Set up environment variables
 cp env.template .env.local
-# Edit .env.local with your Supabase credentials
+
+# Edit .env.local with your cloud Supabase credentials:
+# NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Run migrations in Supabase SQL Editor (supabase/migrations/)
 ```
-
-### Environment Configuration
-
-Create `.env.local` based on `env.template`:
-
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-
-# App Configuration
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-### Database Setup
-
-Run migrations in Supabase SQL Editor (`supabase/migrations/`):
-
-1. `001_initial_schema.sql` - Creates tables (users, roles, permissions)
-2. `002_rls_policies.sql` - Row Level Security policies
-3. `003_seed_data.sql` - Initial data
 
 ### Run Development Server
 
