@@ -2,16 +2,15 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Module } from '@/config/modules'
+import { modules, Module } from '@/config/modules'
 import { ModuleToggle } from '@/components/admin/ModuleToggle'
 import { ChevronDown } from 'lucide-react'
 
 interface ModuleListProps {
-    modules: Module[]
     initialStatuses: Record<string, boolean>
 }
 
-export function ModuleList({ modules, initialStatuses }: ModuleListProps) {
+export function ModuleList({ initialStatuses }: ModuleListProps) {
     const [visibleCount, setVisibleCount] = useState(20)
 
     const visibleModules = modules.slice(0, visibleCount)

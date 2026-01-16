@@ -172,6 +172,107 @@ export default async function ToolPage({ params }: PageProps) {
         )
     }
 
+    if (module.key === 'rotate-pdf') {
+        const { RotatePDF } = await import('@/components/tools/pdf/RotatePDF')
+        return (
+            <RotatePDF
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key === 'protect-pdf') {
+        const { ProtectPDF } = await import('@/components/tools/pdf/ProtectPDF')
+        return (
+            <ProtectPDF
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key === 'unlock-pdf') {
+        const { UnlockPDF } = await import('@/components/tools/pdf/UnlockPDF')
+        return (
+            <UnlockPDF
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+
+    if (['webp-to-png', 'jfif-to-png', 'webp-to-jpg', 'svg-converter'].includes(module.key)) {
+        const { GeneralImageConverter } = await import('@/components/tools/image/GeneralImageConverter')
+        return (
+            <GeneralImageConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (['heic-to-jpg', 'heic-to-png'].includes(module.key)) {
+        const { HeicConverter } = await import('@/components/tools/image/HeicConverter')
+        return (
+            <HeicConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.key === 'png-to-svg') {
+        const { SvgVectorConverter } = await import('@/components/tools/image/SvgVectorConverter')
+        return (
+            <SvgVectorConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.category === 'Audio') {
+        const { UniversalAudioConverter } = await import('@/components/tools/audio/UniversalAudioConverter')
+        return (
+            <UniversalAudioConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    if (module.category === 'Font') {
+        const { UniversalFontConverter } = await import('@/components/tools/font/UniversalFontConverter')
+        return (
+            <UniversalFontConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
+    // Existing catch-all for converters
+    if (module.key.endsWith('-converter') && module.key !== 'svg-converter') {
+        const { UniversalImageConverter } = await import('@/components/tools/image/UniversalImageConverter')
+        return (
+            <UniversalImageConverter
+                slug={module.key}
+                title={module.name}
+                description={module.description}
+            />
+        )
+    }
+
     return notFound()
 }
 

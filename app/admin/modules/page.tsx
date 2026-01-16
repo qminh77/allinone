@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { modules } from '@/config/modules'
+
 import { getModuleStatuses } from '@/lib/actions/admin'
 import { ModuleList } from '@/components/admin/ModuleList'
 
@@ -18,7 +18,7 @@ export default async function AdminModulesPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ModuleList modules={modules} initialStatuses={statuses} />
+                    <ModuleList initialStatuses={statuses} />
                 </CardContent>
             </Card>
         </div>

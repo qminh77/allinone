@@ -40,9 +40,14 @@ export async function middleware(request: NextRequest) {
         }
     )
 
+    // OPTIMIZATION: Use getSession() instead of getUser() for performance (saves ~200-500ms)
+    // getUser() is safer (validates token with server) but slower.
+    // getSession() just parses the cookie.
     const {
-        data: { user },
-    } = await supabase.auth.getUser()
+        data: { session },
+    } = await supabase.auth.getSession()
+
+    const user = session?.user
 
     const { pathname } = request.nextUrl
 

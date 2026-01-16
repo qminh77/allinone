@@ -17,11 +17,14 @@ const RESERVED_SLUGS = [
 
 export async function createShortlink(formData: FormData) {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // OPTIMIZATION: Use getSession() instead of getUser() to avoid extra auth network roundtrip.
+    // RLS in database will still verify the token signature/validity on insert.
+    const { data: { session } } = await supabase.auth.getSession()
 
-    if (!user) {
+    if (!session?.user) {
         return { error: 'Unauthorized' }
     }
+    const user = session.user
 
     const targetUrl = formData.get('target_url') as string
     let slug = formData.get('slug') as string
@@ -59,16 +62,9 @@ export async function createShortlink(formData: FormData) {
         return { error: 'Slug can only contain letters, numbers, hyphens, and underscores.' }
     }
 
-    // 2. Duplicate Check
-    const { data: existing } = await supabase
-        .from('shortlinks' as any)
-        .select('slug')
-        .eq('slug', slug)
-        .single()
-
-    if (existing) {
-        return { error: `Slug "${slug}" is already taken.` }
-    }
+    // 2. Duplicate Check - OPTIMIZED: Reliance on DB unique constraint to save 1 RTT
+    // The insert below will fail if slug exists.
+    // skipped manual select.
 
     // 3. Password Hashing
     let passwordHash = null
@@ -85,7 +81,13 @@ export async function createShortlink(formData: FormData) {
         expires_at: expiresAt || null
     } as any)
 
-    if (error) return { error: error.message }
+    if (error) {
+        // Handle unique constraint violation (duplicate slug)
+        if (error.code === '23505') {
+            return { error: `Slug "${slug}" is already taken.` }
+        }
+        return { error: error.message }
+    }
 
     revalidatePath('/dashboard/shortlinks')
     return { success: true }

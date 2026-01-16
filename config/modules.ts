@@ -35,11 +35,16 @@ import {
     Files, // Added for PDF tools
     Image as ImageIcon,
     FileDown,
-    Disc, // Added for Spin Wheel
+    Disc,
     Download,
+    RotateCw,
+    Unlock,
+    Zap, // For SVG/Vector tools
+    Music, // For Audio tools
+    Video,
 } from 'lucide-react'
 
-export type ModuleCategory = 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF'
+export type ModuleCategory = 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF' | 'Image' | 'Font' | 'Audio' | 'Video'
 
 export interface Module {
     key: string
@@ -160,7 +165,7 @@ export const modules: Module[] = [
     {
         key: 'video-downloader',
         name: 'Video Downloader',
-        description: 'Tải video chất lượng cao từ YouTube, TikTok, Facebook, Twitter (X) sử dụng yt-dlp.',
+        description: 'Tải video chất lượng cao từ YouTube.',
         href: '/tools/video-downloader',
         icon: Download,
         category: 'Utilities',
@@ -481,6 +486,151 @@ export const modules: Module[] = [
         isNew: true,
         isPopular: true
     },
+    {
+        key: 'rotate-pdf',
+        name: 'Rotate PDF',
+        description: 'Xoay các trang trong file PDF (Trái, Phải, 180 độ).',
+        href: '/tools/rotate-pdf',
+        icon: RotateCw,
+        category: 'PDF',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'protect-pdf',
+        name: 'Protect PDF',
+        description: 'Đặt mật khẩu bảo vệ file PDF.',
+        href: '/tools/protect-pdf',
+        icon: Lock,
+        category: 'PDF',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'unlock-pdf',
+        name: 'Unlock PDF',
+        description: 'Gỡ bỏ mật khẩu khỏi file PDF.',
+        href: '/tools/unlock-pdf',
+        icon: Unlock,
+        category: 'PDF',
+        isNew: true,
+        isPopular: true
+    },
+    // Image Converters
+    {
+        key: 'webp-to-png',
+        name: 'WEBP to PNG',
+        description: 'Chuyển đổi ảnh WEBP sang PNG.',
+        href: '/tools/webp-to-png',
+        icon: ImageIcon,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'jfif-to-png',
+        name: 'JFIF to PNG',
+        description: 'Chuyển đổi JFIF sang PNG.',
+        href: '/tools/jfif-to-png',
+        icon: ImageIcon,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'png-to-svg',
+        name: 'PNG to SVG',
+        description: 'Chuyển đổi PNG sang SVG (Vector hóa).',
+        href: '/tools/png-to-svg',
+        icon: Zap,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'heic-to-jpg',
+        name: 'HEIC to JPG',
+        description: 'Chuyển đổi HEIC sang JPG (cho iPhone/iPad).',
+        href: '/tools/heic-to-jpg',
+        icon: ImageIcon,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'heic-to-png',
+        name: 'HEIC to PNG',
+        description: 'Chuyển đổi HEIC sang PNG.',
+        href: '/tools/heic-to-png',
+        icon: ImageIcon,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'webp-to-jpg',
+        name: 'WEBP to JPG',
+        description: 'Chuyển đổi WEBP sang JPG.',
+        href: '/tools/webp-to-jpg',
+        icon: ImageIcon,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'svg-converter',
+        name: 'SVG to Image',
+        description: 'Chuyển đổi file SVG sang PNG hoặc JPG.',
+        href: '/tools/svg-converter',
+        icon: FileCode,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    // Universal Image Converter is now added above explicitly.
+    // Removing the auto-generated list to reduce clutter.
+    // Universal Font Converters (Replaced by single Universal Font Converter)
+    // Universal Converters
+    {
+        key: 'image-converter',
+        name: 'Universal Image Converter',
+        description: 'Chuyển đổi đa năng cho hơn 80 định dạng ảnh (PNG, JPG, WEBP, HEIC, RAW...).',
+        href: '/tools/image-converter',
+        icon: ImageIcon,
+        category: 'Image',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'audio-converter',
+        name: 'Universal Audio Converter',
+        description: 'Chuyển đổi đa năng cho hơn 60 định dạng âm thanh (MP3, WAV, FLAC, OGG, AAC...).',
+        href: '/tools/audio-converter',
+        icon: Music,
+        category: 'Audio',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'font-converter',
+        name: 'Universal Font Converter',
+        description: 'Chuyển đổi đa năng các định dạng Font (TTF, OTF, WOFF...).',
+        href: '/tools/font-converter',
+        icon: Type,
+        category: 'Font',
+        isNew: true
+    },
+    {
+        key: 'video-converter',
+        name: 'Universal Video Converter',
+        description: 'Chuyển đổi đa năng cho hơn 30 định dạng video (MP4, AVI, MKV, MOV, WEBM...).',
+        href: '/tools/video-converter',
+        icon: Video,
+        category: 'Video',
+        isNew: true,
+        isPopular: true
+    },
+
     // Table Converters
     { key: 'excel-to-actionscript', name: 'Excel to ActionScript', description: 'Convert Excel to ActionScript.', href: '/tools/excel-to-actionscript', icon: FileSpreadsheet, category: 'Table' },
     { key: 'excel-to-ascii', name: 'Excel to ASCII', description: 'Convert Excel to ASCII Table.', href: '/tools/excel-to-ascii', icon: FileSpreadsheet, category: 'Table' },
@@ -882,5 +1032,9 @@ export const categories: { key: ModuleCategory; name: string }[] = [
     { key: 'MySQL', name: 'MySQL Converter' },
     { key: 'MediaWiki', name: 'MediaWiki Converter' },
     { key: 'PDF', name: 'PDF Tools' },
+    { key: 'Image', name: 'Image Tools' },
+    { key: 'Font', name: 'Font Tools' },
+    { key: 'Audio', name: 'Audio Tools' },
+    { key: 'Video', name: 'Video Tools' },
 ]
 

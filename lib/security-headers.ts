@@ -28,7 +28,7 @@ export function applySecurityHeaders(
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
-        "connect-src 'self' https://*.supabase.co",
+        "connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 ws://127.0.0.1:54321",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",
