@@ -106,6 +106,114 @@ const CommandResultSchema = z.object({
     message: z.string().max(240),
 })
 
+const ChatMessageSchema = z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().trim().min(1).max(6000),
+})
+
+const AssistantChatInputSchema = z.object({
+    message: z.string().trim().min(1, 'Nhập nội dung cần hỏi.').max(6000),
+    history: z.array(ChatMessageSchema).max(12).optional(),
+    modelDbId: ModelIdSchema,
+})
+
+const AssistantChatResultSchema = z.object({
+    reply: z.string().trim().min(1).max(8000),
+    actions: z.array(z.object({
+        label: z.string().trim().min(1).max(80),
+        href: z.string().trim().min(1).max(240),
+        description: z.string().trim().max(180).optional(),
+    })).max(4).optional(),
+})
+
+function looksLikeActionRequest(message: string) {
+    const value = message.toLowerCase()
+    return [
+        'mở',
+        'đi tới',
+        'vào',
+        'tạo',
+        'làm',
+        'soạn',
+        'gửi',
+        'generate',
+        'open',
+        'create',
+        'go to',
+        'navigate',
+    ].some(keyword => value.includes(keyword))
+}
+
+export async function chatWithAiAssistant(input: z.infer<typeof AssistantChatInputSchema>) {
+    const user = await requireAuthenticated()
+    const parsed = AssistantChatInputSchema.safeParse(input)
+    if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+    const destinations = await getDestinations()
+    const allowedHrefs = new Set(destinations.map(item => item.href))
+    const fallback = fallbackDestination(parsed.data.message, destinations)
+
+    try {
+        const result = await generateJson<unknown>({
+            featureKey: 'dashboard.ai.chat',
+            userId: user.id,
+            modelDbId: parsed.data.modelDbId,
+            system: [
+                'You are the Allinone web assistant.',
+                'Reply naturally in Vietnamese unless the user asks for another language.',
+                'You can answer general questions, explain workflows, draft content, and help users use this web app.',
+                'When the user asks to do something in the web app, include actions that point to existing hrefs only.',
+                'You cannot directly click buttons, submit forms, delete data, or access secrets. For risky actions, guide the user and ask for confirmation.',
+                'Return strictly valid JSON with shape: { "reply": string, "actions": [{ "label": string, "href": string, "description": string }] }.',
+            ].join(' '),
+            prompt: JSON.stringify({
+                currentUserMessage: parsed.data.message,
+                recentHistory: (parsed.data.history || []).slice(-10),
+                availableDestinations: destinations.map(item => ({
+                    href: item.href,
+                    title: item.title,
+                    keywords: item.keywords.slice(0, 4),
+                })),
+            }),
+            maxTokens: 2200,
+            temperature: 0.35,
+        })
+
+        const chat = AssistantChatResultSchema.parse(result)
+        const actions = (chat.actions || [])
+            .filter(action => allowedHrefs.has(action.href))
+            .slice(0, 3)
+
+        if (actions.length === 0 && looksLikeActionRequest(parsed.data.message) && fallback.confidence >= 0.35) {
+            actions.push({
+                label: fallback.title,
+                href: fallback.href,
+                description: fallback.message,
+            })
+        }
+
+        return {
+            success: true,
+            reply: chat.reply,
+            actions,
+        }
+    } catch (error) {
+        if (looksLikeActionRequest(parsed.data.message) && fallback.confidence >= 0.35) {
+            return {
+                success: true,
+                reply: `Mình có thể mở nhanh chức năng phù hợp nhất là ${fallback.title}.`,
+                actions: [{
+                    label: fallback.title,
+                    href: fallback.href,
+                    description: fallback.message,
+                }],
+            }
+        }
+
+        return { error: error instanceof Error ? error.message : 'Không thể gọi trợ lý AI.' }
+    }
+}
+
 export async function resolveAiCommand(query: string, modelDbId?: string | null) {
     const user = await requireAuthenticated()
     const safeQuery = trimText(query, 500)
