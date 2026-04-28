@@ -91,25 +91,31 @@ export async function syncModuleCatalog(options: { revalidate?: boolean } = {}) 
         return { skipped: true, reason: 'admin client is not configured' }
     }
 
-    const supabase = createAdminClient()
-    const rows = getModuleCatalogRows()
+    try {
+        const supabase = createAdminClient()
+        const rows = getModuleCatalogRows()
 
-    for (let i = 0; i < rows.length; i += SYNC_CHUNK_SIZE) {
-        const chunk = rows.slice(i, i + SYNC_CHUNK_SIZE)
-        // Supabase generated types in this repo do not infer inserts for this table reliably.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase as any).from('modules').upsert(chunk, { onConflict: 'key' })
+        for (let i = 0; i < rows.length; i += SYNC_CHUNK_SIZE) {
+            const chunk = rows.slice(i, i + SYNC_CHUNK_SIZE)
+            // Supabase generated types in this repo do not infer inserts for this table reliably.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { error } = await (supabase as any).from('modules').upsert(chunk, { onConflict: 'key' })
 
-        if (error) {
-            console.warn('Failed to sync module catalog:', error.message)
-            return { skipped: true, reason: error.message }
+            if (error) {
+                console.warn('Failed to sync module catalog:', error.message)
+                return { skipped: true, reason: error.message }
+            }
         }
-    }
 
-    if (options.revalidate !== false) {
-        revalidateModuleCatalog()
+        if (options.revalidate !== false) {
+            revalidateModuleCatalog()
+        }
+        return { synced: true, count: rows.length }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'unknown module sync error'
+        console.warn('Failed to sync module catalog:', message)
+        return { skipped: true, reason: message }
     }
-    return { synced: true, count: rows.length }
 }
 
 async function loadModuleCatalog() {
@@ -117,17 +123,28 @@ async function loadModuleCatalog() {
 
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    let supabase: ReturnType<typeof createClient<Database>> | ReturnType<typeof createAdminClient> | null = null
 
-    if (!url || !anonKey) {
-        return fallbackCatalog
+    if (isAdminClientConfigured()) {
+        try {
+            supabase = createAdminClient()
+        } catch (error) {
+            console.warn('Unable to create admin client for module catalog:', error)
+        }
     }
 
-    const supabase = createClient<Database>(url, anonKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        },
-    })
+    if (!supabase && url && anonKey) {
+        supabase = createClient<Database>(url, anonKey, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+            },
+        })
+    }
+
+    if (!supabase) {
+        return fallbackCatalog
+    }
 
     const { data, error } = await supabase
         .from('modules')

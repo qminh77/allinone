@@ -66,16 +66,21 @@ export function UserList({ users, onEdit, onImport, onAdd }: UserListProps) {
         if (!userToDelete) return
 
         setDeleting(userToDelete.id)
-        const result = await deleteUser(userToDelete.id)
-        setDeleting(null)
+        try {
+            const result = await deleteUser(userToDelete.id)
 
-        if (result.error) {
-            toast.error(result.error)
-        } else {
-            toast.success('Đã xóa người dùng')
-            router.refresh()
+            if (result.error) {
+                toast.error(result.error)
+            } else {
+                toast.success('Đã xóa người dùng')
+                router.refresh()
+            }
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Không thể xóa người dùng')
+        } finally {
+            setDeleting(null)
+            setUserToDelete(null)
         }
-        setUserToDelete(null)
     }
 
     return (

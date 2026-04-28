@@ -3,16 +3,18 @@
  * View system audit logs with filtering
  */
 
-import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LogItem } from '@/components/admin/LogItem'
 import { StatsCard } from '@/components/admin/StatsCard'
 import { Activity, Clock, Users } from 'lucide-react'
+import { createAdminDataClient } from '@/lib/admin/db'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
 
 import { AuditLog } from '@/types/database'
 
 export default async function AdminLogsPage() {
-    const supabase = await createClient()
+    await requireAdmin()
+    const supabase = await createAdminDataClient()
 
     // Optimized: Fetch only needed columns and limit to 50
     const { data: logs } = await supabase

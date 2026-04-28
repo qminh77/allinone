@@ -1,10 +1,11 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { StatsCard } from '@/components/admin/StatsCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getModuleCatalog } from '@/lib/modules/catalog'
+import { createAdminDataClient } from '@/lib/admin/db'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import {
     Activity,
     ArrowRight,
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react'
 
 async function getCount(table: 'user_profiles' | 'roles' | 'permissions' | 'modules' | 'audit_logs' | 'backups') {
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { count } = await db
         .from(table)
@@ -28,7 +29,8 @@ async function getCount(table: 'user_profiles' | 'roles' | 'permissions' | 'modu
 }
 
 export default async function AdminPage() {
-    const supabase = await createClient()
+    await requireAdmin()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const [
         userCount,

@@ -2,10 +2,10 @@
 
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import { createAdminClient, isAdminClientConfigured } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { createAuditLog } from '@/lib/audit/log'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { createAdminDataClient } from '@/lib/admin/db'
 
 const UuidSchema = z.string().uuid()
 const BACKUP_BUCKET = 'backups'
@@ -58,7 +58,7 @@ async function writeAuditLog(params: Parameters<typeof createAuditLog>[0]) {
 
 export async function getBackups() {
     await requireAdmin()
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data, error } = await db

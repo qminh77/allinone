@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isAdminClientConfigured } from '@/lib/supabase/admin'
 import { createAuditLog } from '@/lib/audit/log'
 import { encrypt } from '@/lib/encryption'
 import { generateText } from '@/lib/ai/service'
@@ -64,6 +64,14 @@ function sanitizeProvider(provider: any) {
     }
 }
 
+function createAiAdminClient() {
+    if (!isAdminClientConfigured()) {
+        throw new Error('AI admin requires SUPABASE_SERVICE_ROLE_KEY')
+    }
+
+    return createAdminClient()
+}
+
 async function audit(userId: string, action: Parameters<typeof createAuditLog>[0]['action'], resourceType: string, resourceId?: string, metadata?: Record<string, any>) {
     await createAuditLog({
         userId,
@@ -76,26 +84,36 @@ async function audit(userId: string, action: Parameters<typeof createAuditLog>[0
 
 export async function getAiAdminData() {
     await requireAdmin()
-    const admin = createAdminClient()
-    const db = admin as any
+    if (!isAdminClientConfigured()) {
+        return { providers: [], models: [], usageLogs: [], configurationError: 'AI admin requires SUPABASE_SERVICE_ROLE_KEY' }
+    }
 
-    const [providersResult, modelsResult, logsResult] = await Promise.all([
-        db.from('ai_providers').select('*').order('sort_order', { ascending: true }).order('name', { ascending: true }),
-        db.from('ai_models').select('*, ai_providers(id, name, slug)').order('sort_order', { ascending: true }).order('name', { ascending: true }),
-        db.from('ai_usage_logs')
-            .select('*, ai_providers(name), ai_models(name, model_id)')
-            .order('created_at', { ascending: false })
-            .limit(30),
-    ])
+    try {
+        const admin = createAiAdminClient()
+        const db = admin as any
 
-    if (providersResult.error) throw new Error(providersResult.error.message)
-    if (modelsResult.error) throw new Error(modelsResult.error.message)
-    if (logsResult.error) throw new Error(logsResult.error.message)
+        const [providersResult, modelsResult, logsResult] = await Promise.all([
+            db.from('ai_providers').select('*').order('sort_order', { ascending: true }).order('name', { ascending: true }),
+            db.from('ai_models').select('*, ai_providers(id, name, slug)').order('sort_order', { ascending: true }).order('name', { ascending: true }),
+            db.from('ai_usage_logs')
+                .select('*, ai_providers(name), ai_models(name, model_id)')
+                .order('created_at', { ascending: false })
+                .limit(30),
+        ])
 
-    return {
-        providers: (providersResult.data || []).map(sanitizeProvider),
-        models: modelsResult.data || [],
-        usageLogs: logsResult.data || [],
+        if (providersResult.error) throw new Error(providersResult.error.message)
+        if (modelsResult.error) throw new Error(modelsResult.error.message)
+        if (logsResult.error) throw new Error(logsResult.error.message)
+
+        return {
+            providers: (providersResult.data || []).map(sanitizeProvider),
+            models: modelsResult.data || [],
+            usageLogs: logsResult.data || [],
+            configurationError: null,
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to load AI admin data'
+        return { providers: [], models: [], usageLogs: [], configurationError: message }
     }
 }
 
@@ -150,7 +168,7 @@ export async function createAiProvider(formData: FormData) {
         updated_by: user.id,
     }
 
-    const { data, error } = await (createAdminClient() as any)
+    const { data, error } = await (createAiAdminClient() as any)
         .from('ai_providers')
         .insert(payload)
         .select('id, slug')
@@ -189,7 +207,7 @@ export async function updateAiProvider(providerId: string, formData: FormData) {
         payload.encrypted_api_key = encrypt(parsed.value!.api_key)
     }
 
-    const { error } = await (createAdminClient() as any)
+    const { error } = await (createAiAdminClient() as any)
         .from('ai_providers')
         .update(payload)
         .eq('id', id.data)
@@ -206,7 +224,7 @@ export async function deleteAiProvider(providerId: string) {
     const id = IdSchema.safeParse(providerId)
     if (!id.success) return { error: 'Invalid provider id' }
 
-    const { error } = await (createAdminClient() as any)
+    const { error } = await (createAiAdminClient() as any)
         .from('ai_providers')
         .delete()
         .eq('id', id.data)
@@ -223,7 +241,7 @@ export async function toggleAiProvider(providerId: string, enabled: boolean) {
     const id = IdSchema.safeParse(providerId)
     if (!id.success) return { error: 'Invalid provider id' }
 
-    const { error } = await (createAdminClient() as any)
+    const { error } = await (createAiAdminClient() as any)
         .from('ai_providers')
         .update({ is_enabled: enabled, updated_by: user.id })
         .eq('id', id.data)
@@ -270,7 +288,7 @@ function parseModelForm(formData: FormData) {
 }
 
 async function clearDefaultModelExcept(modelId?: string) {
-    let query = (createAdminClient() as any)
+    let query = (createAiAdminClient() as any)
         .from('ai_models')
         .update({ is_default: false })
         .eq('is_default', true)
@@ -291,7 +309,7 @@ export async function createAiModel(formData: FormData) {
         await clearDefaultModelExcept()
     }
 
-    const { data, error } = await (createAdminClient() as any)
+    const { data, error } = await (createAiAdminClient() as any)
         .from('ai_models')
         .insert(parsed.value)
         .select('id, model_id')
@@ -316,7 +334,7 @@ export async function updateAiModel(modelDbId: string, formData: FormData) {
         await clearDefaultModelExcept(id.data)
     }
 
-    const { error } = await (createAdminClient() as any)
+    const { error } = await (createAiAdminClient() as any)
         .from('ai_models')
         .update(parsed.value)
         .eq('id', id.data)
@@ -333,7 +351,7 @@ export async function deleteAiModel(modelDbId: string) {
     const id = IdSchema.safeParse(modelDbId)
     if (!id.success) return { error: 'Invalid model id' }
 
-    const { error } = await (createAdminClient() as any)
+    const { error } = await (createAiAdminClient() as any)
         .from('ai_models')
         .delete()
         .eq('id', id.data)
@@ -350,7 +368,7 @@ export async function toggleAiModel(modelDbId: string, enabled: boolean) {
     const id = IdSchema.safeParse(modelDbId)
     if (!id.success) return { error: 'Invalid model id' }
 
-    const { error } = await (createAdminClient() as any)
+    const { error } = await (createAiAdminClient() as any)
         .from('ai_models')
         .update({ is_enabled: enabled })
         .eq('id', id.data)
@@ -368,7 +386,7 @@ export async function setDefaultAiModel(modelDbId: string) {
     if (!id.success) return { error: 'Invalid model id' }
 
     await clearDefaultModelExcept(id.data)
-    const { error } = await (createAdminClient() as any)
+    const { error } = await (createAiAdminClient() as any)
         .from('ai_models')
         .update({ is_default: true })
         .eq('id', id.data)

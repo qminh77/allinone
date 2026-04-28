@@ -1,10 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import { revalidatePath } from 'next/cache'
 import { createAuditLog } from '@/lib/audit/log'
 import { sanitizeInput } from '@/lib/validation'
+import { createAdminDataClient } from '@/lib/admin/db'
 import { z } from 'zod'
 
 const CORE_SETTINGS = new Set(['allow_registration', 'allow_login'])
@@ -57,7 +57,7 @@ async function writeAuditLog(params: Parameters<typeof createAuditLog>[0]) {
 
 export async function getSettings() {
     await requireAdmin()
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data, error } = await db
@@ -78,7 +78,7 @@ export async function createSetting(formData: FormData) {
     const parsed = parseSettingForm(formData)
     if (parsed.error) return { error: parsed.error }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { data: existing } = await db
         .from('settings')
@@ -126,7 +126,7 @@ export async function updateSetting(key: string, formData: FormData) {
         return { error: 'Core setting keys cannot be renamed' }
     }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     if (parsed.value!.key !== keyResult.data) {
@@ -170,7 +170,7 @@ export async function updateBooleanSetting(key: string, enabled: boolean) {
     const keyResult = SettingKeySchema.safeParse(key)
     if (!keyResult.success) return { error: 'Invalid setting key' }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { error } = await db
         .from('settings')
@@ -203,7 +203,7 @@ export async function deleteSetting(key: string) {
         return { error: 'Core settings cannot be deleted' }
     }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { error } = await db
         .from('settings')

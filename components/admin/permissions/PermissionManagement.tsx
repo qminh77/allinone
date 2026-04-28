@@ -86,19 +86,23 @@ export function PermissionManagement({ permissions }: PermissionManagementProps)
         const formData = new FormData(event.currentTarget)
 
         startTransition(async () => {
-            const result = selectedPermission
-                ? await updatePermission(selectedPermission.id, formData)
-                : await createPermission(formData)
+            try {
+                const result = selectedPermission
+                    ? await updatePermission(selectedPermission.id, formData)
+                    : await createPermission(formData)
 
-            if (result.error) {
-                toast.error(result.error)
-                return
+                if (result.error) {
+                    toast.error(result.error)
+                    return
+                }
+
+                toast.success(selectedPermission ? 'Đã cập nhật quyền' : 'Đã tạo quyền')
+                setOpen(false)
+                setSelectedPermission(null)
+                router.refresh()
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể lưu quyền')
             }
-
-            toast.success(selectedPermission ? 'Đã cập nhật quyền' : 'Đã tạo quyền')
-            setOpen(false)
-            setSelectedPermission(null)
-            router.refresh()
         })
     }
 
@@ -106,12 +110,16 @@ export function PermissionManagement({ permissions }: PermissionManagementProps)
         if (!permissionToDelete) return
 
         startTransition(async () => {
-            const result = await deletePermission(permissionToDelete.id)
-            if (result.error) {
-                toast.error(result.error)
-            } else {
-                toast.success('Đã xóa quyền')
-                router.refresh()
+            try {
+                const result = await deletePermission(permissionToDelete.id)
+                if (result.error) {
+                    toast.error(result.error)
+                } else {
+                    toast.success('Đã xóa quyền')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể xóa quyền')
             }
             setPermissionToDelete(null)
         })

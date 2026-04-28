@@ -4,9 +4,11 @@ import { ModuleList } from '@/components/admin/ModuleList'
 import { getModuleCatalog, syncModuleCatalog } from '@/lib/modules/catalog'
 import { StatsCard } from '@/components/admin/StatsCard'
 import { CheckCircle2, Folder, ToggleLeft, Wrench } from 'lucide-react'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
 
 export default async function AdminModulesPage() {
-    await syncModuleCatalog()
+    await requireAdmin()
+    await syncModuleCatalog({ revalidate: false })
     const [moduleCatalog, statuses] = await Promise.all([
         getModuleCatalog(),
         getModuleStatuses(),

@@ -1,11 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
 import { getUsers } from '@/lib/actions/admin/users'
 import { UserManagement } from '@/components/admin/users/UserManagement'
 import { StatsCard } from '@/components/admin/StatsCard'
 import { Shield, UserCheck, UserX, Users } from 'lucide-react'
+import { createAdminDataClient } from '@/lib/admin/db'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
 
 export default async function UsersPage() {
-    const supabase = await createClient()
+    await requireAdmin()
+    const supabase = await createAdminDataClient()
     const [users, rolesResult] = await Promise.all([
         getUsers(),
         supabase

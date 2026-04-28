@@ -34,17 +34,21 @@ export function PasswordChangeDialog({ open, onClose, userId, userName }: Passwo
             return
         }
 
-        const result = autoGenerate
-            ? await resetPassword(userId)
-            : await updateUserPassword(userId, manualPassword)
+        try {
+            const result = autoGenerate
+                ? await resetPassword(userId)
+                : await updateUserPassword(userId, manualPassword)
 
-        setLoading(false)
-
-        if (result.error) {
-            toast.error(result.error)
-        } else {
-            setResultPassword(result.newPassword!)
-            toast.success('Đã đổi mật khẩu thành công')
+            if (result.error) {
+                toast.error(result.error)
+            } else {
+                setResultPassword(result.newPassword!)
+                toast.success('Đã đổi mật khẩu thành công')
+            }
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Không thể đổi mật khẩu')
+        } finally {
+            setLoading(false)
         }
     }
 

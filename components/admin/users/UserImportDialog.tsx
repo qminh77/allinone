@@ -52,16 +52,21 @@ export function UserImportDialog({ open, onClose }: UserImportDialogProps) {
         }
 
         setLoading(true)
-        const text = await csvFile.text()
-        const result = await bulkImportUsers(text)
-        setLoading(false)
+        try {
+            const text = await csvFile.text()
+            const result = await bulkImportUsers(text)
 
-        if (result.error) {
-            toast.error(result.error)
-        } else {
-            setResults(result.results || [])
-            const successCount = result.results?.filter((r: any) => r.success).length || 0
-            toast.success(`Đã import ${successCount}/${result.results?.length || 0} người dùng`)
+            if (result.error) {
+                toast.error(result.error)
+            } else {
+                setResults(result.results || [])
+                const successCount = result.results?.filter((r: any) => r.success).length || 0
+                toast.success(`Đã import ${successCount}/${result.results?.length || 0} người dùng`)
+            }
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Không thể import người dùng')
+        } finally {
+            setLoading(false)
         }
     }
 

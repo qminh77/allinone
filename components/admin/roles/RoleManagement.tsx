@@ -108,32 +108,36 @@ export function RoleManagement({ roles, permissions }: RoleManagementProps) {
         const formData = new FormData(event.currentTarget)
 
         startTransition(async () => {
-            const result = selectedRole
-                ? await updateRole(selectedRole.id, formData)
-                : await createRole(formData)
+            try {
+                const result = selectedRole
+                    ? await updateRole(selectedRole.id, formData)
+                    : await createRole(formData)
 
-            if (result.error) {
-                toast.error(result.error)
-                return
-            }
-
-            const createdRole = 'role' in result
-                ? result.role as { id?: string } | undefined
-                : undefined
-            const roleId = selectedRole?.id || createdRole?.id || null
-            if (roleId) {
-                const permissionsResult = await updateRolePermissions(roleId, selectedPermissions)
-                if (permissionsResult.error) {
-                    toast.error(permissionsResult.error)
+                if (result.error) {
+                    toast.error(result.error)
                     return
                 }
-            }
 
-            toast.success(selectedRole ? 'Đã cập nhật vai trò' : 'Đã tạo vai trò')
-            setOpen(false)
-            setSelectedRole(null)
-            setSelectedPermissions([])
-            router.refresh()
+                const createdRole = 'role' in result
+                    ? result.role as { id?: string } | undefined
+                    : undefined
+                const roleId = selectedRole?.id || createdRole?.id || null
+                if (roleId) {
+                    const permissionsResult = await updateRolePermissions(roleId, selectedPermissions)
+                    if (permissionsResult.error) {
+                        toast.error(permissionsResult.error)
+                        return
+                    }
+                }
+
+                toast.success(selectedRole ? 'Đã cập nhật vai trò' : 'Đã tạo vai trò')
+                setOpen(false)
+                setSelectedRole(null)
+                setSelectedPermissions([])
+                router.refresh()
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể lưu vai trò')
+            }
         })
     }
 
@@ -141,12 +145,16 @@ export function RoleManagement({ roles, permissions }: RoleManagementProps) {
         if (!roleToDelete) return
 
         startTransition(async () => {
-            const result = await deleteRole(roleToDelete.id)
-            if (result.error) {
-                toast.error(result.error)
-            } else {
-                toast.success('Đã xóa vai trò')
-                router.refresh()
+            try {
+                const result = await deleteRole(roleToDelete.id)
+                if (result.error) {
+                    toast.error(result.error)
+                } else {
+                    toast.success('Đã xóa vai trò')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể xóa vai trò')
             }
             setRoleToDelete(null)
         })

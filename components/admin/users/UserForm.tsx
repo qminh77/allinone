@@ -44,30 +44,31 @@ export function UserForm({ open, onClose, user, roles }: UserFormProps) {
 
         const formData = new FormData(e.currentTarget)
 
-        let result
-        if (user?.id) {
-            result = await updateUser(user.id, formData)
-        } else {
-            result = await createUser(formData)
-        }
+        try {
+            const result = user?.id
+                ? await updateUser(user.id, formData)
+                : await createUser(formData)
 
-        setLoading(false)
-
-        if (result.error) {
-            toast.error(result.error)
-        } else {
-            const createdPassword = 'tempPassword' in result && typeof result.tempPassword === 'string'
-                ? result.tempPassword
-                : null
-
-            if (createdPassword) {
-                setTempPassword(createdPassword)
-                toast.success('Đã tạo người dùng thành công!')
+            if (result.error) {
+                toast.error(result.error)
             } else {
-                toast.success('Đã cập nhật người dùng')
-                onClose()
-                router.refresh()
+                const createdPassword = 'tempPassword' in result && typeof result.tempPassword === 'string'
+                    ? result.tempPassword
+                    : null
+
+                if (createdPassword) {
+                    setTempPassword(createdPassword)
+                    toast.success('Đã tạo người dùng thành công!')
+                } else {
+                    toast.success('Đã cập nhật người dùng')
+                    onClose()
+                    router.refresh()
+                }
             }
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Không thể lưu người dùng')
+        } finally {
+            setLoading(false)
         }
     }
 

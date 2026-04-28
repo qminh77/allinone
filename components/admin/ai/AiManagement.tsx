@@ -342,37 +342,45 @@ export function AiManagement({ providers, models, usageLogs }: AiManagementProps
 
     function submitProvider(formData: FormData) {
         startTransition(async () => {
-            const result = selectedProvider
-                ? await updateAiProvider(selectedProvider.id, formData)
-                : await createAiProvider(formData)
+            try {
+                const result = selectedProvider
+                    ? await updateAiProvider(selectedProvider.id, formData)
+                    : await createAiProvider(formData)
 
-            if (result.error) {
-                toast.error(result.error)
-                return
+                if (result.error) {
+                    toast.error(result.error)
+                    return
+                }
+
+                toast.success(selectedProvider ? 'Đã cập nhật provider' : 'Đã tạo provider')
+                setProviderDialogOpen(false)
+                setSelectedProvider(null)
+                router.refresh()
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể lưu provider')
             }
-
-            toast.success(selectedProvider ? 'Đã cập nhật provider' : 'Đã tạo provider')
-            setProviderDialogOpen(false)
-            setSelectedProvider(null)
-            router.refresh()
         })
     }
 
     function submitModel(formData: FormData) {
         startTransition(async () => {
-            const result = selectedModel
-                ? await updateAiModel(selectedModel.id, formData)
-                : await createAiModel(formData)
+            try {
+                const result = selectedModel
+                    ? await updateAiModel(selectedModel.id, formData)
+                    : await createAiModel(formData)
 
-            if (result.error) {
-                toast.error(result.error)
-                return
+                if (result.error) {
+                    toast.error(result.error)
+                    return
+                }
+
+                toast.success(selectedModel ? 'Đã cập nhật model' : 'Đã tạo model')
+                setModelDialogOpen(false)
+                setSelectedModel(null)
+                router.refresh()
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể lưu model')
             }
-
-            toast.success(selectedModel ? 'Đã cập nhật model' : 'Đã tạo model')
-            setModelDialogOpen(false)
-            setSelectedModel(null)
-            router.refresh()
         })
     }
 
@@ -388,33 +396,45 @@ export function AiManagement({ providers, models, usageLogs }: AiManagementProps
 
     function handleProviderToggle(provider: AiProviderRow, enabled: boolean) {
         startTransition(async () => {
-            const result = await toggleAiProvider(provider.id, enabled)
-            if (result.error) toast.error(result.error)
-            else {
-                toast.success('Đã cập nhật provider')
-                router.refresh()
+            try {
+                const result = await toggleAiProvider(provider.id, enabled)
+                if (result.error) toast.error(result.error)
+                else {
+                    toast.success('Đã cập nhật provider')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể cập nhật provider')
             }
         })
     }
 
     function handleModelToggle(model: AiModelRow, enabled: boolean) {
         startTransition(async () => {
-            const result = await toggleAiModel(model.id, enabled)
-            if (result.error) toast.error(result.error)
-            else {
-                toast.success('Đã cập nhật model')
-                router.refresh()
+            try {
+                const result = await toggleAiModel(model.id, enabled)
+                if (result.error) toast.error(result.error)
+                else {
+                    toast.success('Đã cập nhật model')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể cập nhật model')
             }
         })
     }
 
     function handleSetDefault(model: AiModelRow) {
         startTransition(async () => {
-            const result = await setDefaultAiModel(model.id)
-            if (result.error) toast.error(result.error)
-            else {
-                toast.success('Đã đặt model mặc định')
-                router.refresh()
+            try {
+                const result = await setDefaultAiModel(model.id)
+                if (result.error) toast.error(result.error)
+                else {
+                    toast.success('Đã đặt model mặc định')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể đặt model mặc định')
             }
         })
     }
@@ -422,11 +442,15 @@ export function AiManagement({ providers, models, usageLogs }: AiManagementProps
     function handleDeleteProvider(provider: AiProviderRow) {
         if (!confirm(`Xóa provider "${provider.name}" và toàn bộ model bên trong?`)) return
         startTransition(async () => {
-            const result = await deleteAiProvider(provider.id)
-            if (result.error) toast.error(result.error)
-            else {
-                toast.success('Đã xóa provider')
-                router.refresh()
+            try {
+                const result = await deleteAiProvider(provider.id)
+                if (result.error) toast.error(result.error)
+                else {
+                    toast.success('Đã xóa provider')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể xóa provider')
             }
         })
     }
@@ -434,11 +458,15 @@ export function AiManagement({ providers, models, usageLogs }: AiManagementProps
     function handleDeleteModel(model: AiModelRow) {
         if (!confirm(`Xóa model "${model.name}"?`)) return
         startTransition(async () => {
-            const result = await deleteAiModel(model.id)
-            if (result.error) toast.error(result.error)
-            else {
-                toast.success('Đã xóa model')
-                router.refresh()
+            try {
+                const result = await deleteAiModel(model.id)
+                if (result.error) toast.error(result.error)
+                else {
+                    toast.success('Đã xóa model')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể xóa model')
             }
         })
     }
@@ -446,14 +474,19 @@ export function AiManagement({ providers, models, usageLogs }: AiManagementProps
     function handleTestModel(model: AiModelRow) {
         setTestingModelId(model.id)
         startTransition(async () => {
-            const result = await testAiModel(model.id)
-            setTestingModelId(null)
-            if (result.error) {
-                toast.error(result.error)
-                return
+            try {
+                const result = await testAiModel(model.id)
+                if (result.error) {
+                    toast.error(result.error)
+                    return
+                }
+                toast.success(result.text || 'Kết nối thành công')
+                router.refresh()
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể test model')
+            } finally {
+                setTestingModelId(null)
             }
-            toast.success(result.text || 'Kết nối thành công')
-            router.refresh()
         })
     }
 

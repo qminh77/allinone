@@ -1,10 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import { sanitizeInput } from '@/lib/validation'
 import { createAuditLog } from '@/lib/audit/log'
+import { createAdminDataClient } from '@/lib/admin/db'
 import { z } from 'zod'
 
 const UuidSchema = z.string().uuid()
@@ -53,7 +53,7 @@ async function writeAuditLog(params: Parameters<typeof createAuditLog>[0]) {
 
 export async function getPermissions() {
     await requireAdmin()
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data: permissions, error } = await db
@@ -87,7 +87,7 @@ export async function getPermission(id: string) {
     const uuid = validateUuid(id, 'permission id')
     if (uuid.error) return null
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data } = await db
@@ -104,7 +104,7 @@ export async function createPermission(formData: FormData) {
     const parsed = parsePermissionForm(formData)
     if (parsed.error) return { error: parsed.error }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data: existing } = await db
@@ -147,7 +147,7 @@ export async function updatePermission(id: string, formData: FormData) {
     const parsed = parsePermissionForm(formData)
     if (parsed.error) return { error: parsed.error }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { data: existingWithKey } = await db
         .from('permissions')
@@ -185,7 +185,7 @@ export async function deletePermission(id: string) {
     const uuid = validateUuid(id, 'permission id')
     if (uuid.error) return { error: uuid.error }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data: permission } = await db

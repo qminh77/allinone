@@ -1,9 +1,9 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient, isAdminClientConfigured } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
+import { createAdminDataClient, getActionErrorMessage } from '@/lib/admin/db'
 import { EmailSchema, PasswordSchema, sanitizeInput } from '@/lib/validation'
 import { randomInt } from 'crypto'
 import { z } from 'zod'
@@ -29,7 +29,7 @@ function getAdminSupabase() {
 }
 
 async function getRoleById(roleId: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { data, error } = await db
         .from('roles')
@@ -42,7 +42,7 @@ async function getRoleById(roleId: string) {
 }
 
 async function isLastActiveAdmin(userId: string) {
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { data: adminRole } = await db
         .from('roles')
@@ -78,7 +78,7 @@ function parseBoolean(value: FormDataEntryValue | null, fallback = false) {
 
 export async function getUsers() {
     await requireAdmin()
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     // 1. Fetch users
@@ -151,7 +151,7 @@ export async function getUser(id: string) {
     const uuid = validateUuid(id, 'user id')
     if (uuid.error) return null
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data } = await db
@@ -215,8 +215,7 @@ export async function createUser(formData: FormData) {
         if (authError) return { error: authError.message }
 
         // Create user profile
-        const supabase = await createClient()
-        const { error: profileError } = await (supabase
+        const { error: profileError } = await (adminSupabase
             .from('user_profiles' as any) as any)
             .upsert({
                 id: authData.user.id,
@@ -272,21 +271,25 @@ export async function updateUser(id: string, formData: FormData) {
         return { error: 'Cannot remove the last active admin account' }
     }
 
-    const supabase = await createClient()
-    const { error } = await (supabase
-        .from('user_profiles' as any) as any)
-        .update({
-            full_name: fullName,
-            role_id: roleValidation.value,
-            is_active: isActive,
-            updated_at: new Date().toISOString()
-        } as any)
-        .eq('id', uuid.value)
+    try {
+        const supabase = await createAdminDataClient()
+        const { error } = await (supabase
+            .from('user_profiles' as any) as any)
+            .update({
+                full_name: fullName,
+                role_id: roleValidation.value,
+                is_active: isActive,
+                updated_at: new Date().toISOString()
+            } as any)
+            .eq('id', uuid.value)
 
-    if (error) return { error: error.message }
+        if (error) return { error: error.message }
 
-    revalidatePath('/admin/users')
-    return { success: true }
+        revalidatePath('/admin/users')
+        return { success: true }
+    } catch (err) {
+        return { error: getActionErrorMessage(err, 'Failed to update user') }
+    }
 }
 
 export async function deleteUser(id: string) {
@@ -377,7 +380,7 @@ export async function bulkImportUsers(csvText: string) {
     }
 
     const results: any[] = []
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     // Get roles mapping

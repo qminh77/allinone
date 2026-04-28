@@ -56,26 +56,34 @@ export function BackupManagement({ backups }: BackupManagementProps) {
 
     const handleCreate = () => {
         startTransition(async () => {
-            const result = await createDatabaseBackup()
-            if (result.error) {
-                toast.error(result.error)
-                return
-            }
+            try {
+                const result = await createDatabaseBackup()
+                if (result.error) {
+                    toast.error(result.error)
+                    return
+                }
 
-            toast.success('Đã tạo backup database')
-            router.refresh()
+                toast.success('Đã tạo backup database')
+                router.refresh()
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể tạo backup')
+            }
         })
     }
 
     const handleDownload = (backup: Backup) => {
         startTransition(async () => {
-            const result = await getBackupDownloadUrl(backup.id)
-            if (result.error || !result.url) {
-                toast.error(result.error || 'Không thể tạo link tải')
-                return
-            }
+            try {
+                const result = await getBackupDownloadUrl(backup.id)
+                if (result.error || !result.url) {
+                    toast.error(result.error || 'Không thể tạo link tải')
+                    return
+                }
 
-            window.open(result.url, '_blank', 'noopener,noreferrer')
+                window.open(result.url, '_blank', 'noopener,noreferrer')
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể tạo link tải')
+            }
         })
     }
 
@@ -83,12 +91,16 @@ export function BackupManagement({ backups }: BackupManagementProps) {
         if (!backupToDelete) return
 
         startTransition(async () => {
-            const result = await deleteBackup(backupToDelete.id)
-            if (result.error) {
-                toast.error(result.error)
-            } else {
-                toast.success('Đã xóa backup')
-                router.refresh()
+            try {
+                const result = await deleteBackup(backupToDelete.id)
+                if (result.error) {
+                    toast.error(result.error)
+                } else {
+                    toast.success('Đã xóa backup')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể xóa backup')
             }
             setBackupToDelete(null)
         })

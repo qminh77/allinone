@@ -22,17 +22,23 @@ export function ModuleToggle({
         // Optimistic update
         setEnabled(checked)
 
-        const res = await toggleModuleStatus(moduleKey, checked)
+        try {
+            const res = await toggleModuleStatus(moduleKey, checked)
 
-        if (res.error) {
-            toast.error(res.error)
-            // Revert
+            if (res.error) {
+                toast.error(res.error)
+                // Revert
+                setEnabled(!checked)
+            } else {
+                toast.success(checked ? `Module enabled` : `Module disabled`)
+                onChange?.(checked)
+            }
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Không thể cập nhật module')
             setEnabled(!checked)
-        } else {
-            toast.success(checked ? `Module enabled` : `Module disabled`)
-            onChange?.(checked)
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     return (

@@ -1,10 +1,10 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import { sanitizeInput } from '@/lib/validation'
 import { createAuditLog } from '@/lib/audit/log'
+import { createAdminDataClient, getActionErrorMessage } from '@/lib/admin/db'
 import { z } from 'zod'
 
 const UuidSchema = z.string().uuid()
@@ -57,7 +57,7 @@ async function writeAuditLog(params: Parameters<typeof createAuditLog>[0]) {
 
 export async function getRoles() {
     await requireAdmin()
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data: roles, error } = await db
@@ -103,7 +103,7 @@ export async function getRole(id: string) {
     const uuid = validateUuid(id, 'role id')
     if (uuid.error) return null
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data } = await db
@@ -126,35 +126,39 @@ export async function getRole(id: string) {
 }
 
 export async function createRole(formData: FormData) {
-    const currentUser = await requireAdmin()
-    const parsed = parseRoleForm(formData)
-    if (parsed.error) return { error: parsed.error }
+    try {
+        const currentUser = await requireAdmin()
+        const parsed = parseRoleForm(formData)
+        if (parsed.error) return { error: parsed.error }
 
-    const supabase = await createClient()
-    const db = supabase as any
-    const { data, error } = await db
-        .from('roles')
-        .insert({
-            name: parsed.value!.name,
-            description: parsed.value!.description,
-            is_system: false,
+        const supabase = await createAdminDataClient()
+        const db = supabase as any
+        const { data, error } = await db
+            .from('roles')
+            .insert({
+                name: parsed.value!.name,
+                description: parsed.value!.description,
+                is_system: false,
+            })
+            .select()
+            .single()
+
+        if (error) return { error: error.message }
+
+        await writeAuditLog({
+            userId: currentUser.id,
+            action: 'role.create',
+            resourceType: 'role',
+            resourceId: data.id,
+            metadata: { name: data.name },
         })
-        .select()
-        .single()
 
-    if (error) return { error: error.message }
-
-    await writeAuditLog({
-        userId: currentUser.id,
-        action: 'role.create',
-        resourceType: 'role',
-        resourceId: data.id,
-        metadata: { name: data.name },
-    })
-
-    revalidatePath('/admin')
-    revalidatePath('/admin/roles')
-    return { success: true, role: data }
+        revalidatePath('/admin')
+        revalidatePath('/admin/roles')
+        return { success: true, role: data }
+    } catch (error) {
+        return { error: getActionErrorMessage(error, 'Failed to create role') }
+    }
 }
 
 export async function updateRole(id: string, formData: FormData) {
@@ -165,7 +169,7 @@ export async function updateRole(id: string, formData: FormData) {
     const parsed = parseRoleForm(formData)
     if (parsed.error) return { error: parsed.error }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { data: currentRole, error: currentRoleError } = await db
         .from('roles')
@@ -210,7 +214,7 @@ export async function deleteRole(id: string) {
     const uuid = validateUuid(id, 'role id')
     if (uuid.error) return { error: uuid.error }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data: role } = await db
@@ -259,7 +263,7 @@ export async function getRolePermissions(roleId: string) {
     const uuid = validateUuid(roleId, 'role id')
     if (uuid.error) return []
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
 
     const { data } = await db
@@ -278,7 +282,7 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
     const normalized = normalizePermissionIds(permissionIds)
     if (normalized.error) return { error: normalized.error }
 
-    const supabase = await createClient()
+    const supabase = await createAdminDataClient()
     const db = supabase as any
     const { data: role } = await db
         .from('roles')

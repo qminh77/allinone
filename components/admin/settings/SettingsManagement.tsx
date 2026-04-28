@@ -88,30 +88,38 @@ export function SettingsManagement({ settings }: SettingsManagementProps) {
         const formData = new FormData(event.currentTarget)
 
         startTransition(async () => {
-            const result = selectedSetting
-                ? await updateSetting(selectedSetting.key, formData)
-                : await createSetting(formData)
+            try {
+                const result = selectedSetting
+                    ? await updateSetting(selectedSetting.key, formData)
+                    : await createSetting(formData)
 
-            if (result.error) {
-                toast.error(result.error)
-                return
+                if (result.error) {
+                    toast.error(result.error)
+                    return
+                }
+
+                toast.success(selectedSetting ? 'Đã cập nhật setting' : 'Đã tạo setting')
+                setOpen(false)
+                setSelectedSetting(null)
+                router.refresh()
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể lưu setting')
             }
-
-            toast.success(selectedSetting ? 'Đã cập nhật setting' : 'Đã tạo setting')
-            setOpen(false)
-            setSelectedSetting(null)
-            router.refresh()
         })
     }
 
     const handleToggle = (setting: SettingRow, enabled: boolean) => {
         startTransition(async () => {
-            const result = await updateBooleanSetting(setting.key, enabled)
-            if (result.error) {
-                toast.error(result.error)
-            } else {
-                toast.success('Đã cập nhật setting')
-                router.refresh()
+            try {
+                const result = await updateBooleanSetting(setting.key, enabled)
+                if (result.error) {
+                    toast.error(result.error)
+                } else {
+                    toast.success('Đã cập nhật setting')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể cập nhật setting')
             }
         })
     }
@@ -120,12 +128,16 @@ export function SettingsManagement({ settings }: SettingsManagementProps) {
         if (!settingToDelete) return
 
         startTransition(async () => {
-            const result = await deleteSetting(settingToDelete.key)
-            if (result.error) {
-                toast.error(result.error)
-            } else {
-                toast.success('Đã xóa setting')
-                router.refresh()
+            try {
+                const result = await deleteSetting(settingToDelete.key)
+                if (result.error) {
+                    toast.error(result.error)
+                } else {
+                    toast.success('Đã xóa setting')
+                    router.refresh()
+                }
+            } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Không thể xóa setting')
             }
             setSettingToDelete(null)
         })
