@@ -98,24 +98,21 @@ export function QuestionEditor({ quizId, question, onSuccess, onCancel }: Questi
 
         setIsLoading(true)
         try {
-            // Need to map data to backend structure
-            // Update not implemented fully in actions yet (only createQuestion structure match)
-            // Wait, I implemented createQuestion with flexible params.
-            // But updateQuestion in actions/quiz.ts was NOT implemented in full detail in my previous file creation?
-            // Checking... I see `updateQuestion` was NOT implemented in the file I wrote! 
-            // I only wrote createQuiz, updateQuiz, deleteQuiz, CreateQuestion, DeleteQuestion.
-            // I MISSED updateQuestion logic in backend actions!
-
-            // I will use create for now, and fix update later or if `question` prop exists use update logic if I add it.
-            // For now let's assume create works.
-
             if (question) {
-                // Update Logic - I need to implement this action!
-                // Since I can't call it if it doesn't exist, I'll log or toast error.
-                // Actually createQuestion was implemented. 
-                // I should likely add updateQuestion action now or fail.
-                toast.error('Chức năng sửa câu hỏi chưa được cập nhật API backend (My bad, will fix).')
-                // I will fix this in the next tool call.
+                const res = await updateQuestion(question.id, {
+                    content: data.content,
+                    type: data.type,
+                    explanation: data.explanation,
+                    media_url: data.media_url,
+                    media_type: data.media_type,
+                }, data.answers)
+
+                if (res.error) {
+                    toast.error(res.error)
+                } else {
+                    toast.success('Đã cập nhật câu hỏi')
+                    onSuccess()
+                }
             } else {
                 const res = await createQuestion(quizId, {
                     content: data.content,

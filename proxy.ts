@@ -12,6 +12,54 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { applySecurityHeaders } from '@/lib/security-headers'
 
+function getModuleRoute(pathname: string) {
+    if (pathname.startsWith('/tools/')) {
+        const slug = pathname.split('/')[2]
+        if (slug) {
+            return { key: slug, href: `/tools/${slug}` }
+        }
+    }
+
+    const dashboardModules = [
+        { prefix: '/dashboard/shortlinks', key: 'shortlinks', href: '/dashboard/shortlinks' },
+        { prefix: '/dashboard/mail', key: 'mail-system', href: '/dashboard/mail' },
+        { prefix: '/dashboard/quiz', key: 'quiz-system', href: '/dashboard/quiz' },
+        { prefix: '/dashboard/flashcards', key: 'flashcard-system', href: '/dashboard/flashcards/library' },
+        { prefix: '/dashboard/ai', key: 'ai-assistant', href: '/dashboard/ai' },
+    ]
+
+    return dashboardModules.find(moduleItem =>
+        pathname === moduleItem.prefix || pathname.startsWith(`${moduleItem.prefix}/`)
+    ) || null
+}
+
+async function getModuleEnabled(
+    supabase: ReturnType<typeof createServerClient>,
+    route: { key: string; href: string }
+) {
+    const { data: byKey, error: keyError } = await supabase
+        .from('modules')
+        .select('is_enabled')
+        .eq('key', route.key)
+        .maybeSingle()
+
+    if (!keyError && byKey) {
+        return byKey.is_enabled !== false
+    }
+
+    const { data: byHref, error: hrefError } = await supabase
+        .from('modules')
+        .select('is_enabled')
+        .eq('href', route.href)
+        .maybeSingle()
+
+    if (!hrefError && byHref) {
+        return byHref.is_enabled !== false
+    }
+
+    return true
+}
+
 export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
@@ -38,8 +86,11 @@ export async function proxy(request: NextRequest) {
         }
     }
 
+    const moduleRoute = getModuleRoute(pathname)
     const needsAuthContext = pathname.startsWith('/admin') || pathname === '/login' || pathname === '/register'
-    if (!needsAuthContext) {
+    const needsSupabaseContext = needsAuthContext || Boolean(moduleRoute)
+
+    if (!needsSupabaseContext) {
         return applySecurityHeaders(request, supabaseResponse)
     }
 
@@ -65,6 +116,21 @@ export async function proxy(request: NextRequest) {
             },
         }
     )
+
+    if (moduleRoute) {
+        const isEnabled = await getModuleEnabled(supabase, moduleRoute)
+
+        if (!isEnabled) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            url.searchParams.set('module', 'disabled')
+            return NextResponse.redirect(url)
+        }
+    }
+
+    if (!needsAuthContext) {
+        return applySecurityHeaders(request, supabaseResponse)
+    }
 
     // Validate the session with Supabase Auth. This costs one auth call, but avoids
     // trusting a stale or tampered cookie for protected and admin routes.

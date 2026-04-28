@@ -2,9 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { modules } from '@/config/modules'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
-import { syncModuleCatalog } from '@/lib/modules/catalog'
+import { getModuleByKey, syncModuleCatalog } from '@/lib/modules/catalog'
 import { getCachedModuleStatuses, revalidateModuleStatuses } from '@/lib/modules/status'
 
 // Helper to get all module keys
@@ -16,22 +15,24 @@ export async function toggleModuleStatus(moduleKey: string, enabled: boolean) {
     await requireAdmin()
     const supabase = await createClient()
 
-    if (!modules.some(moduleItem => moduleItem.key === moduleKey)) {
+    await syncModuleCatalog()
+    const moduleDef = await getModuleByKey(moduleKey)
+
+    if (!moduleDef) {
         return { error: 'Unknown module key' }
     }
 
-    await syncModuleCatalog()
-    const moduleDef = modules.find(moduleItem => moduleItem.key === moduleKey)
-
     const { error } = await (supabase.from('modules') as any).upsert({
         key: moduleKey,
-        name: moduleDef?.name || moduleKey,
-        description: moduleDef?.description || null,
-        icon: moduleKey,
-        href: moduleDef?.href || `/tools/${moduleKey}`,
-        category: moduleDef?.category || 'Utilities',
+        name: moduleDef.name,
+        description: moduleDef.description || null,
+        icon: moduleDef.icon || moduleKey,
+        href: moduleDef.href,
+        category: moduleDef.category,
+        is_new: moduleDef.isNew,
+        is_popular: moduleDef.isPopular,
         is_enabled: enabled,
-        sort_order: moduleDef ? modules.indexOf(moduleDef) + 1 : 0,
+        sort_order: moduleDef.sortOrder,
     }, { onConflict: 'key' })
 
     if (error) return { error: error.message }

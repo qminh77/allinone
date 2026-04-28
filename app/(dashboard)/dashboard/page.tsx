@@ -2,14 +2,17 @@ import { Badge } from '@/components/ui/badge'
 import { getCurrentUserProfile } from '@/lib/auth/session'
 import { Activity, Shield, Zap } from 'lucide-react'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
-import { getModuleStatuses } from '@/lib/actions/admin'
+import { getModuleCatalog } from '@/lib/modules/catalog'
 
 export default async function DashboardPage() {
-    const profile = await getCurrentUserProfile()
-    const enabledModules = await getModuleStatuses()
+    const [profile, moduleCatalog] = await Promise.all([
+        getCurrentUserProfile(),
+        getModuleCatalog(),
+    ])
 
     const roleName = profile?.role?.name || 'Guest'
     const isActive = profile?.is_active
+    const enabledCount = moduleCatalog.filter(moduleItem => moduleItem.isEnabled !== false).length
 
     return (
         <div className="space-y-6">
@@ -32,12 +35,12 @@ export default async function DashboardPage() {
                     </Badge>
                     <Badge variant="secondary" className="h-8 gap-1.5 px-3">
                         <Zap className="size-3.5" />
-                        {Object.values(enabledModules).filter(v => v !== false).length} công cụ
+                        {enabledCount} công cụ
                     </Badge>
                 </div>
             </div>
 
-            <DashboardShell enabledModules={enabledModules} />
+            <DashboardShell modules={moduleCatalog} />
         </div>
     )
 }

@@ -87,7 +87,7 @@ export async function createShortlink(formData: FormData) {
     }
 
     revalidatePath('/dashboard/shortlinks')
-    return { success: true }
+    return { success: true, slug }
 }
 
 export async function deleteShortlink(id: string) {

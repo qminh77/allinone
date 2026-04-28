@@ -11,6 +11,7 @@ import { uploadLocalToolFile } from '@/lib/storage/tool-files'
 
 // IMPORTANT: This route must use Node.js runtime for Puppeteer
 export const runtime = 'nodejs'
+export const maxDuration = 300
 
 const ALLOWED_HOSTS = ['scribd.com', 'everand.com', 'slideshare.net']
 

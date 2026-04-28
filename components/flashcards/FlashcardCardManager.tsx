@@ -18,6 +18,7 @@ import {
 } from '@/lib/actions/flashcards'
 import { MarkdownDefinition } from '@/components/flashcards/MarkdownDefinition'
 import { BulkImportFlashcardsDialog } from '@/components/flashcards/BulkImportFlashcardsDialog'
+import { AiFlashcardGeneratorDialog } from '@/components/flashcards/AiFlashcardGeneratorDialog'
 
 interface FlashcardCardManagerProps {
     setId: string
@@ -160,7 +161,10 @@ export function FlashcardCardManager({ setId, cards: initialCards }: FlashcardCa
                     <h2 className="text-lg font-semibold">Cards</h2>
                     <p className="text-sm text-muted-foreground">{cards.length} card trong set này</p>
                 </div>
-                <BulkImportFlashcardsDialog setId={setId} />
+                <div className="flex flex-wrap gap-2">
+                    <AiFlashcardGeneratorDialog setId={setId} />
+                    <BulkImportFlashcardsDialog setId={setId} />
+                </div>
             </div>
 
             <Card className="border-dashed">

@@ -1,16 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getModuleStatuses } from '@/lib/actions/admin'
 import { ModuleList } from '@/components/admin/ModuleList'
-import { syncModuleCatalog } from '@/lib/modules/catalog'
-import { modules } from '@/config/modules'
+import { getModuleCatalog, syncModuleCatalog } from '@/lib/modules/catalog'
 import { StatsCard } from '@/components/admin/StatsCard'
 import { CheckCircle2, Folder, ToggleLeft, Wrench } from 'lucide-react'
 
 export default async function AdminModulesPage() {
     await syncModuleCatalog()
-    const statuses = await getModuleStatuses()
-    const enabledCount = modules.filter((moduleItem) => statuses[moduleItem.key] ?? true).length
-    const categories = new Set(modules.map((moduleItem) => moduleItem.category))
+    const [moduleCatalog, statuses] = await Promise.all([
+        getModuleCatalog(),
+        getModuleStatuses(),
+    ])
+    const enabledCount = moduleCatalog.filter((moduleItem) => statuses[moduleItem.key] ?? moduleItem.isEnabled).length
+    const categories = new Set(moduleCatalog.map((moduleItem) => moduleItem.category))
 
     return (
         <div className="space-y-6">
@@ -22,9 +24,9 @@ export default async function AdminModulesPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-4">
-                <StatsCard title="Modules" value={modules.length} description="Từ config/modules.ts" icon={Wrench} />
+                <StatsCard title="Modules" value={moduleCatalog.length} description="Đồng bộ từ database" icon={Wrench} />
                 <StatsCard title="Đang bật" value={enabledCount} description="Có thể truy cập" icon={CheckCircle2} />
-                <StatsCard title="Đang tắt" value={modules.length - enabledCount} description="Bị chặn" icon={ToggleLeft} />
+                <StatsCard title="Đang tắt" value={moduleCatalog.length - enabledCount} description="Bị chặn" icon={ToggleLeft} />
                 <StatsCard title="Categories" value={categories.size} description="Nhóm công cụ" icon={Folder} />
             </div>
 
@@ -32,11 +34,11 @@ export default async function AdminModulesPage() {
                 <CardHeader>
                     <CardTitle>Danh sách modules</CardTitle>
                     <CardDescription>
-                        Catalog module lấy từ mã nguồn, trạng thái bật/tắt lưu trong database.
+                        Catalog module được đọc từ database và tự merge fallback khi schema chưa đồng bộ.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ModuleList initialStatuses={statuses} />
+                    <ModuleList modules={moduleCatalog} initialStatuses={statuses} />
                 </CardContent>
             </Card>
         </div>

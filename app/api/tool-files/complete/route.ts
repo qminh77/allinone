@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { modules } from '@/config/modules'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isEnabledModuleKey } from '@/lib/modules/catalog'
 import {
     createToolFileSignedDownload,
     insertToolFileMetadata,
@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
         const sizeBytes = Number(body.sizeBytes || 0)
         const kind = String(body.kind || 'output') as ToolFileKind
 
-        if (!modules.some(moduleItem => moduleItem.key === moduleKey)) {
-            return NextResponse.json({ error: 'Unknown module key' }, { status: 400 })
+        if (!await isEnabledModuleKey(moduleKey)) {
+            return NextResponse.json({ error: 'Unknown or disabled module key' }, { status: 400 })
         }
 
         if (!filename || !storagePath) {

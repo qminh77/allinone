@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { modules } from '@/config/modules'
+import { getModuleIcon, type ModuleCatalogItem } from '@/config/modules'
 import { ModuleToggle } from '@/components/admin/ModuleToggle'
 import { ChevronDown, Search } from 'lucide-react'
 import {
@@ -17,10 +17,11 @@ import {
 } from '@/components/ui/table'
 
 interface ModuleListProps {
+    modules: ModuleCatalogItem[]
     initialStatuses: Record<string, boolean>
 }
 
-export function ModuleList({ initialStatuses }: ModuleListProps) {
+export function ModuleList({ modules, initialStatuses }: ModuleListProps) {
     const [visibleCount, setVisibleCount] = useState(30)
     const [search, setSearch] = useState('')
     const [category, setCategory] = useState('all')
@@ -28,7 +29,7 @@ export function ModuleList({ initialStatuses }: ModuleListProps) {
 
     const categories = useMemo(() => {
         return Array.from(new Set(modules.map((moduleItem) => moduleItem.category))).sort()
-    }, [])
+    }, [modules])
 
     const filteredModules = useMemo(() => {
         const query = search.trim().toLowerCase()
@@ -42,11 +43,11 @@ export function ModuleList({ initialStatuses }: ModuleListProps) {
 
             return matchesCategory && matchesSearch
         })
-    }, [category, search])
+    }, [category, modules, search])
 
     const visibleModules = filteredModules.slice(0, visibleCount)
     const hasMore = visibleCount < filteredModules.length
-    const enabledCount = modules.filter((moduleItem) => statuses[moduleItem.key] ?? true).length
+    const enabledCount = modules.filter((moduleItem) => statuses[moduleItem.key] ?? moduleItem.isEnabled).length
 
     const handleShowMore = () => {
         setVisibleCount((prev) => Math.min(prev + 50, filteredModules.length))
@@ -117,12 +118,15 @@ export function ModuleList({ initialStatuses }: ModuleListProps) {
                                 </TableCell>
                             </TableRow>
                         )}
-                        {visibleModules.map((moduleItem) => (
+                        {visibleModules.map((moduleItem) => {
+                            const Icon = getModuleIcon(moduleItem)
+
+                            return (
                             <TableRow key={moduleItem.key}>
                                 <TableCell>
                                     <div className="flex items-start gap-3">
                                         <div className="mt-0.5 grid size-9 place-items-center rounded-md bg-muted">
-                                            <moduleItem.icon className="size-4 text-muted-foreground" />
+                                            <Icon className="size-4 text-muted-foreground" />
                                         </div>
                                         <div>
                                             <p className="font-medium">{moduleItem.name}</p>
@@ -148,7 +152,7 @@ export function ModuleList({ initialStatuses }: ModuleListProps) {
                                 <TableCell className="text-right">
                                     <ModuleToggle
                                         moduleKey={moduleItem.key}
-                                        initialEnabled={statuses[moduleItem.key] ?? true}
+                                        initialEnabled={statuses[moduleItem.key] ?? moduleItem.isEnabled}
                                         onChange={(enabled) => {
                                             setStatuses((current) => ({
                                                 ...current,
@@ -158,7 +162,8 @@ export function ModuleList({ initialStatuses }: ModuleListProps) {
                                     />
                                 </TableCell>
                             </TableRow>
-                        ))}
+                            )
+                        })}
                     </TableBody>
                 </Table>
             </div>

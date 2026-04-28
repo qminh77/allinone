@@ -6,6 +6,7 @@ import * as cheerio from 'cheerio'
 import ytdl from '@distube/ytdl-core'
 import { execFile } from 'child_process'
 import { constants as fsConstants, promises as fs } from 'fs'
+import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
 
@@ -38,6 +39,36 @@ function isAllowedYouTubeHost(hostname: string) {
     return normalized === 'youtube.com' ||
         normalized.endsWith('.youtube.com') ||
         normalized === 'youtu.be'
+}
+
+function extractYouTubeVideoId(url: URL) {
+    const hostname = url.hostname.toLowerCase()
+    const pathnameParts = url.pathname.split('/').filter(Boolean)
+
+    if (hostname === 'youtu.be') {
+        return pathnameParts[0]
+    }
+
+    if (url.pathname === '/watch') {
+        return url.searchParams.get('v')
+    }
+
+    if (['shorts', 'embed', 'live'].includes(pathnameParts[0])) {
+        return pathnameParts[1]
+    }
+
+    return null
+}
+
+function normalizeYouTubeVideoUrl(url: string): NormalizedUrl {
+    const parsed = new URL(url)
+    const videoId = extractYouTubeVideoId(parsed)
+
+    if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+        return { ok: false, error: 'Only single YouTube video URLs are supported' }
+    }
+
+    return { ok: true, url: `https://www.youtube.com/watch?v=${videoId}` }
 }
 
 export async function performDnsLookup(domain: string, type: DnsRecordType = 'A') {
@@ -238,6 +269,8 @@ type VideoFormat = Awaited<ReturnType<typeof ytdl.getInfo>>['formats'][number]
 const execFileAsync = promisify(execFile)
 const YTDLP_TIMEOUT_MS = 60_000
 const YTDLP_MAX_BUFFER = 24 * 1024 * 1024
+const YOUTUBE_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+const YOUTUBE_BOT_CHALLENGE_TEXT = 'YouTube đang yêu cầu xác minh bot trên môi trường serverless. Trên Vercel cần cấu hình cookies YouTube cho yt-dlp bằng biến môi trường YTDLP_COOKIES_BASE64 hoặc YTDLP_COOKIES.'
 
 function formatDuration(seconds: number) {
     if (!Number.isFinite(seconds) || seconds <= 0) return ''
@@ -284,6 +317,26 @@ function getErrorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error)
 }
 
+function getCommandErrorOutput(error: unknown) {
+    if (error && typeof error === 'object') {
+        const stderr = 'stderr' in error ? error.stderr : undefined
+        const stdout = 'stdout' in error ? error.stdout : undefined
+
+        if (typeof stderr === 'string' && stderr.trim()) return stderr
+        if (typeof stdout === 'string' && stdout.trim()) return stdout
+    }
+
+    return getErrorMessage(error)
+}
+
+function isYouTubeBotChallenge(error: unknown) {
+    const message = getCommandErrorOutput(error).toLowerCase()
+    return message.includes('sign in to confirm') ||
+        message.includes('not a bot') ||
+        message.includes('use --cookies') ||
+        message.includes('cookies-from-browser')
+}
+
 async function getYtDlpBinaryPath() {
     const candidates = [
         process.env.YTDLP_BINARY_PATH,
@@ -300,6 +353,28 @@ async function getYtDlpBinaryPath() {
     }
 
     return null
+}
+
+async function getYtDlpCookiesPath() {
+    if (process.env.YTDLP_COOKIES_FILE) {
+        return process.env.YTDLP_COOKIES_FILE
+    }
+
+    const cookiesText = process.env.YTDLP_COOKIES_BASE64
+        ? Buffer.from(process.env.YTDLP_COOKIES_BASE64, 'base64').toString('utf8')
+        : process.env.YTDLP_COOKIES
+
+    if (!cookiesText?.trim()) {
+        return null
+    }
+
+    const cookiesDir = path.join(os.tmpdir(), 'allinone', 'yt-dlp')
+    const cookiesPath = path.join(cookiesDir, `cookies-${process.pid}.txt`)
+
+    await fs.mkdir(cookiesDir, { recursive: true })
+    await fs.writeFile(cookiesPath, cookiesText, { mode: 0o600 })
+
+    return cookiesPath
 }
 
 type YtDlpOutput = Record<string, unknown> & {
@@ -325,15 +400,24 @@ async function getVideoInfoWithYtDlp(url: string) {
     const binaryPath = await getYtDlpBinaryPath()
     if (!binaryPath) return null
 
-    const { stdout } = await execFileAsync(binaryPath, [
+    const args = [
         url,
         '--dump-single-json',
+        '--no-playlist',
         '--no-check-certificates',
         '--no-warnings',
         '--prefer-free-formats',
+        '--socket-timeout', '20',
         '--add-header', 'referer:youtube.com',
-        '--add-header', 'user-agent:googlebot',
-    ], {
+        '--add-header', `user-agent:${YOUTUBE_USER_AGENT}`,
+    ]
+
+    const cookiesPath = await getYtDlpCookiesPath()
+    if (cookiesPath) {
+        args.push('--cookies', cookiesPath)
+    }
+
+    const { stdout } = await execFileAsync(binaryPath, args, {
         timeout: YTDLP_TIMEOUT_MS,
         maxBuffer: YTDLP_MAX_BUFFER,
     })
@@ -348,7 +432,7 @@ async function getVideoInfoWithYtdlCore(url: string) {
         requestOptions: {
             headers: {
                 referer: 'https://www.youtube.com',
-                'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+                'user-agent': YOUTUBE_USER_AGENT,
             },
         },
     })
@@ -380,20 +464,37 @@ export async function getVideoInfo(url: string) {
         if (!normalized.ok) return { error: normalized.error }
 
         const parsedUrl = new URL(normalized.url)
-        if (!isAllowedYouTubeHost(parsedUrl.hostname) || !ytdl.validateURL(normalized.url)) {
+        if (!isAllowedYouTubeHost(parsedUrl.hostname)) {
             return { error: 'Only YouTube URLs are supported' }
         }
 
-        console.log(`[VideoDownloader] Fetching info for: ${normalized.url}`)
+        const videoUrl = normalizeYouTubeVideoUrl(normalized.url)
+        if (!videoUrl.ok) return { error: videoUrl.error }
 
+        if (!ytdl.validateURL(videoUrl.url)) {
+            return { error: 'Only YouTube video URLs are supported' }
+        }
+
+        console.log(`[VideoDownloader] Fetching info for: ${videoUrl.url}`)
+
+        let ytDlpFailure: unknown = null
         try {
-            const ytDlpData = await getVideoInfoWithYtDlp(normalized.url)
+            const ytDlpData = await getVideoInfoWithYtDlp(videoUrl.url)
             if (ytDlpData) return { success: true, data: ytDlpData }
         } catch (ytDlpError) {
+            ytDlpFailure = ytDlpError
             console.warn('[VideoDownloader] Standalone yt-dlp failed, falling back to ytdl-core:', ytDlpError)
         }
 
-        return { success: true, data: await getVideoInfoWithYtdlCore(normalized.url) }
+        try {
+            return { success: true, data: await getVideoInfoWithYtdlCore(videoUrl.url) }
+        } catch (ytdlError) {
+            if (ytDlpFailure && isYouTubeBotChallenge(ytDlpFailure)) {
+                return { error: YOUTUBE_BOT_CHALLENGE_TEXT }
+            }
+
+            throw ytdlError
+        }
 
     } catch (error) {
         console.error('[VideoDownloader] Error:', error)

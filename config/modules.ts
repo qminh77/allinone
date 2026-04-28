@@ -42,23 +42,52 @@ import {
     Zap, // For SVG/Vector tools
     Music, // For Audio tools
     Video,
+    QrCode,
+    BrainCircuit,
+    BookOpen,
+    Wrench,
+    type LucideIcon,
 } from 'lucide-react'
 
-export type ModuleCategory = 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF' | 'Image' | 'Font' | 'Audio' | 'Video'
+export type ModuleCategory = 'AI' | 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF' | 'Image' | 'Font' | 'Audio' | 'Video'
 
 export interface Module {
     key: string
     name: string
     description: string
     href: string
-    icon: any
+    icon: LucideIcon
     category: ModuleCategory
     permission?: string
     isNew?: boolean
     isPopular?: boolean
 }
 
+export interface ModuleCatalogItem {
+    key: string
+    name: string
+    description: string
+    href: string
+    icon: string | null
+    category: string
+    permission?: string
+    isNew: boolean
+    isPopular: boolean
+    isEnabled: boolean
+    sortOrder: number
+}
+
 export const modules: Module[] = [
+    {
+        key: 'ai-assistant',
+        name: 'AI Assistant',
+        description: 'Tìm chức năng và hỗ trợ tạo nội dung cho mail, quiz, flashcard bằng model AI cấu hình động.',
+        href: '/dashboard/ai',
+        icon: BrainCircuit,
+        category: 'AI',
+        isNew: true,
+        isPopular: true
+    },
     {
         key: 'dns-lookup',
         name: 'DNS Lookup',
@@ -192,6 +221,16 @@ export const modules: Module[] = [
         isNew: true
     },
     {
+        key: 'qr-code',
+        name: 'QR Code Generator',
+        description: 'Tạo QR URL, WiFi, vCard, SMS, email, sự kiện, social, file và app với preview realtime.',
+        href: '/tools/qr-code',
+        icon: QrCode,
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
+    },
+    {
         key: 'html-minifier',
         name: 'HTML Minifier',
         description: 'Tối ưu hóa và nén mã HTML (remove whitespace/comments).',
@@ -242,6 +281,15 @@ export const modules: Module[] = [
         description: 'Đếm số ký tự, từ, câu, đoạn văn trong văn bản.',
         href: '/tools/character-counter',
         icon: Type,
+        category: 'Utilities',
+        isNew: true
+    },
+    {
+        key: 'text-formatter',
+        name: 'Text Formatter',
+        description: 'Định dạng văn bản: uppercase, lowercase, capitalize và đảo ngược nội dung.',
+        href: '/tools/text-formatter',
+        icon: AlignLeft,
         category: 'Utilities',
         isNew: true
     },
@@ -433,6 +481,16 @@ export const modules: Module[] = [
         description: 'Tạo, quản lý và chia sẻ các bài trắc nghiệm kiến thức.',
         href: '/dashboard/quiz',
         icon: FileText, // Reusing FileText or use a better one like BookOpen if available, but FileText is consistent with other similar tools
+        category: 'Utilities',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'flashcard-system',
+        name: 'Flashcards',
+        description: 'Tạo, quản lý và chia sẻ các bộ flashcard học tập.',
+        href: '/dashboard/flashcards/library',
+        icon: BookOpen,
         category: 'Utilities',
         isNew: true,
         isPopular: true
@@ -1009,6 +1067,7 @@ export const modules: Module[] = [
 ]
 
 export const categories: { key: ModuleCategory; name: string }[] = [
+    { key: 'AI', name: 'AI' },
     { key: 'General', name: 'Tổng quan' },
     { key: 'Network', name: 'Mạng & Network' },
     { key: 'Utilities', name: 'Tiện ích' },
@@ -1028,3 +1087,61 @@ export const categories: { key: ModuleCategory; name: string }[] = [
     { key: 'Audio', name: 'Audio Tools' },
     { key: 'Video', name: 'Video Tools' },
 ]
+
+const moduleIconByKey = modules.reduce<Record<string, LucideIcon>>((acc, moduleItem) => {
+    acc[moduleItem.key] = moduleItem.icon
+    return acc
+}, {})
+
+const categoryIconByKey: Record<string, LucideIcon> = {
+    AI: BrainCircuit,
+    General: Wrench,
+    Network: Globe,
+    Utilities: Wrench,
+    Table: FileSpreadsheet,
+    JSON: FileJson,
+    CSV: FileSpreadsheet,
+    Markdown: FileCode,
+    HTML: FileCode,
+    SQL: Database,
+    LaTeX: FileCode,
+    XML: FileCode,
+    MySQL: Database,
+    MediaWiki: FileCode,
+    PDF: Files,
+    Image: ImageIcon,
+    Font: Type,
+    Audio: Music,
+    Video: Video,
+}
+
+export function toModuleCatalogItem(moduleItem: Module, index = 0): ModuleCatalogItem {
+    return {
+        key: moduleItem.key,
+        name: moduleItem.name,
+        description: moduleItem.description,
+        href: moduleItem.href,
+        icon: moduleItem.key,
+        category: moduleItem.category,
+        permission: moduleItem.permission,
+        isNew: moduleItem.isNew || false,
+        isPopular: moduleItem.isPopular || false,
+        isEnabled: true,
+        sortOrder: index + 1,
+    }
+}
+
+export function getFallbackModuleCatalog(): ModuleCatalogItem[] {
+    return modules.map(toModuleCatalogItem)
+}
+
+export function getModuleIcon(moduleItem: Pick<ModuleCatalogItem, 'key' | 'icon' | 'category'>): LucideIcon {
+    return moduleIconByKey[moduleItem.icon || ''] ||
+        moduleIconByKey[moduleItem.key] ||
+        categoryIconByKey[moduleItem.category] ||
+        Wrench
+}
+
+export function getCategoryName(categoryKey: string) {
+    return categories.find(category => category.key === categoryKey)?.name || categoryKey
+}

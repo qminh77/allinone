@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { modules } from '@/config/modules'
+import { isEnabledModuleKey } from '@/lib/modules/catalog'
 import {
     createToolFileSignedUpload,
     MAX_TOOL_FILE_SIZE_BYTES,
@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Missing filename' }, { status: 400 })
         }
 
-        if (!modules.some(moduleItem => moduleItem.key === moduleKey)) {
-            return NextResponse.json({ error: 'Unknown module key' }, { status: 400 })
+        if (!await isEnabledModuleKey(moduleKey)) {
+            return NextResponse.json({ error: 'Unknown or disabled module key' }, { status: 400 })
         }
 
         if (!VALID_KINDS.includes(kind)) {

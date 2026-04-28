@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentUserProfile } from '@/lib/auth/session'
 import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { getModuleStatuses } from '@/lib/actions/admin'
+import { getModuleCatalog } from '@/lib/modules/catalog'
 
 export default async function DashboardLayout({
     children,
@@ -15,14 +15,14 @@ export default async function DashboardLayout({
         redirect('/login')
     }
 
-    const [profile, enabledModules] = await Promise.all([
+    const [profile, moduleCatalog] = await Promise.all([
         getCurrentUserProfile(user.id),
-        getModuleStatuses(),
+        getModuleCatalog(),
     ])
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
-            <Sidebar enabledModules={enabledModules} />
+            <Sidebar modules={moduleCatalog} />
 
             <div className="flex flex-col flex-1 overflow-hidden">
                 <Navbar
@@ -30,7 +30,7 @@ export default async function DashboardLayout({
                         email: user.email,
                         fullName: profile?.full_name,
                     }}
-                    enabledModules={enabledModules}
+                    modules={moduleCatalog}
                     isAdmin={profile?.role?.name === 'Admin'}
                 />
                 <main className="flex-1 overflow-y-auto bg-muted/20 p-3 sm:p-4 lg:p-6">

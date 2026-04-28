@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import TinyEditor from './TinyEditor'
 import { Loader2, Send } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { AiMailDraftDialog } from '@/components/mail/AiMailDraftDialog'
 
 const formSchema = z.object({
     config_id: z.string().min(1, 'Vui lòng chọn tài khoản gửi'),
@@ -76,8 +77,18 @@ export function SendMailForm({ configs }: { configs: SmtpConfig[] }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Soạn Mail</CardTitle>
-                <CardDescription>Gửi mail đến một hoặc nhiều người nhận (phân cách bằng dấu phẩy).</CardDescription>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <CardTitle>Soạn Mail</CardTitle>
+                        <CardDescription>Gửi mail đến một hoặc nhiều người nhận (phân cách bằng dấu phẩy).</CardDescription>
+                    </div>
+                    <AiMailDraftDialog
+                        onApply={(draft) => {
+                            form.setValue('subject', draft.subject, { shouldValidate: true })
+                            form.setValue('body', draft.bodyHtml, { shouldValidate: true })
+                        }}
+                    />
+                </div>
             </CardHeader>
             <CardContent>
                 <Form {...form}>

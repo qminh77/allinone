@@ -1,16 +1,22 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Module } from '@/config/modules'
+import { getModuleIcon, type ModuleCatalogItem } from '@/config/modules'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 
 interface ModuleCardProps {
-    module: Module
+    module: ModuleCatalogItem
+}
+
+function renderModuleIcon(module: ModuleCatalogItem) {
+    const Icon = getModuleIcon(module)
+
+    return (
+        <Icon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+    )
 }
 
 export function ModuleCard({ module }: ModuleCardProps) {
-    const Icon = module.icon
-
     return (
         <Button
             asChild
@@ -18,7 +24,7 @@ export function ModuleCard({ module }: ModuleCardProps) {
             className="group h-auto w-full justify-start whitespace-normal rounded-lg border border-transparent px-3 py-2.5 text-left hover:border-border hover:bg-accent"
         >
             <Link href={module.href} prefetch={false}>
-                <Icon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                {renderModuleIcon(module)}
                 <span className="min-w-0 flex-1 space-y-1">
                     <span className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-sm font-medium leading-none">{module.name}</span>

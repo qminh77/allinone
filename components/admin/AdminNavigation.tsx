@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import {
     Activity,
+    BrainCircuit,
     Database,
     Home,
     Key,
@@ -25,6 +26,7 @@ const navItems = [
     { href: '/admin/roles', label: 'Vai trò', icon: Shield },
     { href: '/admin/permissions', label: 'Quyền hạn', icon: Key },
     { href: '/admin/modules', label: 'Modules', icon: Wrench },
+    { href: '/admin/ai', label: 'AI Center', icon: BrainCircuit },
     { href: '/admin/settings', label: 'Cấu hình', icon: Settings },
     { href: '/admin/logs', label: 'Audit logs', icon: Activity },
     { href: '/admin/backup', label: 'Backups', icon: Database },

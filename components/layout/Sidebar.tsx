@@ -25,7 +25,7 @@ import {
     BookOpen,
     Layers,
 } from 'lucide-react'
-import { modules, categories } from '@/config/modules'
+import { categories, getModuleIcon, type ModuleCatalogItem } from '@/config/modules'
 import { PermissionKey } from '@/types/permissions'
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -35,11 +35,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useEffect, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 
 interface SidebarProps {
-    enabledModules?: Record<string, boolean>
+    modules: ModuleCatalogItem[]
 }
 
 interface SidebarContentProps {
-    enabledModules?: Record<string, boolean>
+    modules: ModuleCatalogItem[]
     collapsed?: boolean
     onToggleCollapsed?: () => void
 }
@@ -50,12 +50,13 @@ const SIDEBAR_MIN_WIDTH = 220
 const SIDEBAR_MAX_WIDTH = 360
 const SIDEBAR_COLLAPSED_WIDTH = 60
 const SIDEBAR_DEFAULT_WIDTH = 256
+const FEATURE_MODULE_KEYS = new Set(['shortlinks', 'mail-system', 'quiz-system', 'flashcard-system'])
 
 function clampSidebarWidth(width: number) {
     return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width))
 }
 
-export function SidebarContent({ enabledModules, collapsed = false, onToggleCollapsed }: SidebarContentProps) {
+export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }: SidebarContentProps) {
     const pathname = usePathname()
     // Default open all categories
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
@@ -71,11 +72,17 @@ export function SidebarContent({ enabledModules, collapsed = false, onToggleColl
         setOpenCategories(prev => ({ ...prev, [key]: !prev[key] }))
     }
 
-    // Filter modules based on enabled status
-    const activeModules = modules.filter(m => {
-        if (!enabledModules) return true
-        return enabledModules[m.key] !== false
-    })
+    const isFeatureEnabled = (key: string) => {
+        const moduleItem = modules.find(item => item.key === key)
+        return moduleItem ? moduleItem.isEnabled !== false : true
+    }
+
+    const showShortlinks = isFeatureEnabled('shortlinks')
+    const showMail = isFeatureEnabled('mail-system')
+    const showQuiz = isFeatureEnabled('quiz-system')
+    const showFlashcards = isFeatureEnabled('flashcard-system')
+
+    const activeModules = modules.filter(m => m.isEnabled !== false && !FEATURE_MODULE_KEYS.has(m.key))
 
     // Group by category
     const modulesByCategory = activeModules.reduce((acc, moduleItem) => {
@@ -83,7 +90,14 @@ export function SidebarContent({ enabledModules, collapsed = false, onToggleColl
         if (!acc[cat]) acc[cat] = []
         acc[cat].push(moduleItem)
         return acc
-    }, {} as Record<string, typeof activeModules>)
+    }, {} as Record<string, ModuleCatalogItem[]>)
+
+    const categoryItems = [
+        ...categories,
+        ...Array.from(new Set(activeModules.map(moduleItem => moduleItem.category)))
+            .filter(categoryKey => !categories.some(category => category.key === categoryKey))
+            .map(categoryKey => ({ key: categoryKey, name: categoryKey })),
+    ]
 
     const withTooltip = (content: ReactNode, label: string, key?: string) => {
         if (!collapsed) return content
@@ -160,74 +174,77 @@ export function SidebarContent({ enabledModules, collapsed = false, onToggleColl
                                 'Tổng quan'
                             )}
 
-                            {withTooltip(
-                                <Link
-                                    href="/dashboard/shortlinks"
-                                    prefetch={false}
-                                    className={itemClassName(pathname.startsWith('/dashboard/shortlinks'))}
-                                >
-                                    <LinkIcon className="size-4 shrink-0" />
-                                    <span className={cn("truncate", collapsed && "sr-only")}>Shortlinks</span>
-                                </Link>,
-                                'Shortlinks'
-                            )}
+                            {showShortlinks && withTooltip(
+                                    <Link
+                                        href="/dashboard/shortlinks"
+                                        prefetch={false}
+                                        className={itemClassName(pathname.startsWith('/dashboard/shortlinks'))}
+                                    >
+                                        <LinkIcon className="size-4 shrink-0" />
+                                        <span className={cn("truncate", collapsed && "sr-only")}>Shortlinks</span>
+                                    </Link>,
+                                    'Shortlinks'
+                                )}
 
-                            <Collapsible
+                            {showMail && (
+                                <Collapsible
                                 open={openCategories['MailSystem']}
                                 onOpenChange={() => toggleCategory('MailSystem')}
                                 className="space-y-1"
-                            >
-                                {withTooltip(
-                                    <CollapsibleTrigger className={cn(
-                                        "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted/50",
-                                        collapsed && "justify-center px-2"
-                                    )}>
-                                        <div className="flex min-w-0 items-center gap-3">
-                                            <Mail className="size-4 shrink-0" />
-                                            <span className={cn("truncate", collapsed && "sr-only")}>Mail System</span>
-                                        </div>
-                                        <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200", openCategories['MailSystem'] && "rotate-90", collapsed && "hidden")} />
-                                    </CollapsibleTrigger>,
-                                    'Mail System'
-                                )}
-                                <CollapsibleContent className="space-y-1 pt-1">
+                                >
                                     {withTooltip(
-                                        <Link
-                                            href="/dashboard/mail/send"
-                                            prefetch={false}
-                                            className={itemClassName(pathname === '/dashboard/mail/send', true)}
-                                        >
-                                            <Send className="size-4 shrink-0" />
-                                            <span className={cn("truncate", collapsed && "sr-only")}>Gửi Mail</span>
-                                        </Link>,
-                                        'Gửi Mail'
+                                        <CollapsibleTrigger className={cn(
+                                            "flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted/50",
+                                            collapsed && "justify-center px-2"
+                                        )}>
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <Mail className="size-4 shrink-0" />
+                                                <span className={cn("truncate", collapsed && "sr-only")}>Mail System</span>
+                                            </div>
+                                            <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200", openCategories['MailSystem'] && "rotate-90", collapsed && "hidden")} />
+                                        </CollapsibleTrigger>,
+                                        'Mail System'
                                     )}
-                                    {withTooltip(
-                                        <Link
-                                            href="/dashboard/mail/accounts"
-                                            prefetch={false}
-                                            className={itemClassName(pathname === '/dashboard/mail/accounts', true)}
-                                        >
-                                            <Settings2 className="size-4 shrink-0" />
-                                            <span className={cn("truncate", collapsed && "sr-only")}>Tài khoản</span>
-                                        </Link>,
-                                        'Tài khoản'
-                                    )}
-                                    {withTooltip(
-                                        <Link
-                                            href="/dashboard/mail/history"
-                                            prefetch={false}
-                                            className={itemClassName(pathname === '/dashboard/mail/history', true)}
-                                        >
-                                            <History className="size-4 shrink-0" />
-                                            <span className={cn("truncate", collapsed && "sr-only")}>Lịch sử</span>
-                                        </Link>,
-                                        'Lịch sử'
-                                    )}
-                                </CollapsibleContent>
-                            </Collapsible>
+                                    <CollapsibleContent className="space-y-1 pt-1">
+                                        {withTooltip(
+                                            <Link
+                                                href="/dashboard/mail/send"
+                                                prefetch={false}
+                                                className={itemClassName(pathname === '/dashboard/mail/send', true)}
+                                            >
+                                                <Send className="size-4 shrink-0" />
+                                                <span className={cn("truncate", collapsed && "sr-only")}>Gửi Mail</span>
+                                            </Link>,
+                                            'Gửi Mail'
+                                        )}
+                                        {withTooltip(
+                                            <Link
+                                                href="/dashboard/mail/accounts"
+                                                prefetch={false}
+                                                className={itemClassName(pathname === '/dashboard/mail/accounts', true)}
+                                            >
+                                                <Settings2 className="size-4 shrink-0" />
+                                                <span className={cn("truncate", collapsed && "sr-only")}>Tài khoản</span>
+                                            </Link>,
+                                            'Tài khoản'
+                                        )}
+                                        {withTooltip(
+                                            <Link
+                                                href="/dashboard/mail/history"
+                                                prefetch={false}
+                                                className={itemClassName(pathname === '/dashboard/mail/history', true)}
+                                            >
+                                                <History className="size-4 shrink-0" />
+                                                <span className={cn("truncate", collapsed && "sr-only")}>Lịch sử</span>
+                                            </Link>,
+                                            'Lịch sử'
+                                        )}
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )}
 
-                            <Collapsible
+                            {showQuiz && (
+                                <Collapsible
                                 open={openCategories['QuizSystem']}
                                 onOpenChange={() => toggleCategory('QuizSystem')}
                                 className="space-y-1"
@@ -280,9 +297,11 @@ export function SidebarContent({ enabledModules, collapsed = false, onToggleColl
                                         'Lịch sử'
                                     )}
                                 </CollapsibleContent>
-                            </Collapsible>
+                                </Collapsible>
+                            )}
 
-                            <Collapsible
+                            {showFlashcards && (
+                                <Collapsible
                                 open={openCategories['FlashcardSystem']}
                                 onOpenChange={() => toggleCategory('FlashcardSystem')}
                                 className="space-y-1"
@@ -321,11 +340,12 @@ export function SidebarContent({ enabledModules, collapsed = false, onToggleColl
                                         'Tạo set'
                                     )}
                                 </CollapsibleContent>
-                            </Collapsible>
+                                </Collapsible>
+                            )}
 
                             <Separator />
 
-                            {categories.map(cat => {
+                            {categoryItems.map(cat => {
                                 const catModules = modulesByCategory[cat.key]
                                 if (!catModules || catModules.length === 0) return null
 
@@ -350,7 +370,7 @@ export function SidebarContent({ enabledModules, collapsed = false, onToggleColl
                                         <CollapsibleContent className="space-y-1 pt-1">
                                             {catModules.map((item) => {
                                                 const isActive = pathname === item.href
-                                                const Icon = item.icon
+                                                const Icon = getModuleIcon(item)
 
                                                 const linkContent = withTooltip(
                                                     <Link
@@ -395,7 +415,7 @@ export function SidebarContent({ enabledModules, collapsed = false, onToggleColl
     )
 }
 
-export function Sidebar({ enabledModules }: SidebarProps) {
+export function Sidebar({ modules }: SidebarProps) {
     const [width, setWidth] = useState(() => {
         if (typeof window === 'undefined') return SIDEBAR_DEFAULT_WIDTH
 
@@ -450,7 +470,7 @@ export function Sidebar({ enabledModules }: SidebarProps) {
             style={{ width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : width }}
         >
             <SidebarContent
-                enabledModules={enabledModules}
+                modules={modules}
                 collapsed={collapsed}
                 onToggleCollapsed={() => setCollapsed(value => !value)}
             />

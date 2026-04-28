@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import { modules } from '@/config/modules'
+import { modules as fallbackModules } from '@/config/modules'
+import { getModuleByKey } from '@/lib/modules/catalog'
 
 interface PageProps {
     params: Promise<{
@@ -10,11 +11,9 @@ interface PageProps {
 export default async function ToolPage({ params }: PageProps) {
     const { slug } = await params
 
-    // Find module definition
-    const moduleDef = modules.find(m => m.key === slug)
+    const moduleDef = await getModuleByKey(slug)
 
-    // If not found, return 404
-    if (!moduleDef) {
+    if (!moduleDef || moduleDef.isEnabled === false) {
         notFound()
     }
 
@@ -277,7 +276,7 @@ export default async function ToolPage({ params }: PageProps) {
 }
 
 export function generateStaticParams() {
-    return modules
+    return fallbackModules
         .filter(m => [
             'Table',
             'JSON',

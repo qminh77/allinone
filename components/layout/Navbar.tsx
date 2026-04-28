@@ -26,6 +26,7 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet'
 import { SidebarContent } from '@/components/layout/Sidebar'
+import type { ModuleCatalogItem } from '@/config/modules'
 // Removed server action import as it cannot be used in client component directly without prop passing
 
 
@@ -34,11 +35,11 @@ interface NavbarProps {
         email?: string
         fullName?: string | null
     }
-    enabledModules?: Record<string, boolean>
+    modules: ModuleCatalogItem[]
     isAdmin?: boolean
 }
 
-export function Navbar({ user, enabledModules, isAdmin = false }: NavbarProps) {
+export function Navbar({ user, modules, isAdmin = false }: NavbarProps) {
     const router = useRouter()
     const supabase = createClient()
 
@@ -73,7 +74,7 @@ export function Navbar({ user, enabledModules, isAdmin = false }: NavbarProps) {
                                 <SheetTitle>Điều hướng</SheetTitle>
                             </SheetHeader>
                             <div className="min-h-0 flex-1">
-                                <SidebarContent enabledModules={enabledModules} />
+                                <SidebarContent modules={modules} />
                             </div>
                         </SheetContent>
                     </Sheet>

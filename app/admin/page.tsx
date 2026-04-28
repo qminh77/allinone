@@ -4,9 +4,11 @@ import { StatsCard } from '@/components/admin/StatsCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { getModuleCatalog } from '@/lib/modules/catalog'
 import {
     Activity,
     ArrowRight,
+    BrainCircuit,
     Database,
     Key,
     Settings,
@@ -32,19 +34,17 @@ export default async function AdminPage() {
         userCount,
         roleCount,
         permissionCount,
-        moduleCount,
         logCount,
         backupCount,
-        enabledModulesResult,
+        moduleCatalog,
         recentLogsResult,
     ] = await Promise.all([
         getCount('user_profiles'),
         getCount('roles'),
         getCount('permissions'),
-        getCount('modules'),
         getCount('audit_logs'),
         getCount('backups'),
-        db.from('modules').select('id', { count: 'exact', head: true }).eq('is_enabled', true),
+        getModuleCatalog(),
         db
             .from('audit_logs')
             .select('id, action, resource_type, created_at')
@@ -52,7 +52,8 @@ export default async function AdminPage() {
             .limit(6),
     ])
 
-    const enabledModules = enabledModulesResult.count || 0
+    const moduleCount = moduleCatalog.length
+    const enabledModules = moduleCatalog.filter(moduleItem => moduleItem.isEnabled !== false).length
     const recentLogs = (recentLogsResult.data || []) as Array<{
         id: string
         action: string
@@ -65,6 +66,7 @@ export default async function AdminPage() {
         { href: '/admin/roles', label: 'Quản lý vai trò', icon: Shield, description: 'CRUD role và gán permissions.' },
         { href: '/admin/permissions', label: 'Quản lý quyền hạn', icon: Key, description: 'CRUD permission key theo module.' },
         { href: '/admin/modules', label: 'Bật tắt modules', icon: Wrench, description: 'Kiểm soát tool hiển thị cho người dùng.' },
+        { href: '/admin/ai', label: 'AI Control Center', icon: BrainCircuit, description: 'Quản lý provider, API key, endpoint và model AI.' },
         { href: '/admin/settings', label: 'Cấu hình hệ thống', icon: Settings, description: 'CRUD setting JSON có kiểm soát.' },
         { href: '/admin/backup', label: 'Backups', icon: Database, description: 'Theo dõi bản sao lưu hệ thống.' },
     ]

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { modules, categories } from '@/config/modules'
+import { categories, getCategoryName, type ModuleCatalogItem } from '@/config/modules'
 import { ModuleCard } from './ModuleCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -15,20 +15,25 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, X } from 'lucide-react'
+import { DashboardAiCommand } from '@/components/ai/DashboardAiCommand'
 
 const ALL_CATEGORIES = 'all'
 const DEFAULT_CATEGORY_LIMIT = 12
 
-export function DashboardShell({ enabledModules }: { enabledModules?: Record<string, boolean> }) {
+export function DashboardShell({ modules }: { modules: ModuleCatalogItem[] }) {
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES)
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
-    const activeModules = modules.filter(m => {
-        return enabledModules ? enabledModules[m.key] !== false : true
-    })
+    const activeModules = modules.filter(m => m.isEnabled !== false)
+    const categoryItems = [
+        ...categories,
+        ...Array.from(new Set(activeModules.map(module => module.category)))
+            .filter(categoryKey => !categories.some(category => category.key === categoryKey))
+            .map(categoryKey => ({ key: categoryKey, name: categoryKey })),
+    ]
 
-    const categorySummaries = categories
+    const categorySummaries = categoryItems
         .map(category => ({
             ...category,
             count: activeModules.filter(module => module.category === category.key).length,
@@ -43,9 +48,9 @@ export function DashboardShell({ enabledModules }: { enabledModules?: Record<str
     })
 
     const activeCategories = Array.from(new Set(filteredModules.map(m => m.category)))
-    const sortedActiveCategories = categories
+    const sortedActiveCategories = categoryItems
         .filter(c => activeCategories.includes(c.key))
-        .map(c => c.key)
+        .map(c => c.key as string)
 
     activeCategories.forEach(c => {
         if (!sortedActiveCategories.includes(c)) sortedActiveCategories.push(c)
@@ -57,6 +62,8 @@ export function DashboardShell({ enabledModules }: { enabledModules?: Record<str
 
     return (
         <div className="space-y-5">
+            <DashboardAiCommand />
+
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="relative w-full lg:max-w-md">
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -125,7 +132,7 @@ export function DashboardShell({ enabledModules }: { enabledModules?: Record<str
                     </div>
                 ) : (
                     sortedActiveCategories.map(categoryKey => {
-                        const categoryName = categories.find(c => c.key === categoryKey)?.name || categoryKey
+                        const categoryName = getCategoryName(categoryKey)
                         const categoryModules = filteredModules.filter(m => m.category === categoryKey)
                         const isExpanded = expandedCategories[categoryKey]
                         const visibleModules = isExpanded

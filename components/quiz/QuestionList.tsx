@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, Edit, Trash2, GripVertical, Plus } from 'lucide-react'
 import { QuestionEditor } from './QuestionEditor'
 import { ImportQuestionsDialog } from './ImportQuestionsDialog'
+import { AiQuizGeneratorDialog } from './AiQuizGeneratorDialog'
 // DeleteQuestionButton doesn't exist yet, avoiding import error. Inline delete logic used previously.
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -53,6 +54,7 @@ export function QuestionList({ quizId, questions }: QuestionListProps) {
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Danh sách câu hỏi ({questions.length})</h3>
                 <div className="flex gap-2">
+                    <AiQuizGeneratorDialog quizId={quizId} />
                     <ImportQuestionsDialog quizId={quizId} />
                     <Button size="sm" onClick={() => setIsCreating(true)}>
                         <Plus className="mr-2 h-4 w-4" />

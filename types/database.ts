@@ -112,6 +112,10 @@ export interface Database {
           name: string
           description: string | null
           icon: string | null
+          href: string | null
+          category: string | null
+          is_new: boolean
+          is_popular: boolean
           is_enabled: boolean
           sort_order: number
           created_at: string
@@ -123,6 +127,10 @@ export interface Database {
           name: string
           description?: string | null
           icon?: string | null
+          href?: string | null
+          category?: string | null
+          is_new?: boolean
+          is_popular?: boolean
           is_enabled?: boolean
           sort_order?: number
           created_at?: string
@@ -134,6 +142,10 @@ export interface Database {
           name?: string
           description?: string | null
           icon?: string | null
+          href?: string | null
+          category?: string | null
+          is_new?: boolean
+          is_popular?: boolean
           is_enabled?: boolean
           sort_order?: number
           created_at?: string
@@ -161,6 +173,150 @@ export interface Database {
           description?: string | null
           updated_at?: string
           updated_by?: string | null
+        }
+      }
+      ai_providers: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          adapter: 'openai_responses' | 'openai_chat' | 'openai_compatible' | 'gemini' | 'anthropic'
+          base_url: string
+          docs_url: string | null
+          api_key_label: string | null
+          encrypted_api_key: string | null
+          is_enabled: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          adapter: 'openai_responses' | 'openai_chat' | 'openai_compatible' | 'gemini' | 'anthropic'
+          base_url: string
+          docs_url?: string | null
+          api_key_label?: string | null
+          encrypted_api_key?: string | null
+          is_enabled?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          adapter?: 'openai_responses' | 'openai_chat' | 'openai_compatible' | 'gemini' | 'anthropic'
+          base_url?: string
+          docs_url?: string | null
+          api_key_label?: string | null
+          encrypted_api_key?: string | null
+          is_enabled?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+      }
+      ai_models: {
+        Row: {
+          id: string
+          provider_id: string
+          name: string
+          model_id: string
+          description: string | null
+          capabilities: string[]
+          context_window: number | null
+          input_price_per_million: number | null
+          output_price_per_million: number | null
+          currency: string
+          request_defaults: any
+          is_enabled: boolean
+          is_default: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          provider_id: string
+          name: string
+          model_id: string
+          description?: string | null
+          capabilities?: string[]
+          context_window?: number | null
+          input_price_per_million?: number | null
+          output_price_per_million?: number | null
+          currency?: string
+          request_defaults?: any
+          is_enabled?: boolean
+          is_default?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          provider_id?: string
+          name?: string
+          model_id?: string
+          description?: string | null
+          capabilities?: string[]
+          context_window?: number | null
+          input_price_per_million?: number | null
+          output_price_per_million?: number | null
+          currency?: string
+          request_defaults?: any
+          is_enabled?: boolean
+          is_default?: boolean
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      ai_usage_logs: {
+        Row: {
+          id: string
+          user_id: string | null
+          provider_id: string | null
+          model_id: string | null
+          feature_key: string
+          prompt_tokens: number | null
+          completion_tokens: number | null
+          total_tokens: number | null
+          status: 'success' | 'failed'
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          provider_id?: string | null
+          model_id?: string | null
+          feature_key: string
+          prompt_tokens?: number | null
+          completion_tokens?: number | null
+          total_tokens?: number | null
+          status?: 'success' | 'failed'
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          provider_id?: string | null
+          model_id?: string | null
+          feature_key?: string
+          prompt_tokens?: number | null
+          completion_tokens?: number | null
+          total_tokens?: number | null
+          status?: 'success' | 'failed'
+          error_message?: string | null
+          created_at?: string
         }
       }
       audit_logs: {
@@ -596,6 +752,9 @@ export type Permission = Database['public']['Tables']['permissions']['Row']
 export type RolePermission = Database['public']['Tables']['role_permissions']['Row']
 export type Module = Database['public']['Tables']['modules']['Row']
 export type Setting = Database['public']['Tables']['settings']['Row']
+export type AiProvider = Database['public']['Tables']['ai_providers']['Row']
+export type AiModel = Database['public']['Tables']['ai_models']['Row']
+export type AiUsageLog = Database['public']['Tables']['ai_usage_logs']['Row']
 export type AuditLog = Database['public']['Tables']['audit_logs']['Row']
 export type Backup = Database['public']['Tables']['backups']['Row']
 export type Shortlink = Database['public']['Tables']['shortlinks']['Row']
