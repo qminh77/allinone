@@ -1,91 +1,47 @@
-/**
- * Admin Roles Page
- * Role management with CRUD operations
- */
-
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RoleCard } from '@/components/admin/RoleCard'
+import { RoleManagement } from '@/components/admin/roles/RoleManagement'
 import { StatsCard } from '@/components/admin/StatsCard'
-import { Shield, Users, Lock } from 'lucide-react'
+import { getPermissions } from '@/lib/actions/admin/permissions'
+import { getRoles } from '@/lib/actions/admin/roles'
+import { Key, Lock, Shield, Users } from 'lucide-react'
+
+interface RoleRow {
+    id: string
+    name: string
+    description: string | null
+    is_system: boolean
+    permissionCount: number
+    userCount: number
+    permissionIds?: string[]
+}
 
 export default async function AdminRolesPage() {
-    const supabase = await createClient()
+    const [roleRows, permissions] = await Promise.all([
+        getRoles(),
+        getPermissions(),
+    ])
+    const roles = roleRows as RoleRow[]
 
-    // Fetch roles with permission and user counts
-    const { data: roles } = (await supabase
-        .from('roles')
-        .select(`
-            *,
-            role_permissions(count),
-            user_profiles(count)
-        `)
-        .order('is_system', { ascending: false })
-        .order('created_at', { ascending: false })) as { data: any[] | null }
-
-    // Calculate stats
-    const totalRoles = roles?.length || 0
-    const systemRoles = roles?.filter(r => r.is_system).length || 0
-    const customRoles = totalRoles - systemRoles
-
-    // Process roles with counts
-    const processedRoles = roles?.map(role => ({
-        id: role.id,
-        name: role.name,
-        description: role.description,
-        is_system: role.is_system,
-        permissionCount: role.role_permissions?.[0]?.count || 0,
-        userCount: role.user_profiles?.[0]?.count || 0,
-    })) || []
+    const totalRoles = roles.length
+    const systemRoles = roles.filter((role) => role.is_system).length
+    const assignedUsers = roles.reduce((sum, role) => sum + role.userCount, 0)
 
     return (
         <div className="space-y-6">
-            {/* Stats Overview */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <StatsCard
-                    title="Total Roles"
-                    value={totalRoles}
-                    description="All roles in system"
-                    icon={Shield}
-                />
-                <StatsCard
-                    title="System Roles"
-                    value={systemRoles}
-                    description="Protected system roles"
-                    icon={Lock}
-                />
-                <StatsCard
-                    title="Custom Roles"
-                    value={customRoles}
-                    description="User-created roles"
-                    icon={Users}
-                />
+            <div>
+                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Quản lý vai trò</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    CRUD role, kiểm soát role hệ thống và gán permissions theo module.
+                </p>
             </div>
 
-            {/* Roles Grid */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Các Role trong hệ thống</CardTitle>
-                    <CardDescription>
-                        Quản lý roles và phân quyền. System roles không thể xóa.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {processedRoles.map((role) => (
-                            <RoleCard
-                                key={role.id}
-                                role={role}
-                            />
-                        ))}
-                    </div>
-                    {processedRoles.length === 0 && (
-                        <div className="text-center py-12 text-muted-foreground">
-                            Chưa có role nào trong hệ thống
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            <div className="grid gap-4 md:grid-cols-4">
+                <StatsCard title="Tổng vai trò" value={totalRoles} description="System và custom" icon={Shield} />
+                <StatsCard title="System roles" value={systemRoles} description="Không thể xóa" icon={Lock} />
+                <StatsCard title="Permissions" value={permissions.length} description="Có thể gán cho role" icon={Key} />
+                <StatsCard title="User đã gán" value={assignedUsers} description="Theo vai trò hiện tại" icon={Users} />
+            </div>
+
+            <RoleManagement roles={roles} permissions={permissions} />
         </div>
     )
 }

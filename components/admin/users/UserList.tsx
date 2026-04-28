@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,16 @@ import { Edit, Trash2, KeyRound, Search, UserPlus, Upload, Monitor, Globe } from
 import { format } from 'date-fns'
 import { PasswordChangeDialog } from './PasswordChangeDialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface User {
     id: string
@@ -36,8 +47,10 @@ interface UserListProps {
 }
 
 export function UserList({ users, onEdit, onImport, onAdd }: UserListProps) {
+    const router = useRouter()
     const [search, setSearch] = useState('')
     const [deleting, setDeleting] = useState<string | null>(null)
+    const [userToDelete, setUserToDelete] = useState<User | null>(null)
     const [passwordDialog, setPasswordDialog] = useState<{ open: boolean, userId: string, userName: string }>({
         open: false,
         userId: '',
@@ -49,19 +62,20 @@ export function UserList({ users, onEdit, onImport, onAdd }: UserListProps) {
         user.email?.toLowerCase().includes(search.toLowerCase())
     )
 
-    const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Bạn có chắc muốn xóa người dùng "${name}"?`)) return
+    const handleDelete = async () => {
+        if (!userToDelete) return
 
-        setDeleting(id)
-        const result = await deleteUser(id)
+        setDeleting(userToDelete.id)
+        const result = await deleteUser(userToDelete.id)
         setDeleting(null)
 
         if (result.error) {
             toast.error(result.error)
         } else {
             toast.success('Đã xóa người dùng')
-            window.location.reload()
+            router.refresh()
         }
+        setUserToDelete(null)
     }
 
     return (
@@ -193,7 +207,7 @@ export function UserList({ users, onEdit, onImport, onAdd }: UserListProps) {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => handleDelete(user.id, user.full_name)}
+                                                    onClick={() => setUserToDelete(user)}
                                                     disabled={deleting === user.id}
                                                     title="Xóa"
                                                 >
@@ -215,6 +229,23 @@ export function UserList({ users, onEdit, onImport, onAdd }: UserListProps) {
                 userId={passwordDialog.userId}
                 userName={passwordDialog.userName}
             />
+
+            <AlertDialog open={!!userToDelete} onOpenChange={(nextOpen) => !nextOpen && setUserToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Xóa người dùng?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Người dùng &quot;{userToDelete?.full_name}&quot; sẽ bị xóa khỏi Auth và profile. Không thể xóa tài khoản admin cuối cùng.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">
+                            Xóa
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }

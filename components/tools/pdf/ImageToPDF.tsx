@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, FileDown, Trash, ArrowDown, X } from 'lucide-react'
 import { PDFDocument } from 'pdf-lib'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface ImageToPdfProps {
     slug: string
@@ -87,7 +87,7 @@ export function ImageToPDF({ slug, title, description }: ImageToPdfProps) {
 
             const pdfBytes = await pdfDoc.save()
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
-            saveAs(blob, 'images-converted.pdf')
+            await saveToolOutput({ moduleKey: slug, blob, filename: 'images-converted.pdf' })
             toast.success('Chuyển đổi ảnh sang PDF thành công!')
         } catch (error) {
             console.error(error)

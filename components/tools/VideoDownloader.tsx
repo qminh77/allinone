@@ -77,7 +77,7 @@ export function VideoDownloader() {
                         Video Downloader
                     </CardTitle>
                     <CardDescription>
-                        Tải video từ YouTube, TikTok, Facebook v.v. (Powered by yt-dlp)
+                        Tải video từ YouTube bằng yt-dlp standalone, không cần Python runtime.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

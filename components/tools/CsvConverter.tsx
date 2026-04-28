@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileSpreadsheet, Trash } from 'lucide-react'
 import { toast } from 'sonner'
+import { saveToolOutput } from '@/lib/client/tool-files'
 import { parseCsvRows, recordsToHtmlTable, rowsToCsv, rowsToRecords, type TableRow } from '@/lib/client/spreadsheet'
 
 interface CsvConverterProps {
@@ -128,16 +129,10 @@ export function CsvConverter({ slug, title, description }: CsvConverterProps) {
         toast.success('Đã sao chép vào clipboard')
     }
 
-    const downloadResult = () => {
+    const downloadResult = async () => {
+        const filename = `converted.${slug.replace('csv-to-', '')}`
         const blob = new Blob([outputContent], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `converted.${slug.replace('csv-to-', '')}`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+        await saveToolOutput({ moduleKey: slug, blob, filename, mimeType: 'text/plain' })
     }
 
     return (

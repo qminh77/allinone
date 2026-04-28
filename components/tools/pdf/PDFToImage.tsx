@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, Image as ImageIcon, Download } from 'lucide-react'
-import { saveAs } from 'file-saver'
 import JSZip from 'jszip'
 import { toast } from 'sonner'
 import * as pdfjsLib from 'pdfjs-dist'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 // Set worker source to CDN to avoid build issues
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
@@ -83,7 +83,7 @@ export function PDFToImage({ slug, title, description }: PdfToImageProps) {
             }
 
             const content = await zip.generateAsync({ type: 'blob' })
-            saveAs(content, `${file.name.replace('.pdf', '')}_images.zip`)
+            await saveToolOutput({ moduleKey: slug, blob: content, filename: `${file.name.replace('.pdf', '')}_images.zip` })
             toast.success('Đã chuyển đổi và tải xuống thành công!')
 
         } catch (error) {

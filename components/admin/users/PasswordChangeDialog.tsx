@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { updateUserPassword } from '@/lib/actions/admin/users'
+import { resetPassword, updateUserPassword } from '@/lib/actions/admin/users'
 import { toast } from 'sonner'
 import { Loader2, Copy, RefreshCw } from 'lucide-react'
 
@@ -28,18 +28,15 @@ export function PasswordChangeDialog({ open, onClose, userId, userName }: Passwo
         setLoading(true)
         setResultPassword(null)
 
-        let passwordToSet = manualPassword
-        if (autoGenerate) {
-            passwordToSet = generatePassword()
-        }
-
-        if (!autoGenerate && passwordToSet.length < 6) {
-            toast.error('Mật khẩu phải có ít nhất 6 ký tự')
+        if (!autoGenerate && manualPassword.length < 8) {
+            toast.error('Mật khẩu phải có ít nhất 8 ký tự')
             setLoading(false)
             return
         }
 
-        const result = await updateUserPassword(userId, passwordToSet)
+        const result = autoGenerate
+            ? await resetPassword(userId)
+            : await updateUserPassword(userId, manualPassword)
 
         setLoading(false)
 
@@ -63,28 +60,6 @@ export function PasswordChangeDialog({ open, onClose, userId, userName }: Passwo
         setManualPassword('')
         setAutoGenerate(true)
         onClose()
-    }
-
-    // Helper to generate password client-side if needed for visual, 
-    // but actual action uses logic passed or server generated. 
-    // Here we generate on client to send to server if manual, 
-    // or just let server handle it? 
-    // The action `updateUserPassword` takes a password string.
-    // So if auto-generate is selected, we should generate it here or let server doing it.
-    // My action `resetPassword` calls `generatePassword` on server.
-    // My action `updateUserPassword` just updates what is passed.
-    // So I should generate it here if auto-generate is selected?
-    // actually `resetPassword` implementation I changed earlier calls `updateUserPassword` with a generated password.
-
-    // Let's implement generation here for consistency and immediate feedback before sending?
-    // Or simpler: If auto-generate, I create a random string here.
-    function generatePassword(length: number = 12): string {
-        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
-        let password = ''
-        for (let i = 0; i < length; i++) {
-            password += charset.charAt(Math.floor(Math.random() * charset.length))
-        }
-        return password
     }
 
     return (
@@ -138,7 +113,7 @@ export function PasswordChangeDialog({ open, onClose, userId, userName }: Passwo
                                     onChange={(e) => setManualPassword(e.target.value)}
                                     placeholder="Nhập mật khẩu mới..."
                                     required
-                                    minLength={6}
+                                    minLength={8}
                                 />
                             </div>
                         )}

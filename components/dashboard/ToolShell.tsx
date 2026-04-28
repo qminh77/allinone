@@ -19,37 +19,32 @@ export function ToolShell({
     className
 }: ToolShellProps) {
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Standard Header */}
-            <div className="space-y-4">
-                {/* Breadcrumb / Nav */}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Link href="/dashboard" className="hover:text-foreground transition-colors flex items-center gap-1">
-                        <Home className="h-3 w-3" />
+        <div className="space-y-5 animate-in fade-in duration-500 sm:space-y-6">
+            <div className="space-y-3">
+                <div className="flex max-w-full items-center gap-2 overflow-x-auto whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+                    <Link href="/dashboard" className="flex items-center gap-1 transition-colors hover:text-foreground">
+                        <Home className="size-3" />
                         Dashboard
                     </Link>
-                    <ChevronRight className="h-3 w-3" />
-                    <span className="text-foreground font-medium">Tools</span>
-                    <ChevronRight className="h-3 w-3" />
+                    <ChevronRight className="size-3" />
+                    <span className="font-medium text-foreground">Tools</span>
+                    <ChevronRight className="size-3" />
                     <span className="text-foreground">{title}</span>
                 </div>
 
                 <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-                            <div className="p-2 bg-primary/10 rounded-lg">
-                                <Icon className="h-6 w-6 text-primary" />
-                            </div>
+                    <div className="min-w-0 space-y-2">
+                        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                            <Icon className="size-5 shrink-0 text-muted-foreground sm:size-6" />
                             {title}
                         </h1>
-                        <p className="text-muted-foreground max-w-2xl text-lg">
+                        <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
                             {description}
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* Content Area */}
             <div className={cn("max-w-full", className)}>
                 {children}
             </div>

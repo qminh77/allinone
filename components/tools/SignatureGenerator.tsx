@@ -8,6 +8,7 @@ import { Slider } from '@/components/ui/slider'
 import { Download, Eraser, PenTool, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 export function SignatureGenerator() {
     const padRef = useRef<any>(null)
@@ -19,19 +20,21 @@ export function SignatureGenerator() {
         padRef.current?.clear()
     }
 
-    const download = (format: 'png' | 'jpg') => {
+    const download = async (format: 'png' | 'jpg') => {
         if (padRef.current?.isEmpty()) {
             toast.error('Signature is empty')
             return
         }
 
-        const dataURL = padRef.current.getTrimmedCanvas().toDataURL(format === 'png' ? 'image/png' : 'image/jpeg')
-        const link = document.createElement('a')
-        link.href = dataURL
-        link.download = `signature.${format}`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        const mimeType = format === 'png' ? 'image/png' : 'image/jpeg'
+        const dataURL = padRef.current.getTrimmedCanvas().toDataURL(mimeType)
+        const blob = await (await fetch(dataURL)).blob()
+        await saveToolOutput({
+            moduleKey: 'signature-generator',
+            blob,
+            filename: `signature.${format}`,
+            mimeType,
+        })
         toast.success(`Downloaded as ${format.toUpperCase()}`)
     }
 

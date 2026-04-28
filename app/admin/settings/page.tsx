@@ -1,37 +1,37 @@
-/**
- * Admin Settings Page - Server Component
- */
+import { SettingsManagement } from '@/components/admin/settings/SettingsManagement'
+import { StatsCard } from '@/components/admin/StatsCard'
+import { getSettings } from '@/lib/actions/admin/settings'
+import { CheckCircle2, Settings, ToggleLeft } from 'lucide-react'
 
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { SettingsForm } from '@/components/admin/SettingsForm'
+interface SettingRow {
+    key: string
+    value: Record<string, unknown>
+    description: string | null
+    updated_at: string | null
+    updated_by: string | null
+}
 
 export default async function AdminSettingsPage() {
-    const supabase = await createClient()
-
-    // Optimized: Fetch only the settings we need
-    const { data: settings } = (await supabase
-        .from('settings')
-        .select('key, value')
-        .in('key', ['allow_registration', 'allow_login'])) as { data: any[] | null }
-
-    // Transform to easy-to-use object
-    const settingsMap = settings?.reduce((acc, setting) => {
-        acc[setting.key] = setting.value?.enabled || false
-        return acc
-    }, {} as Record<string, boolean>) || {}
+    const settings = (await getSettings()) as SettingRow[]
+    const booleanSettings = settings.filter((setting) => typeof setting.value?.enabled === 'boolean')
+    const enabledSettings = booleanSettings.filter((setting) => setting.value.enabled === true)
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Cấu hình hệ thống</CardTitle>
-                <CardDescription>
-                    Quản lý các thiết lập chung của website
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <SettingsForm initialSettings={settingsMap} />
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Cấu hình hệ thống</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Quản lý settings dạng JSON, bao gồm bật/tắt đăng ký, đăng nhập và các feature flags khác.
+                </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+                <StatsCard title="Settings" value={settings.length} description="Tổng cấu hình" icon={Settings} />
+                <StatsCard title="Boolean flags" value={booleanSettings.length} description="Có trường enabled" icon={ToggleLeft} />
+                <StatsCard title="Đang bật" value={enabledSettings.length} description="Feature flags enabled" icon={CheckCircle2} />
+            </div>
+
+            <SettingsManagement settings={settings} />
+        </div>
     )
 }

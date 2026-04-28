@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -16,6 +17,7 @@ interface UserImportDialogProps {
 }
 
 export function UserImportDialog({ open, onClose }: UserImportDialogProps) {
+    const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [csvFile, setCsvFile] = useState<File | null>(null)
     const [results, setResults] = useState<any[] | null>(null)
@@ -68,7 +70,7 @@ export function UserImportDialog({ open, onClose }: UserImportDialogProps) {
         setResults(null)
         onClose()
         if (results?.some((r: any) => r.success)) {
-            window.location.reload()
+            router.refresh()
         }
     }
 
@@ -76,9 +78,14 @@ export function UserImportDialog({ open, onClose }: UserImportDialogProps) {
         if (!results) return
 
         const headers = 'email,full_name,role,status,password,error\n'
-        const rows = results.map(r =>
-            `${r.email},${r.fullName},${r.role},${r.success ? 'success' : 'failed'},${r.tempPassword || ''},${r.error || ''}`
-        ).join('\n')
+        const rows = results.map(r => [
+            r.email,
+            r.fullName,
+            r.role,
+            r.success ? 'success' : 'failed',
+            r.tempPassword || '',
+            r.error || '',
+        ].map(escapeCsvCell).join(',')).join('\n')
 
         const blob = new Blob([headers + rows], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
@@ -200,4 +207,13 @@ export function UserImportDialog({ open, onClose }: UserImportDialogProps) {
             </DialogContent>
         </Dialog>
     )
+}
+
+function escapeCsvCell(value: string) {
+    const text = String(value || '')
+    if (/[",\n\r]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`
+    }
+
+    return text
 }

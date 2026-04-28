@@ -1,44 +1,40 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { getUsers } from '@/lib/actions/admin/users'
 import { UserManagement } from '@/components/admin/users/UserManagement'
-import { ToolShell } from '@/components/dashboard/ToolShell'
-import { Users } from 'lucide-react'
+import { StatsCard } from '@/components/admin/StatsCard'
+import { Shield, UserCheck, UserX, Users } from 'lucide-react'
 
 export default async function UsersPage() {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const [users, rolesResult] = await Promise.all([
+        getUsers(),
+        supabase
+            .from('roles')
+            .select('id, name')
+            .order('name'),
+    ])
 
-    if (!user) {
-        redirect('/login')
-    }
-
-    // Get user profile with role
-    const { data: profile } = await supabase
-        .from('user_profiles' as any)
-        .select('*, roles(name)')
-        .eq('id', user.id)
-        .single()
-
-    // Check if user is admin
-    if ((profile as any)?.roles?.name !== 'Admin') {
-        redirect('/dashboard')
-    }
-
-    // Fetch all users and roles
-    const users = await getUsers()
-    const { data: roles } = await supabase
-        .from('roles' as any)
-        .select('id, name')
-        .order('name')
+    const activeUsers = users.filter((user: any) => user.is_active).length
+    const inactiveUsers = users.length - activeUsers
+    const adminUsers = users.filter((user: any) => user.roles?.name === 'Admin').length
 
     return (
-        <ToolShell
-            title="Quản lý người dùng"
-            description="Thêm, sửa, xóa người dùng và quản lý quyền truy cập"
-            icon={Users}
-        >
-            <UserManagement users={users} roles={roles || []} />
-        </ToolShell>
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Quản lý người dùng</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Tạo tài khoản, cập nhật role, khóa truy cập, đổi mật khẩu và import CSV.
+                </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+                <StatsCard title="Tổng người dùng" value={users.length} description="Tất cả tài khoản" icon={Users} />
+                <StatsCard title="Đang hoạt động" value={activeUsers} description="Có thể đăng nhập" icon={UserCheck} />
+                <StatsCard title="Vô hiệu" value={inactiveUsers} description="Bị khóa truy cập" icon={UserX} />
+                <StatsCard title="Admins" value={adminUsers} description="Tài khoản quản trị" icon={Shield} />
+            </div>
+
+            <UserManagement users={users} roles={rolesResult.data || []} />
+        </div>
     )
 }

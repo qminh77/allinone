@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Module } from '@/config/modules'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 interface ModuleCardProps {
     module: Module
@@ -12,39 +12,33 @@ export function ModuleCard({ module }: ModuleCardProps) {
     const Icon = module.icon
 
     return (
-        <Link href={module.href} prefetch={false} className="group block h-full">
-            <Card className="h-full border transition-all hover:border-foreground/20 hover:bg-muted/30">
-                <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                        <div className="h-10 w-10 rounded-lg bg-background border flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:border-primary/20 transition-colors">
-                            <Icon className="h-5 w-5" />
-                        </div>
-                        <div className="flex gap-1">
-                            {module.isNew && (
-                                <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                                    NEW
-                                </Badge>
-                            )}
-                            {module.isPopular && (
-                                <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-orange-500/50 text-orange-600">
-                                    HOT
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
-                    <CardTitle className="mt-4 text-base font-medium group-hover:text-primary transition-colors">
-                        {module.name}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2 text-xs mt-1">
+        <Button
+            asChild
+            variant="ghost"
+            className="group h-auto w-full justify-start whitespace-normal rounded-lg border border-transparent px-3 py-2.5 text-left hover:border-border hover:bg-accent"
+        >
+            <Link href={module.href} prefetch={false}>
+                <Icon className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                <span className="min-w-0 flex-1 space-y-1">
+                    <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium leading-none">{module.name}</span>
+                        {module.isPopular && (
+                            <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px]">
+                                HOT
+                            </Badge>
+                        )}
+                        {module.isNew && !module.isPopular && (
+                            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px]">
+                                NEW
+                            </Badge>
+                        )}
+                    </span>
+                    <span className="line-clamp-1 text-xs font-normal leading-5 text-muted-foreground">
                         {module.description}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                    <div className="flex items-center text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">
-                        Mở công cụ <ArrowRight className="ml-1 h-3 w-3" />
-                    </div>
-                </CardContent>
-            </Card>
-        </Link>
+                    </span>
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-70 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+            </Link>
+        </Button>
     )
 }

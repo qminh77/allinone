@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Upload, X, Image as ImageIcon, Loader2, Download } from 'lucide-react'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
+import { saveToolOutput } from '@/lib/client/tool-files'
 import {
     initializeImageMagick,
     ImageMagick,
@@ -156,7 +156,7 @@ export function UniversalImageConverter({ slug, title, description }: UniversalI
         try {
             if (files.length === 1) {
                 const { blob, name } = await convertFile(files[0])
-                saveAs(blob, name)
+                await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
                 const zip = new JSZip()
@@ -172,7 +172,7 @@ export function UniversalImageConverter({ slug, title, description }: UniversalI
                 }
 
                 const content = await zip.generateAsync({ type: 'blob' })
-                saveAs(content, `converted-images.zip`)
+                await saveToolOutput({ moduleKey: slug, blob: content, filename: 'converted-images.zip' })
                 toast.success('Chuyển đổi hàng loạt thành công!')
             }
         } catch (error) {

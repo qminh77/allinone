@@ -21,6 +21,8 @@ import { Menu } from 'lucide-react'
 import {
     Sheet,
     SheetContent,
+    SheetHeader,
+    SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet'
 import { SidebarContent } from '@/components/layout/Sidebar'
@@ -66,11 +68,11 @@ export function Navbar({ user, enabledModules, isAdmin = false }: NavbarProps) {
                                 <span className="sr-only">Toggle Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="p-0 w-64">
-                            <div className="p-4 border-b">
-                                <span className="text-xl font-bold">Tool Website</span>
-                            </div>
-                            <div className="h-full overflow-y-auto">
+                        <SheetContent side="left" className="w-[18rem] max-w-[calc(100vw-2rem)] gap-0 p-0">
+                            <SheetHeader className="sr-only">
+                                <SheetTitle>Điều hướng</SheetTitle>
+                            </SheetHeader>
+                            <div className="min-h-0 flex-1">
                                 <SidebarContent enabledModules={enabledModules} />
                             </div>
                         </SheetContent>

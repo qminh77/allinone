@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Upload, Lock, X, File as FileIcon } from 'lucide-react'
 import { PDFDocument } from 'pdf-lib'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface ProtectPdfProps {
     slug: string
@@ -77,7 +77,7 @@ export function ProtectPDF({ slug, title, description }: ProtectPdfProps) {
             const pdfBytes = await pdfDoc.save()
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
-            saveAs(blob, `protected-${file.name}`)
+            await saveToolOutput({ moduleKey: slug, blob, filename: `protected-${file.name}` })
             toast.success('Đặt mật khẩu PDF thành công!')
         } catch (error) {
             console.error(error)

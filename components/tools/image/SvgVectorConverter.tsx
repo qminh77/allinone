@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X, Zap } from 'lucide-react'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
+import { saveToolOutput } from '@/lib/client/tool-files'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import ImageTracer from 'imagetracerjs'
 
@@ -84,7 +84,7 @@ export function SvgVectorConverter({ slug, title, description }: SvgVectorConver
             if (files.length === 1) {
                 const { content, name } = await convertFile(files[0])
                 const blob = new Blob([content], { type: 'image/svg+xml' })
-                saveAs(blob, name)
+                await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Vector hóa thành công!')
             } else {
                 const zip = new JSZip()
@@ -100,7 +100,7 @@ export function SvgVectorConverter({ slug, title, description }: SvgVectorConver
                 }
 
                 const content = await zip.generateAsync({ type: 'blob' })
-                saveAs(content, `converted-vectors.zip`)
+                await saveToolOutput({ moduleKey: slug, blob: content, filename: 'converted-vectors.zip' })
                 toast.success('Chuyển đổi hàng loạt thành công!')
             }
         } catch (error) {

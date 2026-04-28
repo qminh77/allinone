@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { uploadToolFile } from '@/lib/storage/tool-files'
+import { MAX_TOOL_FILE_SIZE_BYTES, uploadToolFile } from '@/lib/storage/tool-files'
 import { modules } from '@/config/modules'
 
 export const runtime = 'nodejs'
-
-const MAX_FILE_SIZE = 50 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
     const supabase = await createClient()
@@ -28,7 +26,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unknown module key' }, { status: 400 })
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > MAX_TOOL_FILE_SIZE_BYTES) {
         return NextResponse.json({ error: 'File is too large' }, { status: 413 })
     }
 

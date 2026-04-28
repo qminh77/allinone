@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, RotateCw, RotateCcw, ArrowDown, X, Files } from 'lucide-react'
 import { PDFDocument, degrees } from 'pdf-lib'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface RotatePdfProps {
     slug: string
@@ -65,7 +65,7 @@ export function RotatePDF({ slug, title, description }: RotatePdfProps) {
                 const pdfBytes = await pdfDoc.save()
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
-                saveAs(blob, `rotated-${file.name}`)
+                await saveToolOutput({ moduleKey: slug, blob, filename: `rotated-${file.name}` })
                 toast.success('Xoay PDF thành công!')
             } else {
                 const zip = new JSZip()
@@ -85,7 +85,7 @@ export function RotatePDF({ slug, title, description }: RotatePdfProps) {
                 }
 
                 const content = await zip.generateAsync({ type: 'blob' })
-                saveAs(content, 'rotated-pdfs.zip')
+                await saveToolOutput({ moduleKey: slug, blob: content, filename: 'rotated-pdfs.zip' })
                 toast.success('Xoay file PDF và nén thành công!')
             }
         } catch (error) {

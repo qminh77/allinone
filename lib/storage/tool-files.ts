@@ -5,6 +5,10 @@ import sanitize from 'sanitize-filename'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const TOOL_FILES_BUCKET = process.env.SUPABASE_TOOL_FILES_BUCKET || 'tool-files'
+export const MAX_TOOL_FILE_SIZE_BYTES = 500 * 1024 * 1024
+export const DEFAULT_TOOL_FILE_EXPIRES_IN = 60 * 60
+
+export type ToolFileKind = 'input' | 'output' | 'temp'
 
 interface UploadToolFileParams {
     userId: string
@@ -16,13 +20,26 @@ interface UploadToolFileParams {
     data: Buffer | Uint8Array | ArrayBuffer
 }
 
-function safeFilename(filename: string) {
+interface ToolFileMetadataParams {
+    userId: string
+    moduleKey: string
+    bucket?: string
+    storagePath: string
+    originalName: string
+    resultName?: string
+    mimeType?: string
+    sizeBytes?: number
+    kind?: ToolFileKind
+    expiresIn?: number
+}
+
+export function safeToolFilename(filename: string) {
     const clean = sanitize(filename).replace(/\s+/g, '-')
     return clean || `file-${Date.now()}`
 }
 
-function buildStoragePath(userId: string, moduleKey: string, filename: string) {
-    const safeName = safeFilename(filename)
+export function buildToolFileStoragePath(userId: string, moduleKey: string, filename: string) {
+    const safeName = safeToolFilename(filename)
     const date = new Date().toISOString().slice(0, 10)
     return `${userId}/${moduleKey}/${date}/${randomUUID()}-${safeName}`
 }
@@ -36,8 +53,8 @@ function toBuffer(data: Buffer | Uint8Array | ArrayBuffer) {
 export async function uploadToolFile(params: UploadToolFileParams) {
     const supabase = createAdminClient()
     const buffer = toBuffer(params.data)
-    const filename = safeFilename(params.filename)
-    const storagePath = buildStoragePath(params.userId, params.moduleKey, filename)
+    const filename = safeToolFilename(params.filename)
+    const storagePath = buildToolFileStoragePath(params.userId, params.moduleKey, filename)
 
     const { error: uploadError } = await supabase.storage
         .from(TOOL_FILES_BUCKET)
@@ -50,7 +67,7 @@ export async function uploadToolFile(params: UploadToolFileParams) {
         throw new Error(`Failed to upload file to Supabase Storage: ${uploadError.message}`)
     }
 
-    const expiresIn = params.expiresIn || 60 * 60
+    const expiresIn = params.expiresIn || DEFAULT_TOOL_FILE_EXPIRES_IN
     const { data: signed, error: signedError } = await supabase.storage
         .from(TOOL_FILES_BUCKET)
         .createSignedUrl(storagePath, expiresIn, {
@@ -61,17 +78,16 @@ export async function uploadToolFile(params: UploadToolFileParams) {
         throw new Error(`Failed to create signed download URL: ${signedError?.message || 'Unknown error'}`)
     }
 
-    const { error: metadataError } = await (supabase.from('tool_files') as any).insert({
-        user_id: params.userId,
-        module_key: params.moduleKey,
-        bucket: TOOL_FILES_BUCKET,
-        storage_path: storagePath,
-        original_name: filename,
-        result_name: filename,
-        mime_type: params.mimeType,
-        size_bytes: buffer.byteLength,
+    const { error: metadataError } = await insertToolFileMetadata({
+        userId: params.userId,
+        moduleKey: params.moduleKey,
+        storagePath,
+        originalName: filename,
+        resultName: filename,
+        mimeType: params.mimeType,
+        sizeBytes: buffer.byteLength,
         kind: params.kind || 'output',
-        expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+        expiresIn,
     })
 
     if (metadataError) {
@@ -99,5 +115,74 @@ export async function uploadLocalToolFile(params: Omit<UploadToolFileParams, 'da
         kind: params.kind,
         expiresIn: params.expiresIn,
         data,
+    })
+}
+
+export async function createToolFileSignedUpload(params: Omit<ToolFileMetadataParams, 'storagePath' | 'originalName'> & { filename: string }) {
+    const supabase = createAdminClient()
+    const filename = safeToolFilename(params.filename)
+    const storagePath = buildToolFileStoragePath(params.userId, params.moduleKey, filename)
+
+    const { data, error } = await supabase.storage
+        .from(TOOL_FILES_BUCKET)
+        .createSignedUploadUrl(storagePath, { upsert: false })
+
+    if (error || !data?.token) {
+        throw new Error(`Failed to create signed upload URL: ${error?.message || 'Unknown error'}`)
+    }
+
+    return {
+        bucket: TOOL_FILES_BUCKET,
+        storagePath,
+        token: data.token,
+        signedUrl: data.signedUrl,
+        filename,
+        mimeType: params.mimeType || 'application/octet-stream',
+        sizeBytes: params.sizeBytes || 0,
+        kind: params.kind || 'output',
+        expiresIn: params.expiresIn || DEFAULT_TOOL_FILE_EXPIRES_IN,
+    }
+}
+
+export async function createToolFileSignedDownload(params: {
+    storagePath: string
+    filename: string
+    expiresIn?: number
+}) {
+    const supabase = createAdminClient()
+    const expiresIn = params.expiresIn || DEFAULT_TOOL_FILE_EXPIRES_IN
+
+    const { data: signed, error } = await supabase.storage
+        .from(TOOL_FILES_BUCKET)
+        .createSignedUrl(params.storagePath, expiresIn, {
+            download: safeToolFilename(params.filename),
+        })
+
+    if (error || !signed?.signedUrl) {
+        throw new Error(`Failed to create signed download URL: ${error?.message || 'Unknown error'}`)
+    }
+
+    return {
+        signedUrl: signed.signedUrl,
+        expiresIn,
+    }
+}
+
+export async function insertToolFileMetadata(params: ToolFileMetadataParams) {
+    const supabase = createAdminClient()
+    const expiresIn = params.expiresIn || DEFAULT_TOOL_FILE_EXPIRES_IN
+    const filename = safeToolFilename(params.originalName)
+
+    return (supabase.from('tool_files') as any).insert({
+        user_id: params.userId,
+        module_key: params.moduleKey,
+        bucket: params.bucket || TOOL_FILES_BUCKET,
+        storage_path: params.storagePath,
+        original_name: filename,
+        result_name: safeToolFilename(params.resultName || filename),
+        mime_type: params.mimeType || null,
+        size_bytes: params.sizeBytes || null,
+        kind: params.kind || 'output',
+        expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
     })
 }

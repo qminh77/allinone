@@ -5,81 +5,151 @@ import { modules, categories } from '@/config/modules'
 import { ModuleCard } from './ModuleCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Search, X } from 'lucide-react'
 
+const ALL_CATEGORIES = 'all'
 const DEFAULT_CATEGORY_LIMIT = 12
 
 export function DashboardShell({ enabledModules }: { enabledModules?: Record<string, boolean> }) {
     const [searchQuery, setSearchQuery] = useState('')
+    const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES)
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
-    // Filter modules based on search AND enabled status
-    const filteredModules = modules.filter(m => {
-        const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            m.description.toLowerCase().includes(searchQuery.toLowerCase())
-        const isEnabled = enabledModules ? enabledModules[m.key] !== false : true
-        return matchesSearch && isEnabled
+    const activeModules = modules.filter(m => {
+        return enabledModules ? enabledModules[m.key] !== false : true
     })
 
-    // Group by category used in the filtered list
-    // If search is active, we might want to just show a flat list or still grouped?
-    // Let's stick to grouping for structure unless result count is very low.
+    const categorySummaries = categories
+        .map(category => ({
+            ...category,
+            count: activeModules.filter(module => module.category === category.key).length,
+        }))
+        .filter(category => category.count > 0)
+
+    const filteredModules = activeModules.filter(m => {
+        const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            m.description.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesCategory = selectedCategory === ALL_CATEGORIES || m.category === selectedCategory
+        return matchesSearch && matchesCategory
+    })
 
     const activeCategories = Array.from(new Set(filteredModules.map(m => m.category)))
-
-    // Sort categories based on predefined order
     const sortedActiveCategories = categories
         .filter(c => activeCategories.includes(c.key))
         .map(c => c.key)
 
-    // If search returns results but some categories are not in our predefined list (edge case), add them
     activeCategories.forEach(c => {
         if (!sortedActiveCategories.includes(c)) sortedActiveCategories.push(c)
     })
 
+    const clearSearch = () => {
+        setSearchQuery('')
+    }
+
     return (
-        <div className="space-y-8">
-            {/* Search Section */}
-            <div className="relative max-w-xl">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Tìm kiếm công cụ (VD: json, ảnh, text...)"
-                    className="pl-9 bg-background/50 backdrop-blur-sm"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
+        <div className="space-y-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative w-full lg:max-w-md">
+                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        placeholder="Tìm công cụ, định dạng hoặc tác vụ..."
+                        className="h-10 bg-background pl-9 pr-10"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2"
+                            onClick={clearSearch}
+                        >
+                            <X className="size-4" />
+                            <span className="sr-only">Xóa tìm kiếm</span>
+                        </Button>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="secondary" className="h-8 px-3">
+                        {filteredModules.length} / {activeModules.length} công cụ
+                    </Badge>
+                </div>
             </div>
 
-            {/* Modules Grid */}
-            <div className="space-y-10">
+            <div className="md:hidden">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full bg-background">
+                        <SelectValue placeholder="Chọn nhóm công cụ" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                        <SelectItem value={ALL_CATEGORIES}>Tất cả ({activeModules.length})</SelectItem>
+                        {categorySummaries.map(category => (
+                            <SelectItem key={category.key} value={category.key}>
+                                {category.name} ({category.count})
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="hidden overflow-x-auto pb-1 md:block">
+                <TabsList className="w-max justify-start gap-1 rounded-lg bg-muted/60">
+                    <TabsTrigger value={ALL_CATEGORIES} className="flex-none">
+                        Tất cả
+                        <span className="text-xs text-muted-foreground">{activeModules.length}</span>
+                    </TabsTrigger>
+                    {categorySummaries.map(category => (
+                        <TabsTrigger key={category.key} value={category.key} className="flex-none">
+                            {category.name}
+                            <span className="text-xs text-muted-foreground">{category.count}</span>
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+            </Tabs>
+
+            <div className="space-y-6">
                 {filteredModules.length === 0 ? (
-                    <div className="text-center py-20 text-muted-foreground">
-                        Không tìm thấy công cụ nào phù hợp với &quot;{searchQuery}&quot;
+                    <div className="rounded-lg border bg-card px-4 py-12 text-center text-sm text-muted-foreground">
+                        Không tìm thấy công cụ phù hợp với &quot;{searchQuery}&quot;.
                     </div>
                 ) : (
                     sortedActiveCategories.map(categoryKey => {
                         const categoryName = categories.find(c => c.key === categoryKey)?.name || categoryKey
                         const categoryModules = filteredModules.filter(m => m.category === categoryKey)
-                        const isSearching = searchQuery.trim().length > 0
                         const isExpanded = expandedCategories[categoryKey]
-                        const visibleModules = isSearching || isExpanded
+                        const visibleModules = isExpanded
                             ? categoryModules
                             : categoryModules.slice(0, DEFAULT_CATEGORY_LIMIT)
                         const hiddenCount = categoryModules.length - visibleModules.length
 
                         return (
-                            <div key={categoryKey} className="space-y-4">
-                                <div className="flex items-center gap-2 pb-2 border-b">
-                                    <h3 className="text-lg font-semibold tracking-tight">{categoryName}</h3>
-                                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            <section key={categoryKey} className="space-y-2">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <h2 className="truncate text-sm font-semibold">{categoryName}</h2>
+                                    </div>
+                                    <Badge variant="outline" className="shrink-0">
                                         {categoryModules.length}
-                                    </span>
+                                    </Badge>
                                 </div>
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+                                <div className="grid gap-1 rounded-lg border bg-card p-1 sm:grid-cols-2 xl:grid-cols-3">
                                     {visibleModules.map(module => (
                                         <ModuleCard key={module.key} module={module} />
                                     ))}
                                 </div>
+
                                 {hiddenCount > 0 && (
                                     <Button
                                         variant="outline"
@@ -89,7 +159,7 @@ export function DashboardShell({ enabledModules }: { enabledModules?: Record<str
                                         Hiển thị thêm {hiddenCount} công cụ
                                     </Button>
                                 )}
-                            </div>
+                            </section>
                         )
                     })
                 )}

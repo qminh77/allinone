@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Upload, FileText, X, ArrowDown, Files } from 'lucide-react'
 import { PDFDocument } from 'pdf-lib'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface MergePdfProps {
     slug: string
@@ -71,7 +71,7 @@ export function MergePDF({ slug, title, description }: MergePdfProps) { // Expor
 
             const pdfBytes = await mergedPdf.save()
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
-            saveAs(blob, 'merged-document.pdf')
+            await saveToolOutput({ moduleKey: slug, blob, filename: 'merged-document.pdf' })
             toast.success('Ghép PDF thành công!')
 
             // Optional: reset files

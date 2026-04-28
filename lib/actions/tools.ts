@@ -2,6 +2,12 @@
 
 import { promises as dns } from 'dns'
 import { UrlSchema } from '@/lib/validation'
+import * as cheerio from 'cheerio'
+import ytdl from '@distube/ytdl-core'
+import { execFile } from 'child_process'
+import { constants as fsConstants, promises as fs } from 'fs'
+import path from 'path'
+import { promisify } from 'util'
 
 export type DnsRecordType = 'A' | 'AAAA' | 'MX' | 'NS' | 'TXT' | 'CNAME' | 'SOA'
 
@@ -175,8 +181,6 @@ export async function performHeaderLookup(url: string) {
     }
 }
 
-import * as cheerio from 'cheerio'
-
 export async function performMetaTagLookup(url: string) {
     if (!url) return { error: 'URL is required' }
 
@@ -230,11 +234,143 @@ export async function performMetaTagLookup(url: string) {
     }
 }
 
-import path from 'path'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
-
+type VideoFormat = Awaited<ReturnType<typeof ytdl.getInfo>>['formats'][number]
 const execFileAsync = promisify(execFile)
+const YTDLP_TIMEOUT_MS = 60_000
+const YTDLP_MAX_BUFFER = 24 * 1024 * 1024
+
+function formatDuration(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds <= 0) return ''
+
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const remainingSeconds = Math.floor(seconds % 60)
+
+    if (hours > 0) {
+        return [hours, minutes, remainingSeconds]
+            .map((part) => String(part).padStart(2, '0'))
+            .join(':')
+    }
+
+    return [minutes, remainingSeconds]
+        .map((part) => String(part).padStart(2, '0'))
+        .join(':')
+}
+
+function parseContentLength(contentLength?: string) {
+    if (!contentLength) return undefined
+    const parsed = Number(contentLength)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
+function mapYtdlFormat(format: VideoFormat) {
+    return {
+        format_id: String(format.itag),
+        url: format.url,
+        protocol: format.isHLS ? 'm3u8_native' : 'https',
+        height: format.height,
+        width: format.width,
+        fps: format.fps,
+        resolution: format.hasVideo ? format.qualityLabel : 'Audio',
+        ext: format.container,
+        vcodec: format.hasVideo ? (format.videoCodec || 'unknown') : 'none',
+        acodec: format.hasAudio ? (format.audioCodec || 'unknown') : 'none',
+        filesize: parseContentLength(format.contentLength),
+        tbr: format.bitrate || format.averageBitrate,
+    }
+}
+
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : String(error)
+}
+
+async function getYtDlpBinaryPath() {
+    const candidates = [
+        process.env.YTDLP_BINARY_PATH,
+        path.join(process.cwd(), 'bin', 'yt-dlp'),
+    ].filter(Boolean) as string[]
+
+    for (const candidate of candidates) {
+        try {
+            await fs.access(candidate, fsConstants.X_OK)
+            return candidate
+        } catch {
+            // Continue to the next configured location.
+        }
+    }
+
+    return null
+}
+
+type YtDlpOutput = Record<string, unknown> & {
+    duration?: unknown
+    duration_string?: unknown
+    formats?: unknown
+}
+
+function normalizeYtDlpOutput(output: YtDlpOutput) {
+    const duration = Number(output.duration)
+
+    return {
+        ...output,
+        duration,
+        duration_string: typeof output.duration_string === 'string'
+            ? output.duration_string
+            : formatDuration(duration),
+        formats: Array.isArray(output.formats) ? output.formats : [],
+    }
+}
+
+async function getVideoInfoWithYtDlp(url: string) {
+    const binaryPath = await getYtDlpBinaryPath()
+    if (!binaryPath) return null
+
+    const { stdout } = await execFileAsync(binaryPath, [
+        url,
+        '--dump-single-json',
+        '--no-check-certificates',
+        '--no-warnings',
+        '--prefer-free-formats',
+        '--add-header', 'referer:youtube.com',
+        '--add-header', 'user-agent:googlebot',
+    ], {
+        timeout: YTDLP_TIMEOUT_MS,
+        maxBuffer: YTDLP_MAX_BUFFER,
+    })
+
+    return normalizeYtDlpOutput(JSON.parse(stdout))
+}
+
+async function getVideoInfoWithYtdlCore(url: string) {
+    process.env.YTDL_NO_UPDATE ||= '1'
+
+    const info = await ytdl.getInfo(url, {
+        requestOptions: {
+            headers: {
+                referer: 'https://www.youtube.com',
+                'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            },
+        },
+    })
+
+    const details = info.videoDetails
+    const duration = Number(details.lengthSeconds)
+    const thumbnail = details.thumbnails
+        ?.slice()
+        .sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url
+
+    return {
+        id: details.videoId,
+        title: details.title,
+        uploader: details.author?.name || '',
+        thumbnail,
+        duration,
+        duration_string: formatDuration(duration),
+        formats: info.formats
+            .filter((format) => format.url && !format.isLive)
+            .map(mapYtdlFormat),
+    }
+}
 
 export async function getVideoInfo(url: string) {
     try {
@@ -244,29 +380,23 @@ export async function getVideoInfo(url: string) {
         if (!normalized.ok) return { error: normalized.error }
 
         const parsedUrl = new URL(normalized.url)
-        if (!isAllowedYouTubeHost(parsedUrl.hostname)) {
+        if (!isAllowedYouTubeHost(parsedUrl.hostname) || !ytdl.validateURL(normalized.url)) {
             return { error: 'Only YouTube URLs are supported' }
         }
 
         console.log(`[VideoDownloader] Fetching info for: ${normalized.url}`)
 
-        const binaryPath = path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp')
+        try {
+            const ytDlpData = await getVideoInfoWithYtDlp(normalized.url)
+            if (ytDlpData) return { success: true, data: ytDlpData }
+        } catch (ytDlpError) {
+            console.warn('[VideoDownloader] Standalone yt-dlp failed, falling back to ytdl-core:', ytDlpError)
+        }
 
-        const { stdout } = await execFileAsync(binaryPath, [
-            normalized.url,
-            '--dump-single-json',
-            '--no-check-certificates',
-            '--no-warnings',
-            '--prefer-free-formats',
-            '--add-header', 'referer:youtube.com',
-            '--add-header', 'user-agent:googlebot'
-        ])
+        return { success: true, data: await getVideoInfoWithYtdlCore(normalized.url) }
 
-        const output = JSON.parse(stdout)
-        return { success: true, data: output }
-
-    } catch (error: any) {
+    } catch (error) {
         console.error('[VideoDownloader] Error:', error)
-        return { error: `Lỗi khi lấy thông tin video: ${error.message}` }
+        return { error: `Lỗi khi lấy thông tin video: ${getErrorMessage(error)}` }
     }
 }

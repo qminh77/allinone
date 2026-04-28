@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
 import heic2any from 'heic2any'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface HeicConverterProps {
     slug: string
@@ -76,7 +76,7 @@ export function HeicConverter({ slug, title, description }: HeicConverterProps) 
         try {
             if (files.length === 1) {
                 const { blob, name } = await convertFile(files[0])
-                saveAs(blob, name)
+                await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
                 const zip = new JSZip()
@@ -92,7 +92,7 @@ export function HeicConverter({ slug, title, description }: HeicConverterProps) 
                 }
 
                 const content = await zip.generateAsync({ type: 'blob' })
-                saveAs(content, `converted-heic-images.zip`)
+                await saveToolOutput({ moduleKey: slug, blob: content, filename: 'converted-heic-images.zip' })
                 toast.success('Chuyển đổi hàng loạt thành công!')
             }
         } catch (error) {

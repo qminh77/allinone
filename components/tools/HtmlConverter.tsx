@@ -10,6 +10,7 @@ import { Copy, Download, Upload, FileCode, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import TurndownService from 'turndown'
 import { recordsToCsv } from '@/lib/client/spreadsheet'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface HtmlConverterProps {
     slug: string
@@ -174,16 +175,10 @@ export function HtmlConverter({ slug, title, description }: HtmlConverterProps) 
         toast.success('Đã sao chép vào clipboard')
     }
 
-    const downloadResult = () => {
+    const downloadResult = async () => {
+        const filename = `converted.${slug.replace('html-to-', '')}`
         const blob = new Blob([outputContent], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `converted.${slug.replace('html-to-', '')}`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+        await saveToolOutput({ moduleKey: slug, blob, filename, mimeType: 'text/plain' })
     }
 
     return (

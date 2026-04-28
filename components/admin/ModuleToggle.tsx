@@ -5,7 +5,15 @@ import { toggleModuleStatus } from '@/lib/actions/admin'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-export function ModuleToggle({ moduleKey, initialEnabled }: { moduleKey: string, initialEnabled: boolean }) {
+export function ModuleToggle({
+    moduleKey,
+    initialEnabled,
+    onChange,
+}: {
+    moduleKey: string
+    initialEnabled: boolean
+    onChange?: (enabled: boolean) => void
+}) {
     const [enabled, setEnabled] = useState(initialEnabled)
     const [loading, setLoading] = useState(false)
 
@@ -22,6 +30,7 @@ export function ModuleToggle({ moduleKey, initialEnabled }: { moduleKey: string,
             setEnabled(!checked)
         } else {
             toast.success(checked ? `Module enabled` : `Module disabled`)
+            onChange?.(checked)
         }
         setLoading(false)
     }

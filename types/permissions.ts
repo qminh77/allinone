@@ -15,6 +15,7 @@ export type PermissionKey =
     // Permission Management
     | 'permissions.view'
     | 'permissions.create'
+    | 'permissions.edit'
     | 'permissions.delete'
     // Module Management
     | 'modules.view'
@@ -26,6 +27,7 @@ export type PermissionKey =
     | 'logs.view'
     // Backup & Restore
     | 'backup.create'
+    | 'backup.delete'
     | 'backup.restore'
     // Tools
     | 'tools.textformatter.access'

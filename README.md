@@ -183,7 +183,7 @@ The app supports both Supabase Local and Supabase Cloud. `supabase/config.toml` 
 
 ### File Storage
 
-Server-side tools write temporary files to `/tmp` only, then upload final outputs to the private Supabase Storage bucket `tool-files`. Run all migrations through `014_auth_bootstrap_trigger_hardening.sql` before deploying to Vercel so storage, module catalog data, and auth bootstrap are aligned.
+Server-side tools write temporary files to `/tmp` only, then upload final outputs to the private Supabase Storage bucket `tool-files`. Client-side file tools request a signed upload URL and upload outputs directly from the browser to Supabase Storage before downloading the result locally, so Vercel does not need persistent filesystem storage. Run all migrations through `014_auth_bootstrap_trigger_hardening.sql` before deploying to Vercel so storage, module catalog data, and auth bootstrap are aligned.
 
 ### Run Development Server
 

@@ -9,16 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
-
-// Simple Icons component if not exists, or replace with lucide-react in code
-// For cleanliness, I will stick to Lucide icons imported directly where needed, 
-// but define a logical structure.
+import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
 
 export function LoginForm() {
     const router = useRouter()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -70,63 +67,88 @@ export function LoginForm() {
                         userId: data.user?.id,
                     }),
                 })
-            } catch (ignore) { }
+            } catch { }
 
             router.push('/dashboard')
             router.refresh()
-        } catch (err: any) {
-            setError(err.message || "Đã có lỗi xảy ra")
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Đã có lỗi xảy ra")
             setLoading(false)
         }
     }
 
     return (
-        <Card className="w-full max-w-sm shadow-lg border-muted/40">
-            <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl font-bold tracking-tight text-center">Đăng nhập</CardTitle>
-                <CardDescription className="text-center">
-                    Nhập email của bạn để truy cập hệ thống
+        <Card className="w-full border shadow-sm">
+            <CardHeader className="space-y-2">
+                <CardTitle className="text-2xl font-semibold tracking-tight">Đăng nhập</CardTitle>
+                <CardDescription>
+                    Nhập thông tin tài khoản để tiếp tục.
                 </CardDescription>
             </CardHeader>
             <form onSubmit={handleLogin}>
-                <CardContent className="grid gap-4">
+                <CardContent className="space-y-4">
                     {error && (
-                        <Alert variant="destructive" className="py-2">
+                        <Alert variant="destructive">
+                            <AlertCircle className="size-4" />
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
+
                     <div className="grid gap-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="name@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            disabled={loading}
-                        />
+                        <div className="relative">
+                            <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="name@example.com"
+                                autoComplete="email"
+                                className="pl-9"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                disabled={loading}
+                            />
+                        </div>
                     </div>
+
                     <div className="grid gap-2">
                         <Label htmlFor="password">Mật khẩu</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            disabled={loading}
-                        />
+                        <div className="relative">
+                            <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
+                                className="pl-9 pr-10"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                disabled={loading}
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                className="absolute right-1 top-1/2 -translate-y-1/2"
+                                onClick={() => setShowPassword(value => !value)}
+                                disabled={loading}
+                            >
+                                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                <span className="sr-only">{showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}</span>
+                            </Button>
+                        </div>
                     </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
+
                     <Button className="w-full" type="submit" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {loading && <Loader2 className="size-4 animate-spin" />}
                         {loading ? "Đang xử lý..." : "Đăng nhập"}
                     </Button>
+                </CardContent>
+                <CardFooter className="mt-6 justify-center border-t bg-muted/30 px-6 py-4">
                     <div className="text-center text-sm text-muted-foreground">
                         Chưa có tài khoản?{" "}
-                        <Link href="/register" className="text-primary underline-offset-4 hover:underline font-medium">
+                        <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
                             Đăng ký ngay
                         </Link>
                     </div>

@@ -4,14 +4,14 @@ import { Download } from 'lucide-react'
 
 export const metadata = {
     title: 'Video Downloader - UMTERS Tools',
-    description: 'Tải xuống Video/Audio chất lượng cao từ YouTube, TikTok...',
+    description: 'Tải xuống Video/Audio từ YouTube.',
 }
 
 export default function VideoDownloaderPage() {
     return (
         <ToolShell
             title="Video Downloader"
-            description="Công cụ tải video đa năng hỗ trợ YouTube, TikTok, Facebook, Twitter... sử dụng yt-dlp core."
+            description="Công cụ lấy link tải Video/Audio từ YouTube, chạy được trên Vercel mà không cần Python runtime."
             icon={Download}
         >
             <VideoDownloader />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,7 @@ interface UserFormProps {
 }
 
 export function UserForm({ open, onClose, user, roles }: UserFormProps) {
+    const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [tempPassword, setTempPassword] = useState<string | null>(null)
 
@@ -64,7 +66,7 @@ export function UserForm({ open, onClose, user, roles }: UserFormProps) {
             } else {
                 toast.success('Đã cập nhật người dùng')
                 onClose()
-                window.location.reload()
+                router.refresh()
             }
         }
     }
@@ -80,7 +82,7 @@ export function UserForm({ open, onClose, user, roles }: UserFormProps) {
         setTempPassword(null)
         onClose()
         if (tempPassword) {
-            window.location.reload()
+            router.refresh()
         }
     }
 

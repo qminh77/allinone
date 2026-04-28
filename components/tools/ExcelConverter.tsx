@@ -9,6 +9,7 @@ import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileSpreadsheet, FileWarning } from 'lucide-react'
 import { toast } from 'sonner'
 import { readSpreadsheetRows, recordsToHtmlTable, rowsToCsv, rowsToRecords, type TableRow } from '@/lib/client/spreadsheet'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface ExcelConverterProps {
     slug: string
@@ -116,16 +117,10 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
         toast.success('Đã sao chép vào clipboard')
     }
 
-    const downloadResult = () => {
+    const downloadResult = async () => {
+        const filename = `converted.${slug.replace('excel-to-', '')}`
         const blob = new Blob([outputContent], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `converted.${slug.replace('excel-to-', '')}`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
+        await saveToolOutput({ moduleKey: slug, blob, filename, mimeType: 'text/plain' })
     }
 
     return (

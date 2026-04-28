@@ -483,6 +483,108 @@ export interface Database {
           created_at?: string
         }
       }
+      flashcard_sets: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          visibility: 'public' | 'private'
+          share_token: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          visibility?: 'public' | 'private'
+          share_token?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          visibility?: 'public' | 'private'
+          share_token?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      flashcards: {
+        Row: {
+          id: string
+          set_id: string
+          term: string
+          definition: string
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          set_id: string
+          term: string
+          definition: string
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          set_id?: string
+          term?: string
+          definition?: string
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      flashcard_progress: {
+        Row: {
+          id: string
+          set_id: string
+          card_id: string
+          user_id: string
+          status: 'unknown' | 'known' | 'mastered'
+          last_seen_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          set_id: string
+          card_id: string
+          user_id: string
+          status?: 'unknown' | 'known' | 'mastered'
+          last_seen_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          set_id?: string
+          card_id?: string
+          user_id?: string
+          status?: 'unknown' | 'known' | 'mastered'
+          last_seen_at?: string
+          updated_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
@@ -499,3 +601,6 @@ export type Backup = Database['public']['Tables']['backups']['Row']
 export type Shortlink = Database['public']['Tables']['shortlinks']['Row']
 export type SmtpConfig = Database['public']['Tables']['smtp_configs']['Row']
 export type MailHistory = Database['public']['Tables']['mail_history']['Row']
+export type FlashcardSet = Database['public']['Tables']['flashcard_sets']['Row']
+export type Flashcard = Database['public']['Tables']['flashcards']['Row']
+export type FlashcardProgress = Database['public']['Tables']['flashcard_progress']['Row']

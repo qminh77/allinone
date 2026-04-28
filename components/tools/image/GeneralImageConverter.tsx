@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X, ArrowDown, Image as ImageIcon } from 'lucide-react'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface GeneralImageConverterProps {
     slug: string
@@ -101,7 +101,7 @@ export function GeneralImageConverter({ slug, title, description }: GeneralImage
         try {
             if (files.length === 1) {
                 const { blob, name } = await convertFile(files[0])
-                saveAs(blob, name)
+                await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
                 const zip = new JSZip()
@@ -117,7 +117,7 @@ export function GeneralImageConverter({ slug, title, description }: GeneralImage
                 }
 
                 const content = await zip.generateAsync({ type: 'blob' })
-                saveAs(content, `converted-images.zip`)
+                await saveToolOutput({ moduleKey: slug, blob: content, filename: 'converted-images.zip' })
                 toast.success('Chuyển đổi hàng loạt thành công!')
             }
         } catch (error) {

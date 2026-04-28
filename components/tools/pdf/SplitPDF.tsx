@@ -9,9 +9,9 @@ import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Upload, Scissors, Download, FileText } from 'lucide-react'
 import { PDFDocument } from 'pdf-lib'
-import { saveAs } from 'file-saver'
 import JSZip from 'jszip'
 import { toast } from 'sonner'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface SplitPdfProps {
     slug: string
@@ -89,7 +89,7 @@ export function SplitPDF({ slug, title, description }: SplitPdfProps) {
                 }
 
                 const content = await zip.generateAsync({ type: 'blob' })
-                saveAs(content, `${file.name.replace('.pdf', '')}_split.zip`)
+                await saveToolOutput({ moduleKey: slug, blob: content, filename: `${file.name.replace('.pdf', '')}_split.zip` })
                 toast.success('Đã chia file và tải xuống!')
             } else {
                 const selectedPages = parseRange(range, pageCount)
@@ -105,7 +105,7 @@ export function SplitPDF({ slug, title, description }: SplitPdfProps) {
 
                 const pdfBytes = await newPdf.save()
                 const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
-                saveAs(blob, `${file.name.replace('.pdf', '')}_split_custom.pdf`)
+                await saveToolOutput({ moduleKey: slug, blob, filename: `${file.name.replace('.pdf', '')}_split_custom.pdf` })
                 toast.success('Đã trích xuất file thành công!')
             }
         } catch (error) {

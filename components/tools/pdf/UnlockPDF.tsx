@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Upload, Unlock, X, File as FileIcon } from 'lucide-react'
 import { PDFDocument } from 'pdf-lib'
-import { saveAs } from 'file-saver'
 import { toast } from 'sonner'
+import { saveToolOutput } from '@/lib/client/tool-files'
 
 interface UnlockPdfProps {
     slug: string
@@ -61,7 +61,7 @@ export function UnlockPDF({ slug, title, description }: UnlockPdfProps) {
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
-            saveAs(blob, `unlocked-${file.name}`)
+            await saveToolOutput({ moduleKey: slug, blob, filename: `unlocked-${file.name}` })
             toast.success('Gỡ mật khẩu thành công!')
         } catch (error) {
             console.error(error)
