@@ -3,9 +3,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin' // Needed for fetching source quiz ignoring RLS
 import { revalidatePath } from 'next/cache'
+import { randomBytes } from 'crypto'
 
 function generateToken() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    return randomBytes(16).toString('hex')
 }
 
 // --- Interfaces ---
@@ -36,6 +37,12 @@ export interface Answer {
     content: string
     is_correct: boolean
     order_index: number
+}
+
+export interface QuizReviewItem {
+    questionId: string
+    correctAnswerIds: string[]
+    explanation?: string
 }
 
 // --- Quiz CRUD ---
@@ -110,6 +117,46 @@ export async function getQuizWithDetails(id: string) {
     return {
         ...quiz,
         questions: questionsWithAnswers
+    }
+}
+
+async function getQuizWithDetailsForAttempt(id: string, accessToken?: string) {
+    if (!accessToken) {
+        return getQuizWithDetails(id)
+    }
+
+    const adminClient = createAdminClient()
+    const { data: quiz } = await (adminClient as any)
+        .from('quizzes')
+        .select(`
+            *,
+            quiz_questions (
+                *,
+                quiz_answers (*)
+            )
+        `)
+        .eq('id', id)
+        .single()
+
+    if (!quiz) return null
+
+    const hasTokenAccess = quiz.share_token === accessToken
+    const hasPublicIdAccess = quiz.is_public === true && quiz.id === accessToken
+    if (!hasTokenAccess && !hasPublicIdAccess) {
+        return null
+    }
+
+    const questions = (quiz.quiz_questions || [])
+        .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+        .map((question: any) => ({
+            ...question,
+            answers: (question.quiz_answers || [])
+                .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0)),
+        }))
+
+    return {
+        ...quiz,
+        questions,
     }
 }
 
@@ -268,17 +315,18 @@ export async function deleteQuestion(id: string) {
 
 // --- Attempts & History ---
 
-export async function submitQuizAttempt(quizId: string, userAnswers: { questionId: string, answerIds: string[] }[]) {
+export async function submitQuizAttempt(quizId: string, userAnswers: { questionId: string, answerIds: string[] }[], accessToken?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     // 1. Fetch correct answers to calculate score
     // Securely fetch details server-side
-    const details = await getQuizWithDetails(quizId)
+    const details = await getQuizWithDetailsForAttempt(quizId, accessToken)
     if (!details) return { error: 'Quiz not found' }
 
     let score = 0
-    let totalQuestions = details.questions.length
+    const totalQuestions = details.questions.length
+    const review: QuizReviewItem[] = []
 
     // Logic: 
     // Single choice: Correct if selected ID matches correct ID
@@ -288,10 +336,16 @@ export async function submitQuizAttempt(quizId: string, userAnswers: { questionI
     const attemptAnswersPayload: any[] = []
 
     for (const q of details.questions) {
+        const correctAnswers = q.answers?.filter((a: any) => a.is_correct).map((a: any) => a.id) || []
+        review.push({
+            questionId: q.id,
+            correctAnswerIds: correctAnswers,
+            explanation: q.explanation || undefined,
+        })
+
         const ua = userAnswers.find(item => item.questionId === q.id)
         if (!ua) continue
 
-        const correctAnswers = q.answers?.filter((a: any) => a.is_correct).map((a: any) => a.id) || []
         const selectedIds = ua.answerIds
 
         let isCorrect = false
@@ -327,7 +381,7 @@ export async function submitQuizAttempt(quizId: string, userAnswers: { questionI
     // If user is not logged in, we do not save the attempt to DB (RLS would block anyway)
     // We just return the score.
     if (!user) {
-        return { success: true, attemptId: null, score, totalQuestions, saved: false }
+        return { success: true, attemptId: null, score, totalQuestions, saved: false, review }
     }
 
     const { data: attempt, error: attError } = await (supabase as any)
@@ -354,7 +408,7 @@ export async function submitQuizAttempt(quizId: string, userAnswers: { questionI
     }
 
     revalidatePath('/dashboard/quiz/history')
-    return { success: true, attemptId: attempt.id, score, totalQuestions, saved: true }
+    return { success: true, attemptId: attempt.id, score, totalQuestions, saved: true, review }
 }
 
 export async function getQuizHistory() {
@@ -498,7 +552,7 @@ export async function createQuestionsBatch(quizId: string, questionsData: { ques
     // Sequential is safer for rate limits.
 
     let successCount = 0
-    let errors: string[] = []
+    const errors: string[] = []
 
     for (const item of questionsData) {
         const { question, answers } = item

@@ -17,14 +17,11 @@ const RESERVED_SLUGS = [
 
 export async function createShortlink(formData: FormData) {
     const supabase = await createClient()
-    // OPTIMIZATION: Use getSession() instead of getUser() to avoid extra auth network roundtrip.
-    // RLS in database will still verify the token signature/validity on insert.
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (!session?.user) {
+    if (!user) {
         return { error: 'Unauthorized' }
     }
-    const user = session.user
 
     const targetUrl = formData.get('target_url') as string
     let slug = formData.get('slug') as string
@@ -159,7 +156,7 @@ export async function verifyShortlinkPassword(slug: string, passwordInput: strin
     const supabase = createAdminClient()
     const { data } = await supabase
         .from('shortlinks' as any)
-        .select('target_url, password_hash')
+        .select('id, target_url, password_hash')
         .eq('slug', slug)
         .single()
 
@@ -177,5 +174,6 @@ export async function verifyShortlinkPassword(slug: string, passwordInput: strin
         return { error: 'Incorrect Password' }
     }
 
+    await incrementClicks((data as any).id)
     return { success: true, url: (data as any).target_url }
 }

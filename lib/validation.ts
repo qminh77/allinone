@@ -6,6 +6,56 @@
  */
 
 import { z } from 'zod'
+import net from 'net'
+
+function isPrivateIPv4(hostname: string): boolean {
+    const parts = hostname.split('.').map(part => Number(part))
+    if (parts.length !== 4 || parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)) {
+        return false
+    }
+
+    const [a, b] = parts
+    return (
+        a === 0 ||
+        a === 10 ||
+        a === 127 ||
+        (a === 169 && b === 254) ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168) ||
+        a >= 224
+    )
+}
+
+function isBlockedHostname(hostname: string): boolean {
+    const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+
+    if (
+        normalized === 'localhost' ||
+        normalized.endsWith('.localhost') ||
+        normalized === 'metadata.google.internal' ||
+        normalized === '169.254.169.254'
+    ) {
+        return true
+    }
+
+    const ipVersion = net.isIP(normalized)
+    if (ipVersion === 4) {
+        return isPrivateIPv4(normalized)
+    }
+
+    if (ipVersion === 6) {
+        return (
+            normalized === '::1' ||
+            normalized === '::' ||
+            normalized.startsWith('fc') ||
+            normalized.startsWith('fd') ||
+            normalized.startsWith('fe80:') ||
+            normalized.startsWith('ff')
+        )
+    }
+
+    return false
+}
 
 /**
  * URL validation with SSRF protection
@@ -17,25 +67,12 @@ export const UrlSchema = z.string().url().refine(
             const parsed = new URL(url)
 
             // Block dangerous protocols
-            const blockedProtocols = ['file:', 'ftp:', 'gopher:', 'data:', 'javascript:']
-            if (blockedProtocols.includes(parsed.protocol)) {
+            if (!['http:', 'https:'].includes(parsed.protocol)) {
                 return false
             }
 
-            // Block localhost and private IPs
-            const hostname = parsed.hostname.toLowerCase()
-            const blockedHosts = [
-                'localhost',
-                '127.0.0.1',
-                '0.0.0.0',
-                '::1',
-                '169.254.169.254', // AWS metadata
-                '10.',
-                '172.16.',
-                '192.168.',
-            ]
-
-            if (blockedHosts.some(blocked => hostname.includes(blocked))) {
+            // Avoid leaking credentials or allowing SSRF to local/private hosts.
+            if (parsed.username || parsed.password || isBlockedHostname(parsed.hostname)) {
                 return false
             }
 
@@ -44,7 +81,7 @@ export const UrlSchema = z.string().url().refine(
             return false
         }
     },
-    { message: 'Invalid or blocked URL. Cannot use localhost, private IPs, or dangerous protocols.' }
+    { message: 'Invalid or blocked URL. Only public HTTP/HTTPS URLs are allowed.' }
 )
 
 /**

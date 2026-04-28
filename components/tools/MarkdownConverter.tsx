@@ -8,8 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileCode, Trash, FileText } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
 import { marked } from 'marked'
+import { recordsToCsv } from '@/lib/client/spreadsheet'
 
 interface MarkdownConverterProps {
     slug: string
@@ -112,8 +112,7 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
             case 'csv': {
                 const data = parseMarkdownTable(content);
                 if (data.length === 0) return '';
-                const worksheet = XLSX.utils.json_to_sheet(data);
-                return XLSX.utils.sheet_to_csv(worksheet);
+                return recordsToCsv(data);
             }
             case 'sql': {
                 const data = parseMarkdownTable(content);

@@ -15,7 +15,7 @@ export function HtmlMinifier() {
     const handleMinify = () => {
         if (!input) return
 
-        let minified = input
+        const minified = input
             .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
             .replace(/>\s+</g, '><') // Collapse whitespace between tags
             .replace(/\s{2,}/g, ' ') // Collapse multiple spaces

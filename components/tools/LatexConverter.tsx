@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileCode, Trash } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
+import { recordsToCsv } from '@/lib/client/spreadsheet'
 
 interface LatexConverterProps {
     slug: string
@@ -118,8 +118,7 @@ export function LatexConverter({ slug, title, description }: LatexConverterProps
             case 'csv': {
                 const data = parseLatexTable(content);
                 if (data.length === 0) return '';
-                const worksheet = XLSX.utils.json_to_sheet(data);
-                return XLSX.utils.sheet_to_csv(worksheet);
+                return recordsToCsv(data);
             }
             case 'sql': {
                 const data = parseLatexTable(content);

@@ -8,13 +8,13 @@ import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ProtectedFeature } from '@/components/auth/ProtectedFeature'
-import { LayoutDashboard, ChevronRight, Command, Link as LinkIcon, Mail, Send, Settings2, History, FileText, ListFilter, PenTool } from 'lucide-react'
+import { LayoutDashboard, ChevronRight, Link as LinkIcon, Mail, Send, Settings2, History, FileText, ListFilter, PenTool } from 'lucide-react'
 import { modules, categories } from '@/config/modules'
 import { PermissionKey } from '@/types/permissions'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 interface SidebarProps {
     enabledModules?: Record<string, boolean>
@@ -42,31 +42,12 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
     })
 
     // Group by category
-    const modulesByCategory = activeModules.reduce((acc, module) => {
-        const cat = module.category || 'Other'
+    const modulesByCategory = activeModules.reduce((acc, moduleItem) => {
+        const cat = moduleItem.category || 'Other'
         if (!acc[cat]) acc[cat] = []
-        acc[cat].push(module)
+        acc[cat].push(moduleItem)
         return acc
     }, {} as Record<string, typeof activeModules>)
-
-    const [isMounted, setIsMounted] = useState(false)
-
-    useEffect(() => {
-        setIsMounted(true)
-    }, [])
-
-    if (!isMounted) {
-        return (
-            <div className="flex flex-col h-full bg-sidebar-background border-r">
-                <div className="h-16 flex items-center px-6 border-b">
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-
-                        <span className="text-lg">Tools Admin</span>
-                    </Link>
-                </div>
-            </div>
-        )
-    }
 
     return (
         <div className="flex flex-col h-full bg-sidebar-background border-r">

@@ -28,7 +28,7 @@ export function ImportQuizDialog() {
         setIsLoading(true)
         const lines = input.split('\n').map(l => l.trim()).filter(l => l.length > 0)
         let successCount = 0
-        let errors: string[] = []
+        const errors: string[] = []
 
         try {
             for (const line of lines) {

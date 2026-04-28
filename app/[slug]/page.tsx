@@ -1,11 +1,11 @@
 import { notFound, redirect } from 'next/navigation'
-import { getPublicShortlink } from '@/lib/actions/shortlinks'
+import { getPublicShortlink, incrementClicks } from '@/lib/actions/shortlinks'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
 import { Metadata } from 'next'
 import PasswordProtection from '@/components/shortlinks/PasswordProtection'
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(): Promise<Metadata> {
     return {
         title: 'Redirecting...',
         robots: 'noindex'
@@ -52,6 +52,6 @@ export default async function ShortlinkRedirectPage({ params }: { params: { slug
     }
 
     // 3. Direct Redirect
-    // TODO: Increment clicks here (async if possible)
+    await incrementClicks(data.id)
     redirect(data.target_url)
 }

@@ -6,7 +6,6 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/session'
 import { hasRole } from '@/lib/permissions/check'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { Home, Users, Shield, Wrench, Settings, FileText, Database, Key } from 'lucide-react'
 
 export default async function AdminLayout({

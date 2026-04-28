@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -9,34 +9,32 @@ import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Copy, Check, RotateCcw } from 'lucide-react'
 
+function toSlug(text: string, separator: string, lowercase: boolean) {
+    let result = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+
+    if (lowercase) {
+        result = result.toLowerCase()
+    }
+
+    const actualSeparator = separator === 'none' ? '' : separator
+
+    return result
+        .replace(/[^a-z0-9\s-]/gi, '') // Remove special characters
+        .trim()
+        .replace(/\s+/g, actualSeparator) // Replace spaces with separator
+        .replace(new RegExp(`\\${actualSeparator}+`, 'g'), actualSeparator) // Remove duplicate separators
+}
+
 export function SlugGenerator() {
     const [input, setInput] = useState('')
-    const [slug, setSlug] = useState('')
     const [separator, setSeparator] = useState('-')
     const [lowercase, setLowercase] = useState(true)
     const [copied, setCopied] = useState(false)
 
-    useEffect(() => {
-        generateSlug(input)
-    }, [input, separator, lowercase])
-
-    const generateSlug = (text: string) => {
-        let result = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
-
-        if (lowercase) {
-            result = result.toLowerCase()
-        }
-
-        const actualSeparator = separator === 'none' ? '' : separator
-
-        result = result
-            .replace(/[^a-z0-9\s-]/gi, '') // Remove special characters
-            .trim()
-            .replace(/\s+/g, actualSeparator) // Replace spaces with separator
-            .replace(new RegExp(`\\${actualSeparator}+`, 'g'), actualSeparator) // Remove duplicate separators
-
-        setSlug(result)
-    }
+    const slug = useMemo(
+        () => toSlug(input, separator, lowercase),
+        [input, separator, lowercase]
+    )
 
     const copyToClipboard = () => {
         if (!slug) return
@@ -47,7 +45,6 @@ export function SlugGenerator() {
 
     const handleReset = () => {
         setInput('')
-        setSlug('')
         setCopied(false)
     }
 

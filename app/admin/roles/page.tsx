@@ -34,9 +34,7 @@ export default async function AdminRolesPage() {
         name: role.name,
         description: role.description,
         is_system: role.is_system,
-        // @ts-ignore
         permissionCount: role.role_permissions?.[0]?.count || 0,
-        // @ts-ignore
         userCount: role.user_profiles?.[0]?.count || 0,
     })) || []
 

@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { modules, categories, Module, ModuleCategory } from '@/config/modules'
+import { modules, categories } from '@/config/modules'
 import { ModuleCard } from './ModuleCard'
 import { Input } from '@/components/ui/input'
-import { Search, LayoutGrid, List } from 'lucide-react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
+import { Search } from 'lucide-react'
 
 export function DashboardShell({ enabledModules }: { enabledModules?: Record<string, boolean> }) {
     const [searchQuery, setSearchQuery] = useState('')
@@ -52,7 +50,7 @@ export function DashboardShell({ enabledModules }: { enabledModules?: Record<str
             <div className="space-y-10">
                 {filteredModules.length === 0 ? (
                     <div className="text-center py-20 text-muted-foreground">
-                        Không tìm thấy công cụ nào phù hợp với "{searchQuery}"
+                        Không tìm thấy công cụ nào phù hợp với &quot;{searchQuery}&quot;
                     </div>
                 ) : (
                     sortedActiveCategories.map(categoryKey => {

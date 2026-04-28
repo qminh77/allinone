@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileJson, Trash } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
+import { recordsToCsv, recordsToHtmlTable } from '@/lib/client/spreadsheet'
 
 interface JsonConverterProps {
     slug: string
@@ -69,6 +69,11 @@ export function JsonConverter({ slug, title, description }: JsonConverterProps) 
 
         // Ensure data is array for table-like formats
         const arrayData = Array.isArray(data) ? data : [data]
+        const tableData: Record<string, unknown>[] = arrayData.map(row => (
+            typeof row === 'object' && row !== null && !Array.isArray(row)
+                ? row as Record<string, unknown>
+                : { value: row }
+        ))
 
         switch (targetFormat) {
             case 'json':
@@ -89,14 +94,10 @@ export function JsonConverter({ slug, title, description }: JsonConverterProps) 
                 }).join(',\n')
                 return `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES\n${values};`
             }
-            case 'csv': {
-                const worksheet = XLSX.utils.json_to_sheet(arrayData)
-                return XLSX.utils.sheet_to_csv(worksheet)
-            }
-            case 'html': {
-                const worksheet = XLSX.utils.json_to_sheet(arrayData)
-                return XLSX.utils.sheet_to_html(worksheet)
-            }
+            case 'csv':
+                return recordsToCsv(tableData)
+            case 'html':
+                return recordsToHtmlTable(tableData)
             case 'xml':
                 return arrayData.map((row: any) => {
                     return `  <item>\n${Object.entries(row).map(([k, v]) => `    <${k}>${v}</${k}>`).join('\n')}\n  </item>`
@@ -109,13 +110,11 @@ export function JsonConverter({ slug, title, description }: JsonConverterProps) 
                 }).join('\n')
 
             case 'markdown': {
-                const worksheet = XLSX.utils.json_to_sheet(arrayData)
-                // XLSX doesn't support Markdown export directly, revert to manual
-                if (arrayData.length === 0) return ''
-                const headers = Object.keys(arrayData[0])
+                if (tableData.length === 0) return ''
+                const headers = Object.keys(tableData[0])
                 const headerRow = `| ${headers.join(' | ')} |`
                 const separatorRow = `| ${headers.map(() => '---').join(' | ')} |`
-                const rows = arrayData.map(row => `| ${headers.map(h => row[h] ?? '').join(' | ')} |`).join('\n')
+                const rows = tableData.map(row => `| ${headers.map(h => row[h] ?? '').join(' | ')} |`).join('\n')
                 return `${headerRow}\n${separatorRow}\n${rows}`
             }
             case 'php':

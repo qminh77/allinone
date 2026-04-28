@@ -9,9 +9,16 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createAuditLog, getRequestInfo } from '@/lib/audit/log'
 import { sanitizeErrorMessage, logError } from '@/lib/error-handling'
 import { validatePasswordStrength } from '@/lib/password-policy'
+import { checkRateLimit, getClientIdentifier, RateLimits } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
     try {
+        await checkRateLimit(
+            `register:${getClientIdentifier(request)}`,
+            RateLimits.REGISTER.limit,
+            RateLimits.REGISTER.window
+        )
+
         const { email, password, fullName } = await request.json()
 
         // Validate input
@@ -112,6 +119,12 @@ export async function POST(request: Request) {
             message: 'Đăng ký thành công',
         })
     } catch (error: any) {
+        if (error instanceof Error && error.message.includes('Rate limit exceeded')) {
+            return NextResponse.json(
+                { error: error.message },
+                { status: 429 }
+            )
+        }
         logError(error, { action: 'register' })
         return NextResponse.json(
             { error: sanitizeErrorMessage(error) },

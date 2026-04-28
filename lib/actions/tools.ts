@@ -1,6 +1,7 @@
 'use server'
 
 import { promises as dns } from 'dns'
+import { UrlSchema } from '@/lib/validation'
 
 export type DnsRecordType = 'A' | 'AAAA' | 'MX' | 'NS' | 'TXT' | 'CNAME' | 'SOA'
 
@@ -8,6 +9,29 @@ interface DnsResult {
     type: DnsRecordType
     data: string | object
     ttl?: number // Node dns module doesn't always return TTL easily with standard resolve methods, but we'll try standard resolve
+}
+
+type NormalizedUrl = { ok: true; url: string } | { ok: false; error: string }
+
+function normalizePublicUrl(input: string): NormalizedUrl {
+    let targetUrl = input.trim()
+    if (!/^https?:\/\//i.test(targetUrl)) {
+        targetUrl = 'https://' + targetUrl
+    }
+
+    const validation = UrlSchema.safeParse(targetUrl)
+    if (!validation.success) {
+        return { ok: false, error: validation.error.issues[0].message }
+    }
+
+    return { ok: true, url: validation.data }
+}
+
+function isAllowedYouTubeHost(hostname: string) {
+    const normalized = hostname.toLowerCase()
+    return normalized === 'youtube.com' ||
+        normalized.endsWith('.youtube.com') ||
+        normalized === 'youtu.be'
 }
 
 export async function performDnsLookup(domain: string, type: DnsRecordType = 'A') {
@@ -93,13 +117,10 @@ export async function performHeaderLookup(url: string) {
     if (!url) return { error: 'URL is required' }
 
     try {
-        // Basic cleanup and protocol addition if needed
-        let targetUrl = url.trim()
-        if (!/^https?:\/\//i.test(targetUrl)) {
-            targetUrl = 'https://' + targetUrl
-        }
+        const normalized = normalizePublicUrl(url)
+        if (!normalized.ok) return { error: normalized.error }
 
-        const res = await fetch(targetUrl, {
+        const res = await fetch(normalized.url, {
             method: 'HEAD',
             redirect: 'manual', // Don't follow redirects automatically so we see the 301/302
             // headers: { 'User-Agent': ... } // Optional: pretend to be a browser
@@ -130,11 +151,9 @@ export async function performHeaderLookup(url: string) {
         // Retry with GET if HEAD fails (some servers block HEAD)
         if (error.cause?.code === 'UND_ERR_HEADERS_TIMEOUT' || error.message.includes('HEAD')) {
             try {
-                let targetUrl = url.trim()
-                if (!/^https?:\/\//i.test(targetUrl)) {
-                    targetUrl = 'https://' + targetUrl
-                }
-                const res = await fetch(targetUrl, { method: 'GET', redirect: 'manual' })
+                const normalized = normalizePublicUrl(url)
+                if (!normalized.ok) return { error: normalized.error }
+                const res = await fetch(normalized.url, { method: 'GET', redirect: 'manual' })
                 const headers: Record<string, string> = {}
                 res.headers.forEach((val, key) => {
                     headers[key] = val
@@ -162,12 +181,10 @@ export async function performMetaTagLookup(url: string) {
     if (!url) return { error: 'URL is required' }
 
     try {
-        let targetUrl = url.trim()
-        if (!/^https?:\/\//i.test(targetUrl)) {
-            targetUrl = 'https://' + targetUrl
-        }
+        const normalized = normalizePublicUrl(url)
+        if (!normalized.ok) return { error: normalized.error }
 
-        const res = await fetch(targetUrl, {
+        const res = await fetch(normalized.url, {
             method: 'GET',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (compatible; UmtersBot/1.0; +https://umters.club)'
@@ -223,12 +240,20 @@ export async function getVideoInfo(url: string) {
     try {
         if (!url) return { error: 'URL is required' }
 
-        console.log(`[VideoDownloader] Fetching info for: ${url}`)
+        const normalized = normalizePublicUrl(url)
+        if (!normalized.ok) return { error: normalized.error }
+
+        const parsedUrl = new URL(normalized.url)
+        if (!isAllowedYouTubeHost(parsedUrl.hostname)) {
+            return { error: 'Only YouTube URLs are supported' }
+        }
+
+        console.log(`[VideoDownloader] Fetching info for: ${normalized.url}`)
 
         const binaryPath = path.join(process.cwd(), 'node_modules/youtube-dl-exec/bin/yt-dlp')
 
         const { stdout } = await execFileAsync(binaryPath, [
-            url,
+            normalized.url,
             '--dump-single-json',
             '--no-check-certificates',
             '--no-warnings',

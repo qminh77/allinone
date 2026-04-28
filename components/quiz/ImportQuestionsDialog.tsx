@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/dialog"
 import { Upload, Loader2, FileSpreadsheet } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
 import { createQuestionsBatch } from '@/lib/actions/quiz'
+import { downloadTextFile, readSpreadsheetRows, rowsToCsv, type TableRow } from '@/lib/client/spreadsheet'
 
 interface ImportQuestionsDialogProps {
     quizId: string
@@ -26,32 +26,27 @@ export function ImportQuestionsDialog({ quizId }: ImportQuestionsDialogProps) {
     const [stats, setStats] = useState<{ total: number, valid: number } | null>(null)
     const [parsedData, setParsedData] = useState<any[] | null>(null)
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
-        setIsLoading(true)
-        const reader = new FileReader()
-
-        reader.onload = (evt) => {
-            try {
-                const bstr = evt.target?.result
-                const wb = XLSX.read(bstr, { type: 'binary' })
-                const wsname = wb.SheetNames[0]
-                const ws = wb.Sheets[wsname]
-                const data = XLSX.utils.sheet_to_json(ws, { header: 1 })
-
-                parseData(data)
-            } catch (error) {
-                console.error(error)
-                toast.error("Lỗi đọc file. Hãy đảm bảo file đúng định dạng Excel/CSV.")
-                setIsLoading(false)
-            }
+        if (!file.name.match(/\.(xlsx|csv)$/i)) {
+            toast.error("Vui lòng tải lên file .xlsx hoặc .csv")
+            return
         }
-        reader.readAsBinaryString(file)
+
+        setIsLoading(true)
+        try {
+            const data = await readSpreadsheetRows(file)
+            parseData(data)
+        } catch (error) {
+            console.error(error)
+            toast.error("Lỗi đọc file. Hãy đảm bảo file đúng định dạng XLSX/CSV.")
+            setIsLoading(false)
+        }
     }
 
-    const parseData = (rows: any[]) => {
+    const parseData = (rows: TableRow[]) => {
         // Headers: Question, Type, Correct, Option A, Option B...
         // Assuming row 0 is header? Let's check. 
         // We will look for "Question" or "Câu hỏi" column.
@@ -92,8 +87,9 @@ export function ImportQuestionsDialog({ quizId }: ImportQuestionsDialogProps) {
             const options: string[] = []
             // Starting from column 6 (G)
             for (let j = 6; j < row.length; j++) {
-                if (row[j] !== undefined && row[j] !== null && row[j].toString().trim() !== '') {
-                    options.push(row[j].toString().trim())
+                const optionValue = row[j]
+                if (optionValue !== undefined && optionValue !== null && optionValue.toString().trim() !== '') {
+                    options.push(optionValue.toString().trim())
                 }
             }
 
@@ -187,7 +183,7 @@ export function ImportQuestionsDialog({ quizId }: ImportQuestionsDialogProps) {
     }
 
     const downloadSample = () => {
-        const ws = XLSX.utils.aoa_to_sheet([
+        const sampleRows: TableRow[] = [
             [
                 "Câu hỏi (Bắt buộc)",
                 "Loại (single/multiple)",
@@ -211,23 +207,9 @@ export function ImportQuestionsDialog({ quizId }: ImportQuestionsDialogProps) {
 
             // 5. Many Options
             ["Các màu cơ bản của ánh sáng (RGB)?", "multiple", "A,B,C", "Red, Green, Blue", "", "", "Đỏ", "Xanh Lục", "Xanh Lam", "Vàng", "Tím", "Cam"]
-        ])
+        ]
 
-        // Auto-width for better visibility
-        const wscols = [
-            { wch: 40 }, // Question
-            { wch: 15 }, // Type
-            { wch: 15 }, // Correct
-            { wch: 30 }, // Explanation
-            { wch: 15 }, // MediaType
-            { wch: 30 }, // MediaURL
-            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 } // Options
-        ];
-        ws['!cols'] = wscols;
-
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, "Mau_Cau_Hoi")
-        XLSX.writeFile(wb, "quiz_sample.xlsx")
+        downloadTextFile("quiz_sample.csv", rowsToCsv(sampleRows), 'text/csv;charset=utf-8')
     }
 
     return (
@@ -242,7 +224,7 @@ export function ImportQuestionsDialog({ quizId }: ImportQuestionsDialogProps) {
                 <DialogHeader>
                     <DialogTitle>Nhập câu hỏi từ file</DialogTitle>
                     <DialogDescription>
-                        Hỗ trợ file Excel (.xlsx, .xls) hoặc CSV.
+                        Hỗ trợ file Excel (.xlsx) hoặc CSV.
                         <br />
                         Định dạng: Câu hỏi | Loại | Đúng | Giải thích | Media Type | Media URL | Đáp án...
                     </DialogDescription>
@@ -259,7 +241,7 @@ export function ImportQuestionsDialog({ quizId }: ImportQuestionsDialogProps) {
                             <Upload className="h-8 w-8 text-muted-foreground mb-4" />
                             <input
                                 type="file"
-                                accept=".xlsx, .xls, .csv"
+                                accept=".xlsx, .csv"
                                 onChange={handleFileUpload}
                                 className="hidden"
                                 id="file-upload"

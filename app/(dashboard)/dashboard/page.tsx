@@ -1,6 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCurrentUserProfile } from '@/lib/auth/session'
-import { Activity, Shield, User, Zap } from 'lucide-react'
+import { Activity, Shield, Zap } from 'lucide-react'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { getModuleStatuses } from '@/lib/actions/admin'
 
@@ -8,7 +8,6 @@ export default async function DashboardPage() {
     const profile = await getCurrentUserProfile()
     const enabledModules = await getModuleStatuses()
 
-    // @ts-ignore
     const roleName = profile?.role?.name || 'Guest'
     const isActive = profile?.is_active
 

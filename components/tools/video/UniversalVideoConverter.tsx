@@ -196,7 +196,7 @@ export function UniversalVideoConverter({ slug, title, description }: UniversalV
                         {/* Status Message */}
                         {!isLoaded && !statusMessage && (
                             <div className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-md border border-yellow-200 dark:border-yellow-900/20">
-                                Đang khởi động "máy trạm" video... Vui lòng đợi trong giây lát.
+                                Đang khởi động &quot;máy trạm&quot; video... Vui lòng đợi trong giây lát.
                             </div>
                         )}
                         {statusMessage && (

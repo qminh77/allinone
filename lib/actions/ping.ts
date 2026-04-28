@@ -1,6 +1,7 @@
 'use server'
 
 import net from 'net'
+import { UrlSchema } from '@/lib/validation'
 
 export interface PingResult {
     host: string
@@ -18,15 +19,45 @@ export interface PortCheckResult {
     error?: string
 }
 
+type NormalizedUrl = { ok: true; url: string } | { ok: false; error: string }
+type NormalizedHost = { ok: true; host: string } | { ok: false; error: string }
+
+function normalizePublicUrl(input: string): NormalizedUrl {
+    let targetUrl = input.trim()
+    if (!/^https?:\/\//i.test(targetUrl)) {
+        targetUrl = 'https://' + targetUrl
+    }
+
+    const validation = UrlSchema.safeParse(targetUrl)
+    if (!validation.success) {
+        return { ok: false, error: validation.error.issues[0].message }
+    }
+
+    return { ok: true, url: validation.data }
+}
+
+function normalizePublicHost(input: string): NormalizedHost {
+    const normalized = normalizePublicUrl(input)
+    if (!normalized.ok) return { ok: false, error: normalized.error }
+
+    return { ok: true, host: new URL(normalized.url).hostname }
+}
+
 export async function pingSite(url: string): Promise<PingResult> {
     const start = performance.now()
     try {
-        // Ensure protocol
-        if (!url.startsWith('http')) {
-            url = 'https://' + url
+        const normalized = normalizePublicUrl(url)
+        if (!normalized.ok) {
+            return {
+                host: url,
+                status: 'offline',
+                latency: 0,
+                error: normalized.error
+            }
         }
 
-        const res = await fetch(url, {
+        const res = await fetch(normalized.url,
+            {
             method: 'HEAD',
             cache: 'no-store',
             // short timeout 5s
@@ -37,7 +68,7 @@ export async function pingSite(url: string): Promise<PingResult> {
         const latency = Math.round(end - start)
 
         return {
-            host: url,
+            host: normalized.url,
             status: 'online',
             latency,
             statusCode: res.status
@@ -54,6 +85,17 @@ export async function pingSite(url: string): Promise<PingResult> {
 }
 
 export async function checkPort(host: string, port: number): Promise<PortCheckResult> {
+    const normalized = normalizePublicHost(host)
+    if (!normalized.ok) {
+        return {
+            host,
+            port,
+            status: 'closed',
+            latency: 0,
+            error: normalized.error
+        }
+    }
+
     return new Promise((resolve) => {
         const start = performance.now()
         const socket = new net.Socket()
@@ -68,7 +110,7 @@ export async function checkPort(host: string, port: number): Promise<PortCheckRe
             const end = performance.now()
             cleanup()
             resolve({
-                host,
+                host: normalized.host,
                 port,
                 status: 'open',
                 latency: Math.round(end - start)
@@ -78,7 +120,7 @@ export async function checkPort(host: string, port: number): Promise<PortCheckRe
         socket.on('timeout', () => {
             cleanup()
             resolve({
-                host,
+                host: normalized.host,
                 port,
                 status: 'closed',
                 latency: 0,
@@ -89,7 +131,7 @@ export async function checkPort(host: string, port: number): Promise<PortCheckRe
         socket.on('error', (err) => {
             cleanup()
             resolve({
-                host,
+                host: normalized.host,
                 port,
                 status: 'closed',
                 latency: 0,
@@ -97,6 +139,6 @@ export async function checkPort(host: string, port: number): Promise<PortCheckRe
             })
         })
 
-        socket.connect(port, host)
+        socket.connect(port, normalized.host)
     })
 }

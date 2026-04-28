@@ -8,8 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileCode, Trash } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
 import TurndownService from 'turndown'
+import { recordsToCsv } from '@/lib/client/spreadsheet'
 
 interface HtmlConverterProps {
     slug: string
@@ -126,8 +126,7 @@ export function HtmlConverter({ slug, title, description }: HtmlConverterProps) 
             case 'csv': {
                 const data = parseHtmlTable(content);
                 if (data.length === 0) return '';
-                const worksheet = XLSX.utils.json_to_sheet(data);
-                return XLSX.utils.sheet_to_csv(worksheet);
+                return recordsToCsv(data);
             }
             case 'sql': {
                 const data = parseHtmlTable(content);

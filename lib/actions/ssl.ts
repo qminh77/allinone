@@ -2,6 +2,7 @@
 
 import tls from 'tls'
 import { URL } from 'url'
+import { UrlSchema } from '@/lib/validation'
 
 export interface SslInfo {
     host: string
@@ -29,6 +30,12 @@ export async function performSslLookup(domain: string): Promise<SslLookupResult>
         let hostname = domain.trim()
         if (hostname.startsWith('https://')) hostname = new URL(hostname).hostname
         if (hostname.startsWith('http://')) hostname = new URL(hostname).hostname
+
+        const validation = UrlSchema.safeParse(`https://${hostname}`)
+        if (!validation.success) {
+            return { success: false, error: validation.error.issues[0].message }
+        }
+        hostname = new URL(validation.data).hostname
 
         return new Promise((resolve) => {
             const socket = tls.connect({

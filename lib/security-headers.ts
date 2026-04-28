@@ -17,18 +17,28 @@ import type { NextRequest } from 'next/server'
  * Apply security headers to response
  */
 export function applySecurityHeaders(
-    request: NextRequest,
+    _request: NextRequest,
     response: NextResponse
 ): NextResponse {
+    const scriptSrc = [
+        "'self'",
+        "'unsafe-inline'",
+        "'wasm-unsafe-eval'",
+    ]
+
+    if (process.env.NODE_ENV !== 'production') {
+        scriptSrc.push("'unsafe-eval'")
+    }
+
     // Content Security Policy
     // Adjust based on your needs (e.g., if using external scripts/styles)
     const csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Adjust for production
+        `script-src ${scriptSrc.join(' ')}`,
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
-        "connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 ws://127.0.0.1:54321",
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co http://127.0.0.1:54321 ws://127.0.0.1:54321",
         "frame-ancestors 'none'",
         "base-uri 'self'",
         "form-action 'self'",

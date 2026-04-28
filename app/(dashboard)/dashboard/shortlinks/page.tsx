@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,15 +30,16 @@ export default function ShortlinksPage() {
     const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined)
     const [usePassword, setUsePassword] = useState(false)
 
-    useEffect(() => {
-        loadLinks()
+    const loadLinks = useCallback(async () => {
+        const data = await getShortlinks()
+        setLinks(data as Shortlink[])
+        setLoading(false)
     }, [])
 
-    const loadLinks = async () => {
-        const data = await getShortlinks()
-        setLinks(data as any)
-        setLoading(false)
-    }
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial client fetch for this client-only dashboard view.
+        loadLinks()
+    }, [loadLinks])
 
     const handleCreate = async () => {
         if (!targetUrl) return

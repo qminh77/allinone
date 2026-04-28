@@ -25,6 +25,7 @@ export default async function AdminLogsPage() {
     // Optimized stats calculation
     const totalLogs = logs?.length || 0
     const uniqueUsers = logs ? new Set(logs.filter(l => l.user_id).map(l => l.user_id)).size : 0
+    // eslint-disable-next-line react-hooks/purity -- Server component stats are calculated per request.
     const dayAgo = Date.now() - 24 * 60 * 60 * 1000
     const recentLogs = logs?.filter(l => new Date(l.created_at).getTime() > dayAgo).length || 0
 

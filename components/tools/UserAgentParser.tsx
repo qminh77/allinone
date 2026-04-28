@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,32 +8,30 @@ import { Label } from '@/components/ui/label'
 import { RotateCcw, MonitorSmartphone } from 'lucide-react'
 import { UAParser } from 'ua-parser-js'
 
+function getBrowserUserAgent() {
+    return typeof navigator === 'undefined' ? '' : navigator.userAgent
+}
+
+function parseUserAgent(ua: string) {
+    if (!ua) return null
+    const parser = new UAParser(ua)
+    return parser.getResult()
+}
+
 export function UserAgentParser() {
-    const [userAgent, setUserAgent] = useState('')
-    const [parsed, setParsed] = useState<UAParser.IResult | null>(null)
-
-    useEffect(() => {
-        // Auto-fill with current UA
-        const currentUA = navigator.userAgent
-        setUserAgent(currentUA)
-        parseUA(currentUA)
-    }, [])
-
-    const parseUA = (ua: string) => {
-        const parser = new UAParser(ua)
-        setParsed(parser.getResult())
-    }
+    const [userAgent, setUserAgent] = useState(getBrowserUserAgent)
+    const [parsed, setParsed] = useState<UAParser.IResult | null>(() => parseUserAgent(getBrowserUserAgent()))
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const val = e.target.value
         setUserAgent(val)
-        parseUA(val)
+        setParsed(parseUserAgent(val))
     }
 
     const handleReset = () => {
-        const currentUA = navigator.userAgent
+        const currentUA = getBrowserUserAgent()
         setUserAgent(currentUA)
-        parseUA(currentUA)
+        setParsed(parseUserAgent(currentUA))
     }
 
     return (

@@ -30,11 +30,11 @@ export default async function AdminPermissionsPage() {
     // Group permissions by module
     const permissionsByModule: Record<string, any[]> = {}
     permissions?.forEach(perm => {
-        const module = perm.module || 'other'
-        if (!permissionsByModule[module]) {
-            permissionsByModule[module] = []
+        const moduleKey = perm.module || 'other'
+        if (!permissionsByModule[moduleKey]) {
+            permissionsByModule[moduleKey] = []
         }
-        permissionsByModule[module].push(perm)
+        permissionsByModule[moduleKey].push(perm)
     })
 
     // Calculate stats
@@ -78,11 +78,11 @@ export default async function AdminPermissionsPage() {
                 </CardHeader>
                 <CardContent>
                     <Accordion type="multiple" className="w-full">
-                        {Object.entries(permissionsByModule).map(([module, perms]) => (
-                            <AccordionItem key={module} value={module}>
+                        {Object.entries(permissionsByModule).map(([moduleKey, perms]) => (
+                            <AccordionItem key={moduleKey} value={moduleKey}>
                                 <AccordionTrigger className="hover:no-underline">
                                     <div className="flex items-center gap-2">
-                                        <Badge variant="outline">{module}</Badge>
+                                        <Badge variant="outline">{moduleKey}</Badge>
                                         <span className="text-sm text-muted-foreground">
                                             {perms.length} permissions
                                         </span>

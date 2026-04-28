@@ -210,7 +210,7 @@ export function UniversalAudioConverter({ slug, title, description }: UniversalA
                         {/* Status Message */}
                         {!isLoaded && !statusMessage && (
                             <div className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-md border border-yellow-200 dark:border-yellow-900/20">
-                                Đang khởi động "máy trạm" âm thanh... Vui lòng đợi trong giây lát. Hệ thống sẽ tự động lưu vào bộ nhớ đệm cho lần sau.
+                                Đang khởi động &quot;máy trạm&quot; âm thanh... Vui lòng đợi trong giây lát. Hệ thống sẽ tự động lưu vào bộ nhớ đệm cho lần sau.
                             </div>
                         )}
                         {statusMessage && (

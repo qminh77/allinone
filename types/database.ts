@@ -268,7 +268,7 @@ export interface Database {
           port: number
           secure: boolean
           username: string | null
-          password: string | null
+          encrypted_password: string | null
           from_email: string
           created_at: string
           updated_at: string
@@ -281,7 +281,7 @@ export interface Database {
           port: number
           secure?: boolean
           username?: string | null
-          password?: string | null
+          encrypted_password?: string | null
           from_email: string
           created_at?: string
           updated_at?: string
@@ -294,7 +294,7 @@ export interface Database {
           port?: number
           secure?: boolean
           username?: string | null
-          password?: string | null
+          encrypted_password?: string | null
           from_email?: string
           created_at?: string
           updated_at?: string

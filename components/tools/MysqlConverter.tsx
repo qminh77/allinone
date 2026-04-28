@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, Database, Trash } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
+import { recordsToCsv } from '@/lib/client/spreadsheet'
 
 interface MysqlConverterProps {
     slug: string
@@ -169,8 +169,7 @@ export function MysqlConverter({ slug, title, description }: MysqlConverterProps
             case 'csv': {
                 const data = parseSqlInsert(content);
                 if (data.length === 0) return '';
-                const worksheet = XLSX.utils.json_to_sheet(data);
-                return XLSX.utils.sheet_to_csv(worksheet);
+                return recordsToCsv(data);
             }
             case 'xml': {
                 const data = parseSqlInsert(content);

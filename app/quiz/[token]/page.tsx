@@ -59,8 +59,13 @@ export default async function PublicQuizPage({ params }: PageProps) {
     if (quiz.quiz_questions) {
         quiz.quiz_questions.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
         quiz.quiz_questions.forEach((q: any) => {
+            q.explanation = null
             if (q.quiz_answers) {
                 q.quiz_answers.sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0))
+                q.quiz_answers = q.quiz_answers.map((answer: any) => ({
+                    ...answer,
+                    is_correct: false,
+                }))
             }
         })
     }
@@ -72,7 +77,7 @@ export default async function PublicQuizPage({ params }: PageProps) {
                 description={quiz.description || "Làm bài trắc nghiệm"}
                 icon={Play}
             >
-                <QuizPlayer quiz={quiz as any} />
+                <QuizPlayer quiz={quiz as any} revealAnswers={false} accessToken={token} />
             </ToolShell>
         </div>
     )

@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { modules } from '@/config/modules'
-import { Database } from '@/types/database'
+import { requireAdmin } from '@/lib/auth/authorization-middleware'
 
 // Helper to get all module keys
 export async function getModuleStatuses() {
@@ -40,31 +40,24 @@ export async function getModuleStatuses() {
 }
 
 export async function toggleModuleStatus(moduleKey: string, enabled: boolean) {
+    const user = await requireAdmin()
     const supabase = await createClient()
+
+    if (!modules.some(moduleItem => moduleItem.key === moduleKey)) {
+        return { error: 'Unknown module key' }
+    }
 
     const dbKey = `module:${moduleKey}:enabled`
     const value = { enabled, updated_at: new Date().toISOString() }
 
-    // Check if exists
-    const { data } = await supabase
-        .from('settings')
-        .select('key')
-        .eq('key', dbKey)
-        .single()
-
-    let error
-    if (data) {
-        const { error: updateError } = await (supabase
-            .from('settings') as any)
-            .update({ value: value })
-            .eq('key', dbKey)
-        error = updateError
-    } else {
-        const { error: insertError } = await (supabase
-            .from('settings') as any)
-            .insert({ key: dbKey, value: value })
-        error = insertError
-    }
+    const { error } = await (supabase
+        .from('settings') as any)
+        .upsert({
+            key: dbKey,
+            value,
+            description: `Enable/disable module ${moduleKey}`,
+            updated_by: user.id,
+        }, { onConflict: 'key' })
 
     if (error) return { error: error.message }
 

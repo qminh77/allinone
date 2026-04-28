@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
@@ -46,8 +45,16 @@ export async function getUsers() {
         .limit(1000) // Limit scanning for now
 
     // Map logs to users
-    const usersWithLogs = users.map((user: any) => {
-        const lastLogin = logs?.find((log: any) => log.user_id === user.id)
+    const userRows = (users || []) as any[]
+    const loginLogs = (logs || []) as Array<{
+        user_id: string | null
+        ip_address: string | null
+        user_agent: string | null
+        created_at: string
+    }>
+
+    const usersWithLogs = userRows.map((user: any) => {
+        const lastLogin = loginLogs.find((log) => log.user_id === user.id)
         return {
             ...user,
             last_ip: lastLogin?.ip_address,
@@ -114,8 +121,8 @@ export async function createUser(formData: FormData) {
 
         // Create user profile
         const supabase = await createClient()
-        const { error: profileError } = await supabase
-            .from('user_profiles' as any)
+        const { error: profileError } = await (supabase
+            .from('user_profiles' as any) as any)
             .insert({
                 id: authData.user.id,
                 full_name: fullName,
@@ -144,8 +151,8 @@ export async function updateUser(id: string, formData: FormData) {
     const isActive = formData.get('is_active') === 'true'
 
     const supabase = await createClient()
-    const { error } = await supabase
-        .from('user_profiles' as any)
+    const { error } = await (supabase
+        .from('user_profiles' as any) as any)
         .update({
             full_name: fullName,
             role_id: roleId,

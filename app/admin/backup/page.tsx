@@ -130,7 +130,7 @@ export default async function AdminBackupPage() {
                         <div className="text-center py-12 text-muted-foreground">
                             <Database className="h-12 w-12 mx-auto mb-4 opacity-20" />
                             <p>Chưa có backup nào</p>
-                            <p className="text-sm mt-1">Click "Tạo Backup Mới" để bắt đầu</p>
+                            <p className="text-sm mt-1">Click &quot;Tạo Backup Mới&quot; để bắt đầu</p>
                         </div>
                     )}
                 </CardContent>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
@@ -10,7 +9,7 @@ export async function getPermissions() {
     const supabase = await createClient()
 
     const { data } = await supabase
-        .from('permissions' as any)
+        .from('permissions')
         .select('*')
         .order('module')
         .order('name')
@@ -23,7 +22,7 @@ export async function getPermission(id: string) {
     const supabase = await createClient()
 
     const { data } = await supabase
-        .from('permissions' as any)
+        .from('permissions')
         .select('*')
         .eq('id', id)
         .single()
@@ -37,7 +36,7 @@ export async function createPermission(formData: FormData) {
     const key = formData.get('key') as string
     const name = formData.get('name') as string
     const description = formData.get('description') as string
-    const module = formData.get('module') as string
+    const moduleKey = formData.get('module') as string
 
     if (!key || !name) {
         return { error: 'Permission key and name are required' }
@@ -46,7 +45,7 @@ export async function createPermission(formData: FormData) {
     const supabase = await createClient()
 
     const { data: existing } = await supabase
-        .from('permissions' as any)
+        .from('permissions')
         .select('id')
         .eq('key', key)
         .single()
@@ -55,13 +54,13 @@ export async function createPermission(formData: FormData) {
         return { error: 'Permission key already exists' }
     }
 
-    await supabase
-        .from('permissions' as any)
+    await (supabase
+        .from('permissions') as any)
         .insert({
             key,
             name,
             description: description || null,
-            module: module || null
+            module: moduleKey || null
         } as any)
 
     revalidatePath('/admin/permissions')
@@ -73,16 +72,16 @@ export async function updatePermission(id: string, formData: FormData) {
 
     const name = formData.get('name') as string
     const description = formData.get('description') as string
-    const module = formData.get('module') as string
+    const moduleKey = formData.get('module') as string
 
     const supabase = await createClient()
 
-    await supabase
-        .from('permissions' as any)
+    await (supabase
+        .from('permissions') as any)
         .update({
             name,
             description: description || null,
-            module: module || null
+            module: moduleKey || null
         } as any)
         .eq('id', id)
 
@@ -96,7 +95,7 @@ export async function deletePermission(id: string) {
     const supabase = await createClient()
 
     const { data: rolePerms } = await supabase
-        .from('role_permissions' as any)
+        .from('role_permissions')
         .select('id')
         .eq('permission_id', id)
         .limit(1)
@@ -105,8 +104,8 @@ export async function deletePermission(id: string) {
         return { error: 'Cannot delete permission assigned to roles' }
     }
 
-    await supabase
-        .from('permissions' as any)
+    await (supabase
+        .from('permissions') as any)
         .delete()
         .eq('id', id)
 

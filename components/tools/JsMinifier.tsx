@@ -16,7 +16,7 @@ export function JsMinifier() {
         if (!input) return
 
         // Basic JS minification regex (Use with caution for complex JS)
-        let minified = input
+        const minified = input
             .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
             .replace(/\/\/.*/g, '') // Remove single-line comments
             .replace(/\s+/g, ' ') // Collapse whitespace

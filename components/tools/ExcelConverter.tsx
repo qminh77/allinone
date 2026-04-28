@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileSpreadsheet, FileWarning } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import { toast } from 'sonner'
+import { readSpreadsheetRows, recordsToHtmlTable, rowsToCsv, rowsToRecords, type TableRow } from '@/lib/client/spreadsheet'
 
 interface ExcelConverterProps {
     slug: string
@@ -26,8 +26,8 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
         const file = e.target.files?.[0]
         if (!file) return
 
-        if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
-            toast.error('Vui lòng tải lên file Excel (.xlsx, .xls) hoặc CSV')
+        if (!file.name.match(/\.(xlsx|csv)$/i)) {
+            toast.error('Vui lòng tải lên file Excel (.xlsx) hoặc CSV')
             return
         }
 
@@ -35,18 +35,11 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
         setFileName(file.name)
 
         try {
-            const data = await file.arrayBuffer()
-            const workbook = XLSX.read(data)
-
-            // Assume first sheet
-            const sheetName = workbook.SheetNames[0]
-            const worksheet = workbook.Sheets[sheetName]
-
-            // Convert to JSON for processing
-            const jsonData = XLSX.utils.sheet_to_json(worksheet)
+            const rows = await readSpreadsheetRows(file)
+            const jsonData = rowsToRecords(rows)
 
             // Process based on slug
-            const result = convertData(jsonData, slug, worksheet) // Pass worksheet for more complex extractions if needed
+            const result = convertData(jsonData, slug, rows)
             setOutputContent(result)
             toast.success('Chuyển đổi thành công!')
         } catch (error) {
@@ -57,7 +50,7 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
         }
     }
 
-    const convertData = (data: any[], slug: string, worksheet: XLSX.WorkSheet): string => {
+    const convertData = (data: any[], slug: string, tableRows: TableRow[]): string => {
         const targetFormat = slug.replace('excel-to-', '')
 
         switch (targetFormat) {
@@ -72,15 +65,16 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
                 const values = data.map(row => {
                     const rowValues = columns.map(col => {
                         const val = row[col]
+                        if (val === null || val === undefined) return 'NULL'
                         return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val
                     })
                     return `(${rowValues.join(', ')})`
                 }).join(',\n')
                 return `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES\n${values};`
             case 'csv':
-                return XLSX.utils.sheet_to_csv(worksheet)
+                return rowsToCsv(tableRows)
             case 'html':
-                return XLSX.utils.sheet_to_html(worksheet)
+                return recordsToHtmlTable(data)
             case 'xml':
                 return data.map(row => {
                     return `  <row>\n${Object.entries(row).map(([k, v]) => `    <${k}>${v}</${k}>`).join('\n')}\n  </row>`
@@ -141,7 +135,7 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
                     <CardHeader>
                         <CardTitle>1. Tải lên file Excel</CardTitle>
                         <CardDescription>
-                            Chấp nhận định dạng .xlsx, .xls, .csv
+                            Chấp nhận định dạng .xlsx, .csv
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -156,14 +150,14 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
                                         <span className="font-semibold">Click để tải lên</span> hoặc kéo thả
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        XLSX, XLS hoặc CSV (MAX. 10MB)
+                                        XLSX hoặc CSV (MAX. 10MB)
                                     </p>
                                 </div>
                                 <input
                                     id="dropzone-file"
                                     type="file"
                                     className="hidden"
-                                    accept=".xlsx, .xls, .csv"
+                                    accept=".xlsx, .csv"
                                     onChange={handleFileUpload}
                                 />
                             </Label>

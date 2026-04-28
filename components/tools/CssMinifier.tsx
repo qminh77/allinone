@@ -15,7 +15,7 @@ export function CssMinifier() {
     const handleMinify = () => {
         if (!input) return
 
-        let minified = input
+        const minified = input
             .replace(/\/\*[\s\S]*?\*\//g, '') // Remove comments
             .replace(/\s+/g, ' ') // Collapse whitespace
             .replace(/\s*([\{\}\:\;\,])\s*/g, '$1') // Remove space around separators

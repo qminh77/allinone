@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileSpreadsheet, Trash } from 'lucide-react'
 import { toast } from 'sonner'
-import * as XLSX from 'xlsx'
+import { parseCsvRows, recordsToHtmlTable, rowsToCsv, rowsToRecords, type TableRow } from '@/lib/client/spreadsheet'
 
 interface CsvConverterProps {
     slug: string
@@ -51,13 +51,9 @@ export function CsvConverter({ slug, title, description }: CsvConverterProps) {
     const processConversion = (content: string) => {
         setIsProcessing(true)
         try {
-            // Use XLSX to parse CSV string for robustness
-            const workbook = XLSX.read(content, { type: 'string' })
-            const sheetName = workbook.SheetNames[0]
-            const worksheet = workbook.Sheets[sheetName]
-            const jsonData = XLSX.utils.sheet_to_json(worksheet)
-
-            const result = convertData(jsonData, slug, worksheet)
+            const rows = parseCsvRows(content)
+            const jsonData = rowsToRecords(rows)
+            const result = convertData(jsonData, slug, rows)
             setOutputContent(result)
         } catch (error) {
             console.error(error)
@@ -67,7 +63,7 @@ export function CsvConverter({ slug, title, description }: CsvConverterProps) {
         }
     }
 
-    const convertData = (data: any[], slug: string, worksheet: XLSX.WorkSheet): string => {
+    const convertData = (data: any[], slug: string, csvRows: TableRow[]): string => {
         const targetFormat = slug.replace('csv-to-', '')
 
         switch (targetFormat) {
@@ -91,9 +87,9 @@ export function CsvConverter({ slug, title, description }: CsvConverterProps) {
             }
             case 'csv':
                 // Re-formatting/cleaning
-                return XLSX.utils.sheet_to_csv(worksheet)
+                return rowsToCsv(csvRows)
             case 'html':
-                return XLSX.utils.sheet_to_html(worksheet)
+                return recordsToHtmlTable(data)
             case 'xml':
                 return data.map(row => {
                     return `  <row>\n${Object.entries(row).map(([k, v]) => `    <${k}>${v}</${k}>`).join('\n')}\n  </row>`

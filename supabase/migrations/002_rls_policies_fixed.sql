@@ -50,6 +50,8 @@ $$;
 -- RLS cho USER_PROFILES
 -- ========================================
 
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
 -- Policy: User chỉ xem được profile của mình
 CREATE POLICY "Users can view own profile"
   ON user_profiles FOR SELECT
@@ -74,6 +76,8 @@ CREATE POLICY "Admins can update all profiles"
 -- RLS cho ROLES
 -- ========================================
 
+ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+
 -- Tất cả user đều có thể đọc roles (để hiển thị UI)
 CREATE POLICY "Anyone can view roles"
   ON roles FOR SELECT
@@ -87,6 +91,8 @@ CREATE POLICY "Only admins can modify roles"
 -- ========================================
 -- RLS cho PERMISSIONS
 -- ========================================
+
+ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 
 -- Tất cả user đều có thể đọc permissions
 CREATE POLICY "Anyone can view permissions"
@@ -102,6 +108,8 @@ CREATE POLICY "Only admins can modify permissions"
 -- RLS cho ROLE_PERMISSIONS
 -- ========================================
 
+ALTER TABLE role_permissions ENABLE ROW LEVEL SECURITY;
+
 -- Tất cả user đều có thể đọc (để check quyền)
 CREATE POLICY "Anyone can view role permissions"
   ON role_permissions FOR SELECT
@@ -115,6 +123,8 @@ CREATE POLICY "Only admins can modify role permissions"
 -- ========================================
 -- RLS cho MODULES
 -- ========================================
+
+ALTER TABLE modules ENABLE ROW LEVEL SECURITY;
 
 -- Tất cả user đều có thể đọc modules
 CREATE POLICY "Anyone can view modules"
@@ -130,6 +140,8 @@ CREATE POLICY "Only admins can modify modules"
 -- RLS cho SETTINGS
 -- ========================================
 
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+
 -- Tất cả user đều có thể đọc settings
 CREATE POLICY "Anyone can view settings"
   ON settings FOR SELECT
@@ -144,6 +156,8 @@ CREATE POLICY "Only admins can modify settings"
 -- RLS cho AUDIT_LOGS
 -- ========================================
 
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
 -- User chỉ xem được logs của mình
 CREATE POLICY "Users can view own logs"
   ON audit_logs FOR SELECT
@@ -157,6 +171,8 @@ CREATE POLICY "Admins can view all logs"
 -- ========================================
 -- RLS cho BACKUPS
 -- ========================================
+
+ALTER TABLE backups ENABLE ROW LEVEL SECURITY;
 
 -- Chỉ Admin mới xem được backups
 CREATE POLICY "Only admins can view backups"

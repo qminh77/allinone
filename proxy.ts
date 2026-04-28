@@ -1,5 +1,5 @@
 /**
- * Next.js Middleware - Authentication & Authorization
+ * Next.js Proxy - Authentication & Authorization
  * 
  * File này chạy TRƯỚC KHI vào bất kỳ page nào
  * - Kiểm tra user có đăng nhập không
@@ -12,7 +12,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { applySecurityHeaders } from '@/lib/security-headers'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
     })
@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
                     return request.cookies.getAll()
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                    cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     )
                     supabaseResponse = NextResponse.next({
@@ -40,14 +40,12 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    // OPTIMIZATION: Use getSession() instead of getUser() for performance (saves ~200-500ms)
-    // getUser() is safer (validates token with server) but slower.
-    // getSession() just parses the cookie.
+    // Validate the session with Supabase Auth. This costs one auth call, but avoids
+    // trusting a stale or tampered cookie for protected and admin routes.
     const {
-        data: { session },
-    } = await supabase.auth.getSession()
+        data: { user },
+    } = await supabase.auth.getUser()
 
-    const user = session?.user
 
     const { pathname } = request.nextUrl
 
@@ -75,20 +73,18 @@ export async function middleware(request: NextRequest) {
         const origin = request.headers.get('origin')
         const host = request.headers.get('host')
 
-        // Skip check if no origin (e.g. server-to-server or non-browser)
-        // STRICT MODE: Uncomment following line to enforce origin presence
-        // if (!origin) return new NextResponse('Forbidden: Missing Origin', { status: 403 })
+        if (!origin) {
+            return new NextResponse('Forbidden: Missing Origin', { status: 403 })
+        }
 
-        if (origin) {
-            try {
-                const originUrl = new URL(origin)
-                // Allow requests from same host
-                if (originUrl.host !== host) {
-                    return new NextResponse('Forbidden: CSRF Check Failed', { status: 403 })
-                }
-            } catch {
-                return new NextResponse('Forbidden: Invalid Origin', { status: 403 })
+        try {
+            const originUrl = new URL(origin)
+            // Allow requests from same host
+            if (originUrl.host !== host) {
+                return new NextResponse('Forbidden: CSRF Check Failed', { status: 403 })
             }
+        } catch {
+            return new NextResponse('Forbidden: Invalid Origin', { status: 403 })
         }
     }
 
@@ -108,8 +104,8 @@ export async function middleware(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
-        // @ts-ignore - role is a joined object
-        if (!profile?.role || profile.role.name !== 'Admin') {
+        const role = Array.isArray(profile?.role) ? profile.role[0] : profile?.role
+        if (!role || role.name !== 'Admin') {
             const url = request.nextUrl.clone()
             url.pathname = '/dashboard'
             return NextResponse.redirect(url)

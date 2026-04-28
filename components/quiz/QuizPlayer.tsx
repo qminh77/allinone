@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { submitQuizAttempt, type Quiz, type Question, type Answer } from '@/lib/actions/quiz'
+import { submitQuizAttempt, type Quiz, type Question, type QuizReviewItem } from '@/lib/actions/quiz'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -30,6 +29,8 @@ import {
 
 interface QuizPlayerProps {
     quiz: Quiz & { questions: Question[] }
+    revealAnswers?: boolean
+    accessToken?: string
 }
 
 interface QuizConfig {
@@ -42,7 +43,7 @@ interface QuizConfig {
 
 type QuizStatus = 'setup' | 'playing' | 'finished'
 
-export function QuizPlayer({ quiz }: QuizPlayerProps) {
+export function QuizPlayer({ quiz, revealAnswers = true, accessToken }: QuizPlayerProps) {
     // --- State: Config & Flow ---
     const [status, setStatus] = useState<QuizStatus>('setup')
     const [config, setConfig] = useState<QuizConfig>({
@@ -59,7 +60,7 @@ export function QuizPlayer({ quiz }: QuizPlayerProps) {
     const [timeLeft, setTimeLeft] = useState(0) // in seconds
     const [currentQIndex, setCurrentQIndex] = useState(0)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [result, setResult] = useState<{ score: number, total: number, attemptId: string } | null>(null)
+    const [result, setResult] = useState<{ score: number, total: number, attemptId: string, review: QuizReviewItem[] } | null>(null)
     const [practiceChecks, setPracticeChecks] = useState<Record<string, boolean>>({}) // questionId -> isChecked
 
     // --- State: UI ---
@@ -166,7 +167,7 @@ export function QuizPlayer({ quiz }: QuizPlayerProps) {
                 answerIds: aIds
             }))
 
-            const res = await submitQuizAttempt(quiz.id, payload)
+            const res = await submitQuizAttempt(quiz.id, payload, accessToken)
             if (res.error) {
                 toast.error(res.error)
             } else {
@@ -174,7 +175,8 @@ export function QuizPlayer({ quiz }: QuizPlayerProps) {
                 setResult({
                     score: res.score || 0,
                     total: res.totalQuestions || 0,
-                    attemptId: res.attemptId || ''
+                    attemptId: res.attemptId || '',
+                    review: res.review || []
                 })
                 setStatus('finished')
             }
@@ -213,8 +215,10 @@ export function QuizPlayer({ quiz }: QuizPlayerProps) {
         const isChecked = config.mode === 'practice' && practiceChecks[q.id]
 
         const showFeedback = isReview || isChecked
+        const reviewItem = result?.review.find(item => item.questionId === q.id)
 
-        const correctAnswers = q.answers?.filter(a => a.is_correct).map(a => a.id) || []
+        const correctAnswers = reviewItem?.correctAnswerIds ||
+            (revealAnswers ? q.answers?.filter(a => a.is_correct).map(a => a.id) || [] : [])
         const isCorrect = userSelected.length > 0 &&
             (q.type === 'single'
                 ? correctAnswers.includes(userSelected[0])
@@ -288,11 +292,11 @@ export function QuizPlayer({ quiz }: QuizPlayerProps) {
 
                     {showFeedback && (
                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                            {q.explanation && (
+                            {(reviewItem?.explanation || q.explanation) && (
                                 <Alert variant="default" className="bg-muted text-muted-foreground border-none">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertTitle>Giải thích</AlertTitle>
-                                    <AlertDescription className="mt-1">{q.explanation}</AlertDescription>
+                                    <AlertDescription className="mt-1">{reviewItem?.explanation || q.explanation}</AlertDescription>
                                 </Alert>
                             )}
                         </div>
@@ -319,9 +323,9 @@ export function QuizPlayer({ quiz }: QuizPlayerProps) {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <Tabs defaultValue="exam" onValueChange={(v) => setConfig({ ...config, mode: v as 'exam' | 'practice' })}>
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className={revealAnswers ? "grid w-full grid-cols-2" : "grid w-full grid-cols-1"}>
                             <TabsTrigger value="exam">Chế độ Thi</TabsTrigger>
-                            <TabsTrigger value="practice">Chế độ Luyện tập</TabsTrigger>
+                            {revealAnswers && <TabsTrigger value="practice">Chế độ Luyện tập</TabsTrigger>}
                         </TabsList>
 
                         <div className="mt-6 space-y-6">
@@ -395,12 +399,14 @@ export function QuizPlayer({ quiz }: QuizPlayerProps) {
                                 </div>
                             </TabsContent>
 
-                            <TabsContent value="practice" className="mt-0">
-                                <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm border border-blue-100 flex gap-2">
-                                    <CheckCircle2 className="h-4 w-4 mt-0.5" />
-                                    <div>Trong chế độ luyện tập, bạn có thể kiểm tra đáp án và xem giải thích ngay sau mỗi câu hỏi.</div>
-                                </div>
-                            </TabsContent>
+                            {revealAnswers && (
+                                <TabsContent value="practice" className="mt-0">
+                                    <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm border border-blue-100 flex gap-2">
+                                        <CheckCircle2 className="h-4 w-4 mt-0.5" />
+                                        <div>Trong chế độ luyện tập, bạn có thể kiểm tra đáp án và xem giải thích ngay sau mỗi câu hỏi.</div>
+                                    </div>
+                                </TabsContent>
+                            )}
                         </div>
                     </Tabs>
                 </CardContent>

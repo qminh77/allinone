@@ -73,7 +73,6 @@ export function PDFToImage({ slug, title, description }: PdfToImageProps) {
                 await page.render({
                     canvasContext: context,
                     viewport: viewport,
-                    // @ts-ignore
                     canvas: canvas
                 }).promise
 

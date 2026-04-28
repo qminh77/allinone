@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -29,19 +29,22 @@ const COLORS = [
     '#EC4899', // pink-500
 ]
 
+function getRandomInt(maxExclusive: number) {
+    return Math.floor(Math.random() * maxExclusive)
+}
+
 export function SpinWheel() {
     const [input, setInput] = useState('Apple\nBanana\nOrange\nMango\nGrape\nStrawberry')
-    const [items, setItems] = useState<string[]>([])
     const [isSpinning, setIsSpinning] = useState(false)
     const [rotation, setRotation] = useState(0)
     const [winner, setWinner] = useState<string | null>(null)
     const [showRemoveDialog, setShowRemoveDialog] = useState(false)
     const wheelRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0)
-        setItems(lines)
-    }, [input])
+    const items = useMemo(
+        () => input.split('\n').map(line => line.trim()).filter(line => line.length > 0),
+        [input]
+    )
 
     const handleSpin = () => {
         if (isSpinning || items.length === 0) return
@@ -53,8 +56,8 @@ export function SpinWheel() {
         // Random rotation between 360 * 5 (5 spins) and 360 * 10 (10 spins) + random offset
         const minSpins = 5
         const maxSpins = 10
-        const randomDegree = Math.floor(Math.random() * 360)
-        const totalRotation = rotation + (360 * minSpins) + (Math.floor(Math.random() * (360 * (maxSpins - minSpins))) + randomDegree)
+        const randomDegree = getRandomInt(360)
+        const totalRotation = rotation + (360 * minSpins) + (getRandomInt(360 * (maxSpins - minSpins)) + randomDegree)
 
         // Ensure we land on a segment clearly (optional, but good for precise UI)
         // The wheel spins clockwise. The pointer is usually at 0 (top) or 90 (right).

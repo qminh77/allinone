@@ -98,7 +98,7 @@ Diff Viewer, Color Picker, Unit Converter, Image Converter, PDF Tools, Spin Whee
 ## Quick Start
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) v18+
+- [Node.js](https://nodejs.org/) v20.9+
 - [npm](https://www.npmjs.com/) or `yarn`/`pnpm`
 - **Option 1: Local Development** - [Docker](https://www.docker.com/) for Supabase Local ⚡ (Recommended)
 - **Option 2: Cloud** - [Supabase](https://supabase.com/) account (free tier works!)
@@ -111,7 +111,7 @@ git clone https://github.com/qminh77/allinone.git
 cd allinone
 
 # Install dependencies
-npm install
+npm ci
 ```
 
 ### Setup (Choose One)
@@ -122,20 +122,23 @@ npm install
 
 ```bash
 # Install Supabase CLI
-wget -q https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz -O /tmp/supabase.tar.gz
-tar -xzf /tmp/supabase.tar.gz -C /tmp
-sudo mv /tmp/supabase /usr/local/bin/
+# macOS:
+brew install supabase/tap/supabase
 
 # Start Supabase local (first time takes 10-15 min to download Docker images)
 supabase start
 
+# Apply migrations and seed baseline data
+supabase db reset
+
 # Copy environment template
 cp env.template .env.local
 
-# Edit .env.local - uncomment local development section:
+# Edit .env.local - use values from `supabase status`:
 # NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 # NEXT_PUBLIC_SUPABASE_ANON_KEY=<from-supabase-start-output>
 # SUPABASE_SERVICE_ROLE_KEY=<from-supabase-start-output>
+# ENCRYPTION_KEY=<openssl rand -hex 32>
 
 # Run development server
 npm run dev
@@ -160,9 +163,20 @@ cp env.template .env.local
 # NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 # NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 # SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# ENCRYPTION_KEY=<openssl rand -hex 32>
 
-# Run migrations in Supabase SQL Editor (supabase/migrations/)
+# Apply migrations using Supabase CLI or run supabase/migrations in SQL Editor
 ```
+
+### Backend Mode
+
+The app supports both Supabase Local and Supabase Cloud. `supabase/config.toml` is only for local Supabase services. The active backend is selected by `.env.local`:
+
+- `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321` uses local Supabase.
+- `NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co` uses the hosted Supabase API.
+- `SUPABASE_SERVICE_ROLE_KEY` must stay server-only. Never expose it in client components.
+- `ENCRYPTION_KEY` is required for encrypted SMTP passwords.
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` enable production-grade rate limiting.
 
 ### Run Development Server
 

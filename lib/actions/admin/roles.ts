@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
@@ -62,8 +61,8 @@ export async function createRole(formData: FormData) {
     }
 
     const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('roles' as any)
+    const { data, error } = await (supabase
+        .from('roles' as any) as any)
         .insert({
             name,
             description: description || null
@@ -85,8 +84,8 @@ export async function updateRole(id: string, formData: FormData) {
 
     const supabase = await createClient()
 
-    await supabase
-        .from('roles' as any)
+    await (supabase
+        .from('roles' as any) as any)
         .update({
             name,
             description: description || null
@@ -127,8 +126,8 @@ export async function deleteRole(id: string) {
         return { error: 'Cannot delete role with active users' }
     }
 
-    const { error } = await supabase
-        .from('roles' as any)
+    const { error } = await (supabase
+        .from('roles' as any) as any)
         .delete()
         .eq('id', id)
 
@@ -156,8 +155,8 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
     const supabase = await createClient()
 
     // Delete existing permissions
-    await supabase
-        .from('role_permissions' as any)
+    await (supabase
+        .from('role_permissions' as any) as any)
         .delete()
         .eq('role_id', roleId)
 
@@ -168,8 +167,8 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
             permission_id: permId
         }))
 
-        const { error } = await supabase
-            .from('role_permissions' as any)
+        const { error } = await (supabase
+            .from('role_permissions' as any) as any)
             .insert(rolePermissions as any)
 
         if (error) return { error: error.message }

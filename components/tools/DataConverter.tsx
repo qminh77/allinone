@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -37,18 +37,14 @@ const units = [
 export function DataConverter() {
     const [inputValue, setInputValue] = useState('')
     const [inputUnit, setInputUnit] = useState('byte')
-    const [bitValue, setBitValue] = useState(0)
 
-    useEffect(() => {
+    const bitValue = useMemo(() => {
         const val = parseFloat(inputValue)
         if (isNaN(val)) {
-            setBitValue(0)
-            return
+            return 0
         }
         const unit = units.find(u => u.value === inputUnit)
-        if (unit) {
-            setBitValue(val * unit.ratio)
-        }
+        return unit ? val * unit.ratio : 0
     }, [inputValue, inputUnit])
 
     const format = (bits: number, targetUnitValue: string) => {

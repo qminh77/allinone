@@ -1,6 +1,7 @@
 'use server'
 
 import net from 'net'
+import { DomainSchema } from '@/lib/validation'
 
 export interface WhoisResult {
     raw: string
@@ -73,7 +74,18 @@ export async function performWhoisLookup(domain: string): Promise<WhoisLookupRes
         if (!domain) return { success: false, error: 'Domain is required' }
 
         // Sanitize
-        const cleanDomain = domain.trim().replace(/^https?:\/\//, '').replace(/\/$/, '')
+        let cleanDomain = domain.trim()
+        if (/^https?:\/\//i.test(cleanDomain)) {
+            cleanDomain = new URL(cleanDomain).hostname
+        } else {
+            cleanDomain = cleanDomain.split('/')[0]
+        }
+        cleanDomain = cleanDomain.toLowerCase()
+
+        const validation = DomainSchema.safeParse(cleanDomain)
+        if (!validation.success) {
+            return { success: false, error: validation.error.issues[0].message }
+        }
 
         // 1. Query IANA/Root first to find TLD server
         // Logic: Most TLDs are handled by IANA whois first which refers to specific TLD WHOIS
@@ -85,7 +97,7 @@ export async function performWhoisLookup(domain: string): Promise<WhoisLookupRes
 
         // Check for referral
         // Pattern: "refer: whois.nic.google" or "whois: whois.verisign-grs.com"
-        let referMatch = rawData.match(/refer:\s*(.+)/i) || rawData.match(/whois:\s*(.+)/i)
+        const referMatch = rawData.match(/refer:\s*(.+)/i) || rawData.match(/whois:\s*(.+)/i)
 
         if (referMatch) {
             currentServer = referMatch[1].trim()
