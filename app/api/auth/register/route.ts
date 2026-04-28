@@ -5,11 +5,12 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient, isAdminClientConfigured } from '@/lib/supabase/admin'
 import { createAuditLog, getRequestInfo } from '@/lib/audit/log'
 import { sanitizeErrorMessage, logError } from '@/lib/error-handling'
 import { validatePasswordStrength } from '@/lib/password-policy'
 import { checkRateLimit, getClientIdentifier, RateLimits } from '@/lib/rate-limit'
+import { resolveBootstrapRoleId } from '@/lib/auth/bootstrap'
 
 export async function POST(request: Request) {
     try {
@@ -56,11 +57,56 @@ export async function POST(request: Request) {
             )
         }
 
-        // Tạo user trong Supabase Auth
+        if (!isAdminClientConfigured()) {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        full_name: fullName || undefined,
+                    },
+                },
+            })
+
+            if (signUpError) {
+                if (signUpError.message?.includes('already registered') || signUpError.message?.includes('already been registered')) {
+                    return NextResponse.json(
+                        { error: 'Email này đã được sử dụng. Vui lòng đăng nhập.' },
+                        { status: 400 }
+                    )
+                }
+
+                return NextResponse.json(
+                    { error: signUpError.message || 'Không thể tạo tài khoản' },
+                    { status: 400 }
+                )
+            }
+
+            const { ipAddress, userAgent } = getRequestInfo(request)
+            await createAuditLog({
+                userId: signUpData.user?.id,
+                action: 'register',
+                metadata: { email, full_name: fullName, role: 'trigger-managed' },
+                ipAddress,
+                userAgent,
+            })
+
+            return NextResponse.json({
+                success: true,
+                message: 'Đăng ký thành công. Nếu Supabase bật xác thực email, vui lòng kiểm tra hộp thư trước khi đăng nhập.',
+                requiresEmailConfirmation: !signUpData.session,
+            })
+        }
+
+        // Tạo user trong Supabase Auth bằng service role để auto-confirm.
         const adminClient = createAdminClient()
+
         const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
             email,
             password,
+            user_metadata: {
+                full_name: fullName || undefined,
+            },
             email_confirm: true, // Auto confirm email
         })
 
@@ -81,22 +127,17 @@ export async function POST(request: Request) {
             )
         }
 
-        // Lấy role "User" mặc định
-        const { data: defaultRole } = (await adminClient
-            .from('roles')
-            .select('id')
-            .eq('name', 'User')
-            .single()) as { data: any }
+        const { roleId, roleName } = await resolveBootstrapRoleId(adminClient as any, email)
 
         // Tạo profile trong user_profiles
         const { error: profileError } = await adminClient
             .from('user_profiles')
-            .insert({
+            .upsert({
                 id: authData.user.id,
                 full_name: fullName || null,
-                role_id: defaultRole?.id || null,
+                role_id: roleId || null,
                 is_active: true,
-            } as any)
+            } as any, { onConflict: 'id' })
 
         if (profileError) {
             console.error('Error creating profile:', profileError)
@@ -109,7 +150,7 @@ export async function POST(request: Request) {
         await createAuditLog({
             userId: authData.user.id,
             action: 'register',
-            metadata: { email, full_name: fullName },
+            metadata: { email, full_name: fullName, role: roleName },
             ipAddress,
             userAgent,
         })

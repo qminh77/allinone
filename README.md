@@ -139,6 +139,7 @@ cp env.template .env.local
 # NEXT_PUBLIC_SUPABASE_ANON_KEY=<from-supabase-start-output>
 # SUPABASE_SERVICE_ROLE_KEY=<from-supabase-start-output>
 # ENCRYPTION_KEY=<openssl rand -hex 32>
+# ADMIN_EMAILS=you@example.com
 
 # Run development server
 npm run dev
@@ -164,8 +165,9 @@ cp env.template .env.local
 # NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 # SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 # ENCRYPTION_KEY=<openssl rand -hex 32>
+# ADMIN_EMAILS=you@example.com
 
-# Apply migrations using Supabase CLI or run supabase/migrations in SQL Editor
+# Apply migrations using Supabase CLI or run all files in supabase/migrations in SQL Editor order
 ```
 
 ### Backend Mode
@@ -176,7 +178,12 @@ The app supports both Supabase Local and Supabase Cloud. `supabase/config.toml` 
 - `NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co` uses the hosted Supabase API.
 - `SUPABASE_SERVICE_ROLE_KEY` must stay server-only. Never expose it in client components.
 - `ENCRYPTION_KEY` is required for encrypted SMTP passwords.
+- `ADMIN_EMAILS` is optional. If no Admin profile exists, the first registered user is promoted to Admin automatically.
 - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` enable production-grade rate limiting.
+
+### File Storage
+
+Server-side tools write temporary files to `/tmp` only, then upload final outputs to the private Supabase Storage bucket `tool-files`. Run all migrations through `014_auth_bootstrap_trigger_hardening.sql` before deploying to Vercel so storage, module catalog data, and auth bootstrap are aligned.
 
 ### Run Development Server
 

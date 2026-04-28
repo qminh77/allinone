@@ -3,7 +3,7 @@
  * 
  * File này chạy TRƯỚC KHI vào bất kỳ page nào
  * - Kiểm tra user có đăng nhập không
- * - Redirect về login nếu cần
+ * - Bảo vệ admin routes sớm; dashboard auth được xử lý trong layout
  * - Bảo vệ admin routes
  * - Apply security headers
  */
@@ -16,6 +16,32 @@ export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
     })
+
+    const { pathname } = request.nextUrl
+
+    // CSRF protection does not require a Supabase round-trip.
+    if (pathname.startsWith('/api') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+        const origin = request.headers.get('origin')
+        const host = request.headers.get('host')
+
+        if (!origin) {
+            return applySecurityHeaders(request, new NextResponse('Forbidden: Missing Origin', { status: 403 }))
+        }
+
+        try {
+            const originUrl = new URL(origin)
+            if (originUrl.host !== host) {
+                return applySecurityHeaders(request, new NextResponse('Forbidden: CSRF Check Failed', { status: 403 }))
+            }
+        } catch {
+            return applySecurityHeaders(request, new NextResponse('Forbidden: Invalid Origin', { status: 403 }))
+        }
+    }
+
+    const needsAuthContext = pathname.startsWith('/admin') || pathname === '/login' || pathname === '/register'
+    if (!needsAuthContext) {
+        return applySecurityHeaders(request, supabaseResponse)
+    }
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,21 +72,6 @@ export async function proxy(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-
-    const { pathname } = request.nextUrl
-
-    // Các route public (không cần login)
-    const publicRoutes = ['/', '/login', '/register']
-    const isPublicRoute = publicRoutes.some(route => pathname === route)
-
-    // Nếu chưa login và đang truy cập route cần auth
-    if (!user && !isPublicRoute && pathname.startsWith('/dashboard')) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/login'
-        url.searchParams.set('redirect', pathname)
-        return NextResponse.redirect(url)
-    }
-
     // Nếu đã login mà vào trang login/register, redirect về dashboard
     if (user && (pathname === '/login' || pathname === '/register')) {
         const url = request.nextUrl.clone()
@@ -68,27 +79,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // ✅ CSRF Protection for API routes (state-changing requests)
-    if (pathname.startsWith('/api') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
-        const origin = request.headers.get('origin')
-        const host = request.headers.get('host')
-
-        if (!origin) {
-            return new NextResponse('Forbidden: Missing Origin', { status: 403 })
-        }
-
-        try {
-            const originUrl = new URL(origin)
-            // Allow requests from same host
-            if (originUrl.host !== host) {
-                return new NextResponse('Forbidden: CSRF Check Failed', { status: 403 })
-            }
-        } catch {
-            return new NextResponse('Forbidden: Invalid Origin', { status: 403 })
-        }
-    }
-
-    // Admin routes - kiểm tra role Admin
+    // Admin routes - kiểm tra role Admin ở proxy để chặn sớm.
     if (pathname.startsWith('/admin')) {
         if (!user) {
             const url = request.nextUrl.clone()

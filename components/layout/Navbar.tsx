@@ -17,7 +17,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { useRole } from '@/lib/permissions/hooks'
 import { Menu } from 'lucide-react'
 import {
     Sheet,
@@ -34,11 +33,11 @@ interface NavbarProps {
         fullName?: string | null
     }
     enabledModules?: Record<string, boolean>
+    isAdmin?: boolean
 }
 
-export function Navbar({ user, enabledModules }: NavbarProps) {
+export function Navbar({ user, enabledModules, isAdmin = false }: NavbarProps) {
     const router = useRouter()
-    const { isAdmin } = useRole()
     const supabase = createClient()
 
     const handleLogout = async () => {
@@ -77,16 +76,16 @@ export function Navbar({ user, enabledModules }: NavbarProps) {
                         </SheetContent>
                     </Sheet>
 
-                    <Link href="/dashboard" className="flex items-center space-x-2">
+                    <Link href="/dashboard" prefetch={false} className="flex items-center space-x-2">
                         <span className="text-xl font-bold hidden sm:inline-block">Tool Website</span>
                         <span className="text-xl font-bold sm:hidden">Tools</span>
                     </Link>
                 </div>
 
                 <div className="ml-auto flex items-center space-x-4">
-                    {isAdmin() && (
+                    {isAdmin && (
                         <Button variant="outline" asChild className="hidden sm:flex">
-                            <Link href="/admin">Admin CP</Link>
+                            <Link href="/admin" prefetch={false}>Admin CP</Link>
                         </Button>
                     )}
 
@@ -106,9 +105,9 @@ export function Navbar({ user, enabledModules }: NavbarProps) {
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {isAdmin() && (
+                            {isAdmin && (
                                 <DropdownMenuItem asChild className="sm:hidden">
-                                    <Link href="/admin">Admin CP</Link>
+                                    <Link href="/admin" prefetch={false}>Admin CP</Link>
                                 </DropdownMenuItem>
                             )}
                             <DropdownMenuItem onClick={handleLogout}>
@@ -121,4 +120,3 @@ export function Navbar({ user, enabledModules }: NavbarProps) {
         </nav>
     )
 }
-

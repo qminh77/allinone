@@ -24,14 +24,11 @@ export async function getCurrentUser(): Promise<User | null> {
 /**
  * Lấy user profile (bảng user_profiles) của user hiện tại
  */
-export async function getCurrentUserProfile(): Promise<any> {
-    const user = await getCurrentUser()
-    if (!user) return null
+export async function getCurrentUserProfile(userId?: string): Promise<any> {
+    const resolvedUserId = userId || (await getCurrentUser())?.id
+    if (!resolvedUserId) return null
 
-    // Use admin client to bypass RLS for fetching user's own profile
-    // This is safe because we already verified auth above
-    const { createAdminClient } = await import('@/lib/supabase/admin')
-    const supabase = createAdminClient()
+    const supabase = await createClient()
 
     const { data: profile, error } = await supabase
         .from('user_profiles')
@@ -39,7 +36,7 @@ export async function getCurrentUserProfile(): Promise<any> {
       *,
       role:roles(*)
     `)
-        .eq('id', user.id)
+        .eq('id', resolvedUserId)
         .single()
 
     if (error) {

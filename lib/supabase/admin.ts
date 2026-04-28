@@ -18,14 +18,42 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-export function createAdminClient() {
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY')
+function getServiceRoleKeyError(): string | null {
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+
+    if (!key || key === 'your-service-role-key-here') {
+        return 'Missing SUPABASE_SERVICE_ROLE_KEY. Set the Supabase service_role key in .env.local or Vercel environment variables.'
     }
+
+    if (key.startsWith('eyJ')) {
+        try {
+            const payload = JSON.parse(Buffer.from(key.split('.')[1], 'base64url').toString('utf8'))
+            if (payload.role && payload.role !== 'service_role') {
+                return `SUPABASE_SERVICE_ROLE_KEY must use the service_role key, not role "${payload.role}".`
+            }
+        } catch {
+            return 'SUPABASE_SERVICE_ROLE_KEY is not a valid JWT service_role key.'
+        }
+    }
+
+    return null
+}
+
+export function isAdminClientConfigured() {
+    return getServiceRoleKeyError() === null
+}
+
+export function createAdminClient() {
+    const configError = getServiceRoleKeyError()
+    if (configError) {
+        throw new Error(configError)
+    }
+
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!.trim()
 
     return createClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        serviceRoleKey,
         {
             auth: {
                 autoRefreshToken: false,

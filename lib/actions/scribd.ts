@@ -3,10 +3,12 @@
 import { scribdDownloader } from '@/lib/scribd-dl/service/ScribdDownloader.js'
 import path from 'path'
 import fs from 'fs/promises'
+import os from 'os'
+import { randomUUID } from 'crypto'
 import { requireAuthenticated } from '@/lib/auth/authorization-middleware'
 import { UrlSchema } from '@/lib/validation'
+import { uploadLocalToolFile } from '@/lib/storage/tool-files'
 
-const DOWNLOAD_DIR = path.join(process.cwd(), 'public/downloads/scribd')
 const ALLOWED_HOSTS = ['scribd.com', 'everand.com', 'slideshare.net']
 
 function isAllowedDocumentHost(hostname: string) {
@@ -14,8 +16,10 @@ function isAllowedDocumentHost(hostname: string) {
 }
 
 export async function downloadScribdDoc(url: string) {
+    let tempDir: string | null = null
+
     try {
-        await requireAuthenticated()
+        const user = await requireAuthenticated()
         if (!url) return { error: 'URL is required' }
 
         const urlValidation = UrlSchema.safeParse(url)
@@ -28,25 +32,36 @@ export async function downloadScribdDoc(url: string) {
             return { error: 'Unsupported document host' }
         }
 
-        // Ensure download directory exists
-        await fs.mkdir(DOWNLOAD_DIR, { recursive: true })
+        tempDir = path.join(os.tmpdir(), 'allinone', 'scribd', user.id, randomUUID())
+        await fs.mkdir(tempDir, { recursive: true })
 
         console.log(`[ScribdAction] Downloading: ${urlValidation.data}`)
 
         // Execute download
         const absolutePath = await scribdDownloader.execute(urlValidation.data, 'DEFAULT', {
-            outputDir: DOWNLOAD_DIR,
+            outputDir: tempDir,
             filenameMode: 'title'
         })
 
-        // Convert absolute path to public URL
         const fileName = path.basename(absolutePath)
-        const publicUrl = `/downloads/scribd/${fileName}`
+        const uploaded = await uploadLocalToolFile({
+            userId: user.id,
+            moduleKey: 'scribd-downloader',
+            localPath: absolutePath,
+            filename: fileName,
+            mimeType: 'application/pdf',
+            kind: 'output',
+            expiresIn: 60 * 60,
+        })
 
-        return { success: true, url: publicUrl, filename: fileName }
+        return { success: true, url: uploaded.signedUrl, filename: uploaded.filename, storagePath: uploaded.storagePath }
 
     } catch (error: any) {
         console.error('[ScribdAction] Error:', error)
         return { error: `Download failed: ${error.message}` }
+    } finally {
+        if (tempDir) {
+            await fs.rm(tempDir, { recursive: true, force: true }).catch(() => undefined)
+        }
     }
 }

@@ -4,10 +4,14 @@ import { useState } from 'react'
 import { modules, categories } from '@/config/modules'
 import { ModuleCard } from './ModuleCard'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
+
+const DEFAULT_CATEGORY_LIMIT = 12
 
 export function DashboardShell({ enabledModules }: { enabledModules?: Record<string, boolean> }) {
     const [searchQuery, setSearchQuery] = useState('')
+    const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
     // Filter modules based on search AND enabled status
     const filteredModules = modules.filter(m => {
@@ -56,6 +60,12 @@ export function DashboardShell({ enabledModules }: { enabledModules?: Record<str
                     sortedActiveCategories.map(categoryKey => {
                         const categoryName = categories.find(c => c.key === categoryKey)?.name || categoryKey
                         const categoryModules = filteredModules.filter(m => m.category === categoryKey)
+                        const isSearching = searchQuery.trim().length > 0
+                        const isExpanded = expandedCategories[categoryKey]
+                        const visibleModules = isSearching || isExpanded
+                            ? categoryModules
+                            : categoryModules.slice(0, DEFAULT_CATEGORY_LIMIT)
+                        const hiddenCount = categoryModules.length - visibleModules.length
 
                         return (
                             <div key={categoryKey} className="space-y-4">
@@ -66,10 +76,19 @@ export function DashboardShell({ enabledModules }: { enabledModules?: Record<str
                                     </span>
                                 </div>
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {categoryModules.map(module => (
+                                    {visibleModules.map(module => (
                                         <ModuleCard key={module.key} module={module} />
                                     ))}
                                 </div>
+                                {hiddenCount > 0 && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setExpandedCategories(prev => ({ ...prev, [categoryKey]: true }))}
+                                    >
+                                        Hiển thị thêm {hiddenCount} công cụ
+                                    </Button>
+                                )}
                             </div>
                         )
                     })

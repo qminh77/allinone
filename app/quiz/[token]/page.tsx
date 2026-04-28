@@ -16,8 +16,8 @@ export default async function PublicQuizPage({ params }: PageProps) {
     const supabase = createAdminClient()
 
     // 1. Try to find by share_token
-    const { data: quizByToken } = await supabase
-        .from('quizzes')
+    const { data: quizByToken } = await (supabase
+        .from('quizzes' as any) as any)
         .select(`
             *,
             quiz_questions (
@@ -34,8 +34,8 @@ export default async function PublicQuizPage({ params }: PageProps) {
     if (!quiz) {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         if (uuidRegex.test(token)) {
-            const { data: quizById } = await supabase
-                .from('quizzes')
+            const { data: quizById } = await (supabase
+                .from('quizzes' as any) as any)
                 .select(`
                     *,
                     quiz_questions (

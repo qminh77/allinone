@@ -126,15 +126,6 @@ export const modules: Module[] = [
         isNew: true
     },
     {
-        key: 'markdown-to-html',
-        name: 'Markdown to HTML',
-        description: 'Chuyển đổi Markdown sang HTML với Live Preview.',
-        href: '/tools/markdown-to-html',
-        icon: FileCode,
-        category: 'Utilities',
-        isNew: true
-    },
-    {
         key: 'uuid-generator',
         name: 'UUID Generator',
         description: 'Tạo mã UUID v4 ngẫu nhiên (Bulk supported).',
@@ -146,7 +137,7 @@ export const modules: Module[] = [
     {
         key: 'bcrypt-generator',
         name: 'Bcrypt Generator',
-        description: 'Tạo mã băm Bcrypt và kiểm tra mật k`hẩu.',
+        description: 'Tạo mã băm Bcrypt và kiểm tra mật khẩu.',
         href: '/tools/bcrypt-generator',
         icon: Lock,
         category: 'Utilities',
@@ -756,7 +747,7 @@ export const modules: Module[] = [
     { key: 'markdown-to-dax', name: 'Markdown to DAX', description: 'Convert Markdown to DAX.', href: '/tools/markdown-to-dax', icon: FileCode, category: 'Markdown' },
     { key: 'markdown-to-excel', name: 'Markdown to Excel', description: 'Convert Markdown Table to Excel.', href: '/tools/markdown-to-excel', icon: FileCode, category: 'Markdown' },
     { key: 'markdown-to-firebase', name: 'Markdown to Firebase', description: 'Convert Markdown to Firebase.', href: '/tools/markdown-to-firebase', icon: FileCode, category: 'Markdown' },
-    { key: 'markdown-to-html', name: 'Markdown to HTML', description: 'Convert Markdown to HTML.', href: '/tools/markdown-to-html', icon: FileCode, category: 'Markdown' },
+    { key: 'markdown-to-html', name: 'Markdown to HTML', description: 'Chuyển đổi Markdown sang HTML với Live Preview.', href: '/tools/markdown-to-html', icon: FileCode, category: 'Markdown', isNew: true },
     { key: 'markdown-to-ini', name: 'Markdown to INI', description: 'Convert Markdown to INI.', href: '/tools/markdown-to-ini', icon: FileCode, category: 'Markdown' },
     { key: 'markdown-to-jira', name: 'Markdown to Jira', description: 'Convert Markdown to Jira.', href: '/tools/markdown-to-jira', icon: FileCode, category: 'Markdown' },
     { key: 'markdown-to-jpeg', name: 'Markdown to JPEG', description: 'Convert Markdown to JPEG (Image).', href: '/tools/markdown-to-jpeg', icon: FileCode, category: 'Markdown' },
@@ -1037,4 +1028,3 @@ export const categories: { key: ModuleCategory; name: string }[] = [
     { key: 'Audio', name: 'Audio Tools' },
     { key: 'Video', name: 'Video Tools' },
 ]
-

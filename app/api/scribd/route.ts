@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { scribdDownloader } from '@/lib/scribd-dl/service/ScribdDownloader.js'
 import path from 'path'
 import fs from 'fs/promises'
+import os from 'os'
+import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit, getClientIdentifier, RateLimits } from '@/lib/rate-limit'
 import { UrlSchema } from '@/lib/validation'
+import { uploadLocalToolFile } from '@/lib/storage/tool-files'
 
 // IMPORTANT: This route must use Node.js runtime for Puppeteer
 export const runtime = 'nodejs'
 
-const DOWNLOAD_DIR = path.join(process.cwd(), 'public/downloads/scribd')
 const ALLOWED_HOSTS = ['scribd.com', 'everand.com', 'slideshare.net']
 
 function isAllowedDocumentHost(hostname: string) {
@@ -61,12 +63,14 @@ export async function GET(req: NextRequest) {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
             }
 
+            const tempDir = path.join(os.tmpdir(), 'allinone', 'scribd', user.id, randomUUID())
+
             try {
-                await fs.mkdir(DOWNLOAD_DIR, { recursive: true })
+                await fs.mkdir(tempDir, { recursive: true })
 
                 // Execute download with progress callback
                 const absolutePath = await scribdDownloader.execute(url, 'DEFAULT', {
-                    outputDir: DOWNLOAD_DIR,
+                    outputDir: tempDir,
                     filenameMode: 'title',
                     onProgress: (message: string) => {
                         sendEvent({ type: 'progress', message })
@@ -74,13 +78,28 @@ export async function GET(req: NextRequest) {
                 })
 
                 const fileName = path.basename(absolutePath)
-                const publicUrl = `/downloads/scribd/${fileName}`
+                const uploaded = await uploadLocalToolFile({
+                    userId: user.id,
+                    moduleKey: 'scribd-downloader',
+                    localPath: absolutePath,
+                    filename: fileName,
+                    mimeType: 'application/pdf',
+                    kind: 'output',
+                    expiresIn: 60 * 60,
+                })
 
-                sendEvent({ type: 'complete', url: publicUrl, filename: fileName })
+                sendEvent({
+                    type: 'complete',
+                    url: uploaded.signedUrl,
+                    filename: uploaded.filename,
+                    storagePath: uploaded.storagePath,
+                    expiresIn: uploaded.expiresIn,
+                })
             } catch (error: any) {
                 console.error('[ScribdAPI] Error:', error)
                 sendEvent({ type: 'error', message: error.message || 'Unknown error' })
             } finally {
+                await fs.rm(tempDir, { recursive: true, force: true }).catch(() => undefined)
                 controller.close()
             }
         }

@@ -1,15 +1,5 @@
 import { notFound } from 'next/navigation'
 import { modules } from '@/config/modules'
-import { ExcelConverter } from '@/components/tools/ExcelConverter'
-import { JsonConverter } from '@/components/tools/JsonConverter'
-import { CsvConverter } from '@/components/tools/CsvConverter'
-import { MarkdownConverter } from '@/components/tools/MarkdownConverter'
-import { HtmlConverter } from '@/components/tools/HtmlConverter'
-import { SqlConverter } from '@/components/tools/SqlConverter'
-import { LatexConverter } from '@/components/tools/LatexConverter'
-import { XmlConverter } from '@/components/tools/XmlConverter'
-import { MysqlConverter } from '@/components/tools/MysqlConverter'
-import { MediawikiConverter } from '@/components/tools/MediawikiConverter'
 
 interface PageProps {
     params: Promise<{
@@ -29,6 +19,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('excel-to-')) {
+        const { ExcelConverter } = await import('@/components/tools/ExcelConverter')
         return (
             <ExcelConverter
                 slug={moduleDef.key}
@@ -39,6 +30,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('json-to-')) {
+        const { JsonConverter } = await import('@/components/tools/JsonConverter')
         return (
             <JsonConverter
                 slug={moduleDef.key}
@@ -49,6 +41,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('csv-to-')) {
+        const { CsvConverter } = await import('@/components/tools/CsvConverter')
         return (
             <CsvConverter
                 slug={moduleDef.key}
@@ -59,6 +52,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('markdown-to-')) {
+        const { MarkdownConverter } = await import('@/components/tools/MarkdownConverter')
         return (
             <MarkdownConverter
                 slug={moduleDef.key}
@@ -69,6 +63,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('html-to-')) {
+        const { HtmlConverter } = await import('@/components/tools/HtmlConverter')
         return (
             <HtmlConverter
                 slug={moduleDef.key}
@@ -79,6 +74,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('sql-to-')) {
+        const { SqlConverter } = await import('@/components/tools/SqlConverter')
         return (
             <SqlConverter
                 slug={moduleDef.key}
@@ -89,6 +85,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('latex-to-')) {
+        const { LatexConverter } = await import('@/components/tools/LatexConverter')
         return (
             <LatexConverter
                 slug={moduleDef.key}
@@ -99,6 +96,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('xml-to-')) {
+        const { XmlConverter } = await import('@/components/tools/XmlConverter')
         return (
             <XmlConverter
                 slug={moduleDef.key}
@@ -109,6 +107,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('mysql-to-')) {
+        const { MysqlConverter } = await import('@/components/tools/MysqlConverter')
         return (
             <MysqlConverter
                 slug={moduleDef.key}
@@ -119,6 +118,7 @@ export default async function ToolPage({ params }: PageProps) {
     }
 
     if (moduleDef.key.startsWith('mediawiki-to-')) {
+        const { MediawikiConverter } = await import('@/components/tools/MediawikiConverter')
         return (
             <MediawikiConverter
                 slug={moduleDef.key}

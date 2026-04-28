@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 import { getModuleStatuses } from '@/lib/actions/admin'
 import { ModuleList } from '@/components/admin/ModuleList'
+import { syncModuleCatalog } from '@/lib/modules/catalog'
 
 export default async function AdminModulesPage() {
+    await syncModuleCatalog()
     const statuses = await getModuleStatuses()
 
     return (

@@ -125,8 +125,8 @@ export async function getShortlinks() {
 export async function getPublicShortlink(slug: string) {
     const supabase = createAdminClient()
 
-    const { data } = await supabase
-        .from('shortlinks' as any)
+    const { data } = await (supabase
+        .from('shortlinks' as any) as any)
         .select('id, target_url, password_hash, expires_at')
         .eq('slug', slug)
         .single()
@@ -154,8 +154,8 @@ export async function verifyShortlinkPassword(slug: string, passwordInput: strin
     }
 
     const supabase = createAdminClient()
-    const { data } = await supabase
-        .from('shortlinks' as any)
+    const { data } = await (supabase
+        .from('shortlinks' as any) as any)
         .select('id, target_url, password_hash')
         .eq('slug', slug)
         .single()

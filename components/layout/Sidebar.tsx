@@ -52,7 +52,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
     return (
         <div className="flex flex-col h-full bg-sidebar-background border-r">
             <div className="h-16 flex items-center px-6 border-b">
-                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                <Link href="/dashboard" prefetch={false} className="flex items-center gap-2 font-semibold">
 
                     <span className="text-lg">Tools Admin</span>
                 </Link>
@@ -64,6 +64,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                         {/* Dashboard/Overview Link */}
                         <Link
                             href="/dashboard"
+                            prefetch={false}
                             className={cn(
                                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                                 pathname === '/dashboard'
@@ -77,6 +78,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
 
                         <Link
                             href="/dashboard/shortlinks"
+                            prefetch={false}
                             className={cn(
                                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                                 pathname.startsWith('/dashboard/shortlinks')
@@ -104,6 +106,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                             <CollapsibleContent className="space-y-1 pt-1">
                                 <Link
                                     href="/dashboard/mail/send"
+                                    prefetch={false}
                                     className={cn(
                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
                                         pathname === '/dashboard/mail/send'
@@ -116,6 +119,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                                 </Link>
                                 <Link
                                     href="/dashboard/mail/accounts"
+                                    prefetch={false}
                                     className={cn(
                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
                                         pathname === '/dashboard/mail/accounts'
@@ -128,6 +132,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                                 </Link>
                                 <Link
                                     href="/dashboard/mail/history"
+                                    prefetch={false}
                                     className={cn(
                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
                                         pathname === '/dashboard/mail/history'
@@ -157,6 +162,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                             <CollapsibleContent className="space-y-1 pt-1">
                                 <Link
                                     href="/dashboard/quiz/my-quizzes"
+                                    prefetch={false}
                                     className={cn(
                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
                                         pathname === '/dashboard/quiz/my-quizzes'
@@ -169,6 +175,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                                 </Link>
                                 <Link
                                     href="/dashboard/quiz/create"
+                                    prefetch={false}
                                     className={cn(
                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
                                         pathname === '/dashboard/quiz/create'
@@ -181,6 +188,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                                 </Link>
                                 <Link
                                     href="/dashboard/quiz/history"
+                                    prefetch={false}
                                     className={cn(
                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-10',
                                         pathname === '/dashboard/quiz/history'
@@ -221,6 +229,7 @@ export function SidebarContent({ enabledModules }: { enabledModules?: Record<str
                                                 <Link
                                                     key={item.href}
                                                     href={item.href}
+                                                    prefetch={false}
                                                     className={cn(
                                                         'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors pl-6', // Indent items
                                                         isActive

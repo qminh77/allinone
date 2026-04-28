@@ -30,6 +30,18 @@ export function LoginForm() {
         try {
             const supabase = createClient()
 
+            const { data: loginSetting, error: settingError } = await (supabase
+                .from('settings' as any) as any)
+                .select('value')
+                .eq('key', 'allow_login')
+                .maybeSingle()
+
+            if (!settingError && loginSetting && (loginSetting.value as { enabled?: boolean })?.enabled === false) {
+                setError("Đăng nhập đang tạm thời đóng")
+                setLoading(false)
+                return
+            }
+
             // Authenticate
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
                 email,

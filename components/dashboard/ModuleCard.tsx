@@ -12,7 +12,7 @@ export function ModuleCard({ module }: ModuleCardProps) {
     const Icon = module.icon
 
     return (
-        <Link href={module.href} className="group block h-full">
+        <Link href={module.href} prefetch={false} className="group block h-full">
             <Card className="h-full border transition-all hover:border-foreground/20 hover:bg-muted/30">
                 <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">

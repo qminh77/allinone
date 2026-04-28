@@ -15,8 +15,10 @@ export default async function DashboardLayout({
         redirect('/login')
     }
 
-    const profile = await getCurrentUserProfile()
-    const enabledModules = await getModuleStatuses()
+    const [profile, enabledModules] = await Promise.all([
+        getCurrentUserProfile(user.id),
+        getModuleStatuses(),
+    ])
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
@@ -29,6 +31,7 @@ export default async function DashboardLayout({
                         fullName: profile?.full_name,
                     }}
                     enabledModules={enabledModules}
+                    isAdmin={profile?.role?.name === 'Admin'}
                 />
                 <main className="flex-1 overflow-y-auto p-6 bg-secondary/10">
                     {children}
