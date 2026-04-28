@@ -311,7 +311,14 @@ export async function generateText(input: GenerateTextInput): Promise<GenerateTe
             throw new Error('Provider chưa có API key.')
         }
 
-        const apiKey = decrypt(provider.encrypted_api_key)
+        let apiKey: string
+        try {
+            apiKey = decrypt(provider.encrypted_api_key)
+        } catch (error) {
+            const detail = error instanceof Error ? ` Chi tiết: ${error.message}` : ''
+            throw new Error(`Không giải mã được API key của provider "${provider.name}". Hãy nhập lại API key trong AdminCP > AI Center sau khi cấu hình ENCRYPTION_KEY ổn định.${detail}`)
+        }
+
         let result: { text: string; usage: ReturnType<typeof usageFromResponse> }
 
         if (provider.adapter === 'openai_responses') {

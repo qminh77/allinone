@@ -9,21 +9,28 @@ import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 16 // 16 bytes for AES
-const AUTH_TAG_LENGTH = 16 // 16 bytes for GCM auth tag
 
 /**
  * Get encryption key from environment
  * Key must be 32 bytes (256 bits) in hex format
  */
 function getEncryptionKey(): Buffer {
-    const key = process.env.ENCRYPTION_KEY
+    const key = process.env.ENCRYPTION_KEY?.trim()
 
     if (!key) {
         throw new Error('ENCRYPTION_KEY environment variable is not set')
     }
 
+    if (key === 'your-64-character-hex-key-here') {
+        throw new Error('ENCRYPTION_KEY is still the placeholder value. Generate a stable key with: openssl rand -hex 32')
+    }
+
     if (key.length !== 64) { // 32 bytes = 64 hex characters
         throw new Error('ENCRYPTION_KEY must be 64 hex characters (32 bytes)')
+    }
+
+    if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+        throw new Error('ENCRYPTION_KEY must contain only hexadecimal characters')
     }
 
     return Buffer.from(key, 'hex')
@@ -64,10 +71,13 @@ export function decrypt(encryptedData: string): string {
         const parts = encryptedData.split(':')
 
         if (parts.length !== 3) {
-            throw new Error('Invalid encrypted data format')
+            throw new Error('Stored secret is not in the encrypted format used by this app')
         }
 
         const [ivHex, authTagHex, encrypted] = parts
+        if (!/^[0-9a-fA-F]+$/.test(ivHex) || !/^[0-9a-fA-F]+$/.test(authTagHex) || !/^[0-9a-fA-F]+$/.test(encrypted)) {
+            throw new Error('Stored secret contains invalid encrypted data')
+        }
 
         const iv = Buffer.from(ivHex, 'hex')
         const authTag = Buffer.from(authTagHex, 'hex')
@@ -81,7 +91,8 @@ export function decrypt(encryptedData: string): string {
         return decrypted
     } catch (error) {
         console.error('Decryption error:', error)
-        throw new Error('Failed to decrypt data')
+        const message = error instanceof Error ? error.message : 'Failed to decrypt data'
+        throw new Error(message)
     }
 }
 
