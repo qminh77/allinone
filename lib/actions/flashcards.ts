@@ -310,19 +310,24 @@ export async function createFlashcardSet(input: {
     description?: string | null
     visibility: FlashcardVisibility
 }) {
-    const { supabase, user } = await getCurrentUser()
+    const { user } = await getCurrentUser()
     if (!user) return { error: 'Unauthorized' }
 
     const titleResult = validateTitle(input.title)
     if (titleResult.error) return { error: titleResult.error }
 
-    const { data, error } = await (supabase as any)
+    // Use the server-only admin client for writes after authenticating the user.
+    // This avoids deployment drift in RLS policies while still forcing user_id
+    // to come from the current session, not from client input.
+    const admin = createAdminClient()
+    const { data, error } = await (admin as any)
         .from('flashcard_sets')
         .insert({
             user_id: user.id,
             title: titleResult.value,
             description: validateDescription(input.description),
             visibility: validateVisibility(input.visibility),
+            share_token: generateToken(),
         })
         .select()
         .single()
@@ -639,7 +644,7 @@ export async function getPublicFlashcardSetByToken(tokenOrId: string) {
 }
 
 export async function importFlashcardSetFromToken(tokenOrId: string) {
-    const { supabase, user } = await getCurrentUser()
+    const { user } = await getCurrentUser()
     if (!user) return { error: 'Unauthorized: Bạn cần đăng nhập để nhập flashcard set.' }
 
     const admin = createAdminClient()
@@ -665,7 +670,7 @@ export async function importFlashcardSetFromToken(tokenOrId: string) {
 
     if (!sourceSet) return { error: 'Không tìm thấy flashcard set với mã này.' }
 
-    const { data: newSet, error: insertError } = await (supabase as any)
+    const { data: newSet, error: insertError } = await (admin as any)
         .from('flashcard_sets')
         .insert({
             user_id: user.id,
@@ -693,7 +698,7 @@ export async function importFlashcardSetFromToken(tokenOrId: string) {
             order_index: card.order_index ?? index,
         }))
 
-        await (supabase as any).from('flashcards').insert(payload)
+        await (admin as any).from('flashcards').insert(payload)
     }
 
     revalidatePath('/dashboard/flashcards/library')
