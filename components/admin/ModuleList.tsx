@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { getModuleIcon, type ModuleCatalogItem } from '@/config/modules'
+import { getModuleIcon, type ModuleCatalogItem } from '@/config/module-metadata'
 import { ModuleToggle } from '@/components/admin/ModuleToggle'
 import { ChevronDown, Search } from 'lucide-react'
 import {

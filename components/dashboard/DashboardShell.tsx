@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { categories, getCategoryName, type ModuleCatalogItem } from '@/config/modules'
+import { categories, getCategoryName, type ModuleCatalogItem } from '@/config/module-metadata'
 import { ModuleCard } from './ModuleCard'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

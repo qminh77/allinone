@@ -5,9 +5,72 @@ import type { AiAdapter, AiCapability, AiModelConfig, GenerateTextInput, Generat
 const DEFAULT_TIMEOUT_MS = 60_000
 const DEFAULT_MAX_TOKENS = 1600
 const DEFAULT_TEMPERATURE = 0.35
+const KNOWN_ENDPOINT_SUFFIXES = ['/responses', '/chat/completions', '/messages', '/models']
+
+function withDefaultVersion(url: URL) {
+    if (url.pathname !== '/' && url.pathname !== '') return url
+
+    if (['api.openai.com', 'api.krouter.net', 'api.x.ai', 'api.anthropic.com'].includes(url.hostname)) {
+        url.pathname = '/v1'
+    } else if (url.hostname === 'generativelanguage.googleapis.com') {
+        url.pathname = '/v1beta'
+    }
+
+    return url
+}
 
 function normalizeBaseUrl(baseUrl: string) {
-    return baseUrl.replace(/\/+$/, '')
+    const value = baseUrl.trim()
+
+    try {
+        const url = withDefaultVersion(new URL(value))
+        url.search = ''
+        url.hash = ''
+        return url.toString().replace(/\/+$/, '')
+    } catch {
+        return value.replace(/[?#].*$/, '').replace(/\/+$/, '')
+    }
+}
+
+function stripKnownEndpointSuffix(baseUrl: string) {
+    const normalized = normalizeBaseUrl(baseUrl)
+    const geminiEndpointMatch = normalized.match(/\/models\/[^/]+:generateContent$/i)
+    if (geminiEndpointMatch?.index !== undefined) {
+        return normalized.slice(0, geminiEndpointMatch.index).replace(/\/+$/, '')
+    }
+
+    for (const suffix of KNOWN_ENDPOINT_SUFFIXES) {
+        if (normalized.toLowerCase().endsWith(suffix)) {
+            return normalized.slice(0, -suffix.length).replace(/\/+$/, '')
+        }
+    }
+
+    return normalized
+}
+
+export function normalizeAiProviderBaseUrl(baseUrl: string) {
+    return stripKnownEndpointSuffix(baseUrl)
+}
+
+function buildProviderEndpointUrl(baseUrl: string, endpoint: string) {
+    const normalized = normalizeBaseUrl(baseUrl)
+    if (normalized.toLowerCase().endsWith(endpoint.toLowerCase())) return normalized
+
+    return `${stripKnownEndpointSuffix(normalized)}${endpoint}`
+}
+
+function buildGeminiEndpointUrl(baseUrl: string, modelId: string) {
+    const normalized = normalizeBaseUrl(baseUrl)
+    return `${stripKnownEndpointSuffix(normalized)}/models/${encodeURIComponent(modelId)}:generateContent`
+}
+
+function errorEndpoint(url: string) {
+    try {
+        const parsed = new URL(url)
+        return `${parsed.origin}${parsed.pathname}`
+    } catch {
+        return url.replace(/[?#].*$/, '')
+    }
 }
 
 function numberFromUnknown(value: unknown, fallback: number) {
@@ -47,7 +110,7 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs = DEFAULT_TIM
 
         if (!response.ok) {
             const message = data?.error?.message || data?.message || text || `AI request failed with ${response.status}`
-            throw new Error(message)
+            throw new Error(`${message} (${response.status} ${errorEndpoint(url)})`)
         }
 
         return data
@@ -185,7 +248,7 @@ async function callResponsesApi(model: AiModelConfig, apiKey: string, input: Gen
         temperature: input.temperature ?? numberFromUnknown(defaults.temperature, DEFAULT_TEMPERATURE),
     }
 
-    const data = await fetchJson(`${normalizeBaseUrl(provider.base_url)}/responses`, {
+    const data = await fetchJson(buildProviderEndpointUrl(provider.base_url, '/responses'), {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -214,7 +277,7 @@ async function callChatApi(model: AiModelConfig, apiKey: string, input: Generate
         payload.response_format = { type: 'json_object' }
     }
 
-    const data = await fetchJson(`${normalizeBaseUrl(provider.base_url)}/chat/completions`, {
+    const data = await fetchJson(buildProviderEndpointUrl(provider.base_url, '/chat/completions'), {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -238,7 +301,7 @@ async function callGeminiApi(model: AiModelConfig, apiKey: string, input: Genera
         generationConfig.responseMimeType = 'application/json'
     }
 
-    const data = await fetchJson(`${normalizeBaseUrl(provider.base_url)}/models/${encodeURIComponent(model.model_id)}:generateContent`, {
+    const data = await fetchJson(buildGeminiEndpointUrl(provider.base_url, model.model_id), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -266,7 +329,7 @@ async function callAnthropicApi(model: AiModelConfig, apiKey: string, input: Gen
         temperature: input.temperature ?? numberFromUnknown(defaults.temperature, DEFAULT_TEMPERATURE),
     }
 
-    const data = await fetchJson(`${normalizeBaseUrl(provider.base_url)}/messages`, {
+    const data = await fetchJson(buildProviderEndpointUrl(provider.base_url, '/messages'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

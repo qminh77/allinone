@@ -119,8 +119,6 @@ export async function syncModuleCatalog(options: { revalidate?: boolean } = {}) 
 }
 
 async function loadModuleCatalog() {
-    await syncModuleCatalog({ revalidate: false })
-
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     let supabase: ReturnType<typeof createClient<Database>> | ReturnType<typeof createAdminClient> | null = null

@@ -17,23 +17,34 @@ const IV_LENGTH = 16 // 16 bytes for AES
 function getEncryptionKey(): Buffer {
     const key = process.env.ENCRYPTION_KEY?.trim()
 
+    const configError = getEncryptionConfigError()
+    if (configError) {
+        throw new Error(configError)
+    }
+
+    return Buffer.from(key!, 'hex')
+}
+
+export function getEncryptionConfigError(): string | null {
+    const key = process.env.ENCRYPTION_KEY?.trim()
+
     if (!key) {
-        throw new Error('ENCRYPTION_KEY environment variable is not set')
+        return 'ENCRYPTION_KEY environment variable is not set'
     }
 
     if (key === 'your-64-character-hex-key-here') {
-        throw new Error('ENCRYPTION_KEY is still the placeholder value. Generate a stable key with: openssl rand -hex 32')
+        return 'ENCRYPTION_KEY is still the placeholder value. Generate a stable key with: openssl rand -hex 32'
     }
 
     if (key.length !== 64) { // 32 bytes = 64 hex characters
-        throw new Error('ENCRYPTION_KEY must be 64 hex characters (32 bytes)')
+        return 'ENCRYPTION_KEY must be 64 hex characters (32 bytes)'
     }
 
     if (!/^[0-9a-fA-F]{64}$/.test(key)) {
-        throw new Error('ENCRYPTION_KEY must contain only hexadecimal characters')
+        return 'ENCRYPTION_KEY must contain only hexadecimal characters'
     }
 
-    return Buffer.from(key, 'hex')
+    return null
 }
 
 /**

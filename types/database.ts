@@ -670,6 +670,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       flashcards: {
         Row: {
@@ -699,6 +700,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       flashcard_progress: {
         Row: {
@@ -728,6 +730,127 @@ export interface Database {
           last_seen_at?: string
           updated_at?: string
         }
+        Relationships: []
+      }
+      workflows: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          status: 'draft' | 'active' | 'archived'
+          definition: any
+          schedule_cron: string | null
+          last_run_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          status?: 'draft' | 'active' | 'archived'
+          definition?: any
+          schedule_cron?: string | null
+          last_run_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          status?: 'draft' | 'active' | 'archived'
+          definition?: any
+          schedule_cron?: string | null
+          last_run_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workflow_executions: {
+        Row: {
+          id: string
+          workflow_id: string
+          user_id: string
+          status: 'queued' | 'running' | 'success' | 'failed' | 'cancelled'
+          trigger_type: 'manual' | 'schedule' | 'api'
+          input: any
+          output: any | null
+          started_at: string | null
+          completed_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workflow_id: string
+          user_id: string
+          status?: 'queued' | 'running' | 'success' | 'failed' | 'cancelled'
+          trigger_type?: 'manual' | 'schedule' | 'api'
+          input?: any
+          output?: any | null
+          started_at?: string | null
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workflow_id?: string
+          user_id?: string
+          status?: 'queued' | 'running' | 'success' | 'failed' | 'cancelled'
+          trigger_type?: 'manual' | 'schedule' | 'api'
+          input?: any
+          output?: any | null
+          started_at?: string | null
+          completed_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      workflow_execution_logs: {
+        Row: {
+          id: string
+          execution_id: string
+          workflow_id: string
+          user_id: string
+          node_id: string | null
+          level: 'debug' | 'info' | 'warn' | 'error'
+          message: string
+          payload: any | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          execution_id: string
+          workflow_id: string
+          user_id: string
+          node_id?: string | null
+          level?: 'debug' | 'info' | 'warn' | 'error'
+          message: string
+          payload?: any | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          execution_id?: string
+          workflow_id?: string
+          user_id?: string
+          node_id?: string | null
+          level?: 'debug' | 'info' | 'warn' | 'error'
+          message?: string
+          payload?: any | null
+          created_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -763,3 +886,6 @@ export type MailHistory = Database['public']['Tables']['mail_history']['Row']
 export type FlashcardSet = Database['public']['Tables']['flashcard_sets']['Row']
 export type Flashcard = Database['public']['Tables']['flashcards']['Row']
 export type FlashcardProgress = Database['public']['Tables']['flashcard_progress']['Row']
+export type Workflow = Database['public']['Tables']['workflows']['Row']
+export type WorkflowExecution = Database['public']['Tables']['workflow_executions']['Row']
+export type WorkflowExecutionLog = Database['public']['Tables']['workflow_execution_logs']['Row']

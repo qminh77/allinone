@@ -26,7 +26,7 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet'
 import { SidebarContent } from '@/components/layout/Sidebar'
-import type { ModuleCatalogItem } from '@/config/modules'
+import type { ModuleCatalogItem } from '@/config/module-metadata'
 // Removed server action import as it cannot be used in client component directly without prop passing
 
 

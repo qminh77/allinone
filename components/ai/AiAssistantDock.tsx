@@ -1,11 +1,23 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Sparkles } from 'lucide-react'
-import { AiAssistantChat } from '@/components/ai/AiAssistantChat'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+
+const AiAssistantChat = dynamic(
+    () => import('@/components/ai/AiAssistantChat').then(module => module.AiAssistantChat),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="grid h-full place-items-center text-sm text-muted-foreground">
+                Đang tải trợ lý AI...
+            </div>
+        ),
+    }
+)
 
 export function AiAssistantDock() {
     const [open, setOpen] = useState(false)
@@ -34,7 +46,7 @@ export function AiAssistantDock() {
                         <SheetDescription>Chat với trợ lý AI trong dashboard.</SheetDescription>
                     </SheetHeader>
                     <div className="flex h-full min-h-0 flex-col">
-                        <AiAssistantChat variant="sheet" />
+                        {open && <AiAssistantChat variant="sheet" />}
                     </div>
                 </SheetContent>
             </Sheet>

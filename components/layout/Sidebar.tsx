@@ -25,7 +25,7 @@ import {
     BookOpen,
     Layers,
 } from 'lucide-react'
-import { categories, getModuleIcon, type ModuleCatalogItem } from '@/config/modules'
+import { categories, getModuleIcon, type ModuleCatalogItem } from '@/config/module-metadata'
 import { PermissionKey } from '@/types/permissions'
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -60,6 +60,7 @@ export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }
     const pathname = usePathname()
     // Default open all categories
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
+        'AI': true,
         'General': true,
         'Network': true,
         'Utilities': true,

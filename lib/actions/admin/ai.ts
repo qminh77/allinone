@@ -5,8 +5,8 @@ import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import { createAdminClient, isAdminClientConfigured } from '@/lib/supabase/admin'
 import { createAuditLog } from '@/lib/audit/log'
-import { encrypt } from '@/lib/encryption'
-import { generateText } from '@/lib/ai/service'
+import { encrypt, getEncryptionConfigError } from '@/lib/encryption'
+import { generateText, normalizeAiProviderBaseUrl } from '@/lib/ai/service'
 
 const AdapterSchema = z.enum(['openai_responses', 'openai_chat', 'openai_compatible', 'gemini', 'anthropic'])
 const IdSchema = z.string().uuid('Invalid ID')
@@ -64,6 +64,22 @@ function sanitizeProvider(provider: any) {
     }
 }
 
+function encryptionConfigMessage() {
+    const configError = getEncryptionConfigError()
+    return configError ? `Cấu hình mã hóa API key AI chưa hợp lệ: ${configError}` : null
+}
+
+function encryptProviderApiKey(apiKey: string): { ok: true; value: string } | { ok: false; error: string } {
+    const configError = encryptionConfigMessage()
+    if (configError) return { ok: false, error: configError }
+
+    try {
+        return { ok: true, value: encrypt(apiKey) }
+    } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : 'Không thể mã hóa API key' }
+    }
+}
+
 function createAiAdminClient() {
     if (!isAdminClientConfigured()) {
         throw new Error('AI admin requires SUPABASE_SERVICE_ROLE_KEY')
@@ -109,7 +125,7 @@ export async function getAiAdminData() {
             providers: (providersResult.data || []).map(sanitizeProvider),
             models: modelsResult.data || [],
             usageLogs: logsResult.data || [],
-            configurationError: null,
+            configurationError: encryptionConfigMessage(),
         }
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to load AI admin data'
@@ -139,7 +155,7 @@ function parseProviderForm(formData: FormData) {
             name: name.data,
             slug: slug.data,
             adapter: adapter.data,
-            base_url: baseUrl.data.replace(/\/+$/, ''),
+            base_url: normalizeAiProviderBaseUrl(baseUrl.data),
             docs_url: docsUrl.data,
             api_key_label: apiKeyLabel.data,
             api_key: apiKey,
@@ -151,72 +167,89 @@ function parseProviderForm(formData: FormData) {
 }
 
 export async function createAiProvider(formData: FormData) {
-    const user = await requireAdmin()
-    const parsed = parseProviderForm(formData)
-    if (parsed.error) return { error: parsed.error }
+    try {
+        const user = await requireAdmin()
+        const parsed = parseProviderForm(formData)
+        if (parsed.error) return { error: parsed.error }
 
-    const payload: Record<string, any> = {
-        name: parsed.value!.name,
-        slug: parsed.value!.slug,
-        adapter: parsed.value!.adapter,
-        base_url: parsed.value!.base_url,
-        docs_url: parsed.value!.docs_url,
-        api_key_label: parsed.value!.api_key_label,
-        encrypted_api_key: parsed.value!.api_key ? encrypt(parsed.value!.api_key) : null,
-        is_enabled: parsed.value!.is_enabled,
-        sort_order: parsed.value!.sort_order,
-        updated_by: user.id,
+        let encryptedApiKey: string | null = null
+        if (parsed.value!.api_key) {
+            const encrypted = encryptProviderApiKey(parsed.value!.api_key)
+            if (!encrypted.ok) return { error: encrypted.error }
+            encryptedApiKey = encrypted.value
+        }
+
+        const payload: Record<string, any> = {
+            name: parsed.value!.name,
+            slug: parsed.value!.slug,
+            adapter: parsed.value!.adapter,
+            base_url: parsed.value!.base_url,
+            docs_url: parsed.value!.docs_url,
+            api_key_label: parsed.value!.api_key_label,
+            encrypted_api_key: encryptedApiKey,
+            is_enabled: parsed.value!.is_enabled,
+            sort_order: parsed.value!.sort_order,
+            updated_by: user.id,
+        }
+
+        const { data, error } = await (createAiAdminClient() as any)
+            .from('ai_providers')
+            .insert(payload)
+            .select('id, slug')
+            .single()
+
+        if (error) return { error: error.message }
+
+        await audit(user.id, 'ai.provider.create', 'ai_provider', data.id, { slug: data.slug })
+        revalidatePath('/admin/ai')
+        return { success: true }
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Không thể tạo provider' }
     }
-
-    const { data, error } = await (createAiAdminClient() as any)
-        .from('ai_providers')
-        .insert(payload)
-        .select('id, slug')
-        .single()
-
-    if (error) return { error: error.message }
-
-    await audit(user.id, 'ai.provider.create', 'ai_provider', data.id, { slug: data.slug })
-    revalidatePath('/admin/ai')
-    return { success: true }
 }
 
 export async function updateAiProvider(providerId: string, formData: FormData) {
-    const user = await requireAdmin()
-    const id = IdSchema.safeParse(providerId)
-    if (!id.success) return { error: 'Invalid provider id' }
+    try {
+        const user = await requireAdmin()
+        const id = IdSchema.safeParse(providerId)
+        if (!id.success) return { error: 'Invalid provider id' }
 
-    const parsed = parseProviderForm(formData)
-    if (parsed.error) return { error: parsed.error }
+        const parsed = parseProviderForm(formData)
+        if (parsed.error) return { error: parsed.error }
 
-    const payload: Record<string, any> = {
-        name: parsed.value!.name,
-        slug: parsed.value!.slug,
-        adapter: parsed.value!.adapter,
-        base_url: parsed.value!.base_url,
-        docs_url: parsed.value!.docs_url,
-        api_key_label: parsed.value!.api_key_label,
-        is_enabled: parsed.value!.is_enabled,
-        sort_order: parsed.value!.sort_order,
-        updated_by: user.id,
+        const payload: Record<string, any> = {
+            name: parsed.value!.name,
+            slug: parsed.value!.slug,
+            adapter: parsed.value!.adapter,
+            base_url: parsed.value!.base_url,
+            docs_url: parsed.value!.docs_url,
+            api_key_label: parsed.value!.api_key_label,
+            is_enabled: parsed.value!.is_enabled,
+            sort_order: parsed.value!.sort_order,
+            updated_by: user.id,
+        }
+
+        if (parsed.value!.clear_api_key) {
+            payload.encrypted_api_key = null
+        } else if (parsed.value!.api_key) {
+            const encryptedApiKey = encryptProviderApiKey(parsed.value!.api_key)
+            if (!encryptedApiKey.ok) return { error: encryptedApiKey.error }
+            payload.encrypted_api_key = encryptedApiKey.value
+        }
+
+        const { error } = await (createAiAdminClient() as any)
+            .from('ai_providers')
+            .update(payload)
+            .eq('id', id.data)
+
+        if (error) return { error: error.message }
+
+        await audit(user.id, 'ai.provider.update', 'ai_provider', id.data, { slug: parsed.value!.slug })
+        revalidatePath('/admin/ai')
+        return { success: true }
+    } catch (error) {
+        return { error: error instanceof Error ? error.message : 'Không thể cập nhật provider' }
     }
-
-    if (parsed.value!.clear_api_key) {
-        payload.encrypted_api_key = null
-    } else if (parsed.value!.api_key) {
-        payload.encrypted_api_key = encrypt(parsed.value!.api_key)
-    }
-
-    const { error } = await (createAiAdminClient() as any)
-        .from('ai_providers')
-        .update(payload)
-        .eq('id', id.data)
-
-    if (error) return { error: error.message }
-
-    await audit(user.id, 'ai.provider.update', 'ai_provider', id.data, { slug: parsed.value!.slug })
-    revalidatePath('/admin/ai')
-    return { success: true }
 }
 
 export async function deleteAiProvider(providerId: string) {

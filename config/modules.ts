@@ -46,6 +46,7 @@ import {
     BrainCircuit,
     BookOpen,
     Wrench,
+    Workflow,
     type LucideIcon,
 } from 'lucide-react'
 
@@ -84,6 +85,16 @@ export const modules: Module[] = [
         description: 'Tìm chức năng và hỗ trợ tạo nội dung cho mail, quiz, flashcard bằng model AI cấu hình động.',
         href: '/dashboard/ai',
         icon: BrainCircuit,
+        category: 'AI',
+        isNew: true,
+        isPopular: true
+    },
+    {
+        key: 'flow-builder',
+        name: 'Flow',
+        description: 'Visual workflow builder để tự động hóa HTTP, AI, Flashcard, QR Code và Supabase bằng canvas kéo-thả.',
+        href: '/flow',
+        icon: Workflow,
         category: 'AI',
         isNew: true,
         isPopular: true

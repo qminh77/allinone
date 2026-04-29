@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getModuleIcon, type ModuleCatalogItem } from '@/config/modules'
+import { getModuleIcon, type ModuleCatalogItem } from '@/config/module-metadata'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 

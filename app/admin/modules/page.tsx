@@ -8,7 +8,7 @@ import { requireAdmin } from '@/lib/auth/authorization-middleware'
 
 export default async function AdminModulesPage() {
     await requireAdmin()
-    await syncModuleCatalog({ revalidate: false })
+    await syncModuleCatalog()
     const [moduleCatalog, statuses] = await Promise.all([
         getModuleCatalog(),
         getModuleStatuses(),
