@@ -88,12 +88,12 @@ insert into public.modules (key, name, description, icon, is_enabled, sort_order
 values (
   'flow-builder',
   'Flow',
-  'Visual workflow builder để tự động hóa HTTP, AI, Flashcard, QR Code và Supabase bằng canvas kéo-thả.',
+  'Visual workflow builder để tự động hóa API, bot, dữ liệu và tác vụ bằng canvas kéo-thả.',
   'flow-builder',
   true,
   2,
   '/flow',
-  'AI',
+  'Automation',
   true,
   true
 )

@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { RefreshCw, TerminalSquare } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -72,20 +73,20 @@ export function ExecutionPanel() {
     }, [activeExecutionId, appendLog])
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col rounded-xl border bg-card">
-            <div className="flex items-center justify-between gap-3 border-b p-4">
+        <Card className="flex min-h-0 flex-1 overflow-hidden py-0">
+            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b p-4">
                 <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Executions</p>
-                    <h2 className="text-base font-semibold">History & realtime logs</h2>
+                    <CardTitle className="text-base">History & realtime logs</CardTitle>
                 </div>
                 <Button type="button" variant="ghost" size="icon-sm" onClick={() => void loadExecutionHistory()}>
                     <RefreshCw className="size-4" />
                     <span className="sr-only">Refresh executions</span>
                 </Button>
-            </div>
+            </CardHeader>
 
             <ScrollArea className="max-h-44 border-b">
-                <div className="space-y-2 p-3">
+                <CardContent className="space-y-2 p-3">
                     {executions.length === 0 ? (
                         <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">Chưa có execution.</p>
                     ) : executions.map(execution => (
@@ -109,11 +110,11 @@ export function ExecutionPanel() {
                             </p>
                         </button>
                     ))}
-                </div>
+                </CardContent>
             </ScrollArea>
 
             <ScrollArea className="flex-1">
-                <div className="space-y-2 p-3">
+                <CardContent className="space-y-2 p-3">
                     {logs.length === 0 ? (
                         <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
                             <TerminalSquare className="size-4" />
@@ -129,8 +130,8 @@ export function ExecutionPanel() {
                             {log.node_id && <p className="mt-1 font-mono text-[10px] text-muted-foreground">node: {log.node_id}</p>}
                         </div>
                     ))}
-                </div>
+                </CardContent>
             </ScrollArea>
-        </div>
+        </Card>
     )
 }

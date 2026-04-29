@@ -50,7 +50,7 @@ import {
     type LucideIcon,
 } from 'lucide-react'
 
-export type ModuleCategory = 'AI' | 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF' | 'Image' | 'Font' | 'Audio' | 'Video'
+export type ModuleCategory = 'AI' | 'Automation' | 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF' | 'Image' | 'Font' | 'Audio' | 'Video'
 
 export interface Module {
     key: string
@@ -92,10 +92,10 @@ export const modules: Module[] = [
     {
         key: 'flow-builder',
         name: 'Flow',
-        description: 'Visual workflow builder để tự động hóa HTTP, AI, Flashcard, QR Code và Supabase bằng canvas kéo-thả.',
+        description: 'Visual workflow builder để tự động hóa API, bot, dữ liệu và tác vụ bằng canvas kéo-thả.',
         href: '/flow',
         icon: Workflow,
-        category: 'AI',
+        category: 'Automation',
         isNew: true,
         isPopular: true
     },
@@ -1079,6 +1079,7 @@ export const modules: Module[] = [
 
 export const categories: { key: ModuleCategory; name: string }[] = [
     { key: 'AI', name: 'AI' },
+    { key: 'Automation', name: 'Automation' },
     { key: 'General', name: 'Tổng quan' },
     { key: 'Network', name: 'Mạng & Network' },
     { key: 'Utilities', name: 'Tiện ích' },
@@ -1106,6 +1107,7 @@ const moduleIconByKey = modules.reduce<Record<string, LucideIcon>>((acc, moduleI
 
 const categoryIconByKey: Record<string, LucideIcon> = {
     AI: BrainCircuit,
+    Automation: Workflow,
     General: Wrench,
     Network: Globe,
     Utilities: Wrench,

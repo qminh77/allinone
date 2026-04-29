@@ -5,7 +5,7 @@ import { WorkflowBuilder } from '@/components/workflows/WorkflowBuilder'
 
 export const metadata: Metadata = {
     title: 'Flow - Allinone',
-    description: 'Visual workflow builder để tự động hóa HTTP, AI, Flashcard, QR Code và Supabase.',
+    description: 'Visual workflow builder để tự động hóa API, bot, dữ liệu và tác vụ.',
 }
 
 export default function FlowPage() {

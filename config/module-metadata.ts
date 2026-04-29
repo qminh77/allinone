@@ -50,7 +50,7 @@ import {
     type LucideIcon,
 } from 'lucide-react'
 
-export type ModuleCategory = 'AI' | 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF' | 'Image' | 'Font' | 'Audio' | 'Video'
+export type ModuleCategory = 'AI' | 'Automation' | 'Network' | 'Utilities' | 'General' | 'Table' | 'JSON' | 'CSV' | 'Markdown' | 'HTML' | 'SQL' | 'LaTeX' | 'XML' | 'MySQL' | 'MediaWiki' | 'PDF' | 'Image' | 'Font' | 'Audio' | 'Video'
 
 export interface ModuleCatalogItem {
     key: string
@@ -68,6 +68,7 @@ export interface ModuleCatalogItem {
 
 export const categories: { key: ModuleCategory; name: string }[] = [
     { key: 'AI', name: 'AI' },
+    { key: 'Automation', name: 'Automation' },
     { key: 'General', name: 'Tổng quan' },
     { key: 'Network', name: 'Mạng & Network' },
     { key: 'Utilities', name: 'Tiện ích' },
@@ -151,6 +152,7 @@ const moduleIconByKey: Record<string, LucideIcon> = {
 
 const categoryIconByKey: Record<string, LucideIcon> = {
     AI: BrainCircuit,
+    Automation: Workflow,
     General: Wrench,
     Network: Globe,
     Utilities: Wrench,

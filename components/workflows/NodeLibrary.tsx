@@ -6,10 +6,12 @@ import {
     Database,
     GitBranch,
     Globe2,
+    MessageCircle,
     PlayCircle,
     QrCode,
     Repeat2,
     Search,
+    Send,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -31,6 +33,8 @@ const iconByType: Record<WorkflowNodeType, LucideIcon> = {
     flashcardGenerator: BookOpen,
     qrGenerator: QrCode,
     supabaseQuery: Database,
+    telegramBot: Send,
+    zaloBot: MessageCircle,
 }
 
 const accentByType: Record<WorkflowNodeType, string> = {
@@ -42,6 +46,8 @@ const accentByType: Record<WorkflowNodeType, string> = {
     flashcardGenerator: 'bg-amber-600',
     qrGenerator: 'bg-emerald-600',
     supabaseQuery: 'bg-teal-600',
+    telegramBot: 'bg-sky-600',
+    zaloBot: 'bg-blue-500',
 }
 
 export function NodeLibrary() {

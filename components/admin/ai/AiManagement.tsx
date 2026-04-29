@@ -247,7 +247,7 @@ function ModelForm({
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="model-id">Model ID</Label>
-                    <Input id="model-id" name="model_id" defaultValue={model?.model_id || ''} placeholder="gpt-5.2" required />
+                    <Input id="model-id" name="model_id" defaultValue={model?.model_id || ''} placeholder="gpt-4.1-mini" required />
                 </div>
             </div>
 

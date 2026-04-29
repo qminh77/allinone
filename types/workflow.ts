@@ -10,6 +10,8 @@ export const WorkflowNodeTypeSchema = z.enum([
     'flashcardGenerator',
     'qrGenerator',
     'supabaseQuery',
+    'telegramBot',
+    'zaloBot',
 ])
 
 export const WorkflowStatusSchema = z.enum(['draft', 'active', 'archived'])

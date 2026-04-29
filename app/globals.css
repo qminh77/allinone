@@ -123,3 +123,34 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .workflow-canvas .react-flow__controls {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 30px color-mix(in oklab, var(--foreground) 10%, transparent);
+    overflow: hidden;
+  }
+
+  .workflow-canvas .react-flow__controls-button {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+  }
+
+  .workflow-canvas .react-flow__controls-button:hover {
+    background: var(--muted);
+  }
+
+  .workflow-canvas .react-flow__controls-button svg {
+    fill: currentColor;
+  }
+
+  .workflow-canvas .react-flow__minimap {
+    background: color-mix(in oklab, var(--card) 92%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 30px color-mix(in oklab, var(--foreground) 10%, transparent);
+    overflow: hidden;
+  }
+}

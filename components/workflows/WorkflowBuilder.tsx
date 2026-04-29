@@ -13,11 +13,14 @@ import {
     ReactFlowProvider,
     useReactFlow,
 } from '@xyflow/react'
-import { Download, FileJson, FolderOpen, LayoutDashboard, Play, Plus, Save, Trash2, Upload } from 'lucide-react'
+import { Download, FileJson, FolderOpen, LayoutDashboard, MoreHorizontal, Play, Plus, Save, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -162,6 +165,8 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [loadOpen, setLoadOpen] = useState(false)
     const [runOpen, setRunOpen] = useState(false)
+    const [newOpen, setNewOpen] = useState(false)
+    const [deleteOpen, setDeleteOpen] = useState(false)
     const { screenToFlowPosition, fitView } = useReactFlow()
 
     const id = useWorkflowStore(state => state.workflowId)
@@ -223,11 +228,10 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
     }
 
     const remove = async () => {
-        if (!window.confirm('Xóa workflow này? Hành động này không thể hoàn tác.')) return
-
         try {
             await deleteWorkflow()
             toast.success('Đã xóa flow.')
+            setDeleteOpen(false)
             startTransition(() => router.push('/flow'))
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Không thể xóa flow.')
@@ -235,7 +239,17 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
     }
 
     const createNew = () => {
-        if (isDirty && !window.confirm('Flow hiện tại chưa lưu. Tạo flow mới?')) return
+        if (isDirty) {
+            setNewOpen(true)
+            return
+        }
+
+        resetWorkflow()
+        startTransition(() => router.push('/flow'))
+    }
+
+    const createNewConfirmed = () => {
+        setNewOpen(false)
         resetWorkflow()
         startTransition(() => router.push('/flow'))
     }
@@ -281,8 +295,9 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
 
     return (
         <div className="space-y-4">
-            <div className="rounded-2xl border bg-card p-4 shadow-sm">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <Card className="overflow-hidden py-0">
+                <CardContent className="p-4">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_180px]">
                         <div className="space-y-2">
                             <Label htmlFor="workflow-name">Tên Flow</Label>
@@ -348,69 +363,83 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
                             Run
                         </Button>
                         <WorkflowAIAssistant />
-                        <Button type="button" variant="outline" size="sm" onClick={duplicate} disabled={!id}>
-                            <FileJson className="size-4" />
-                            Duplicate
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={exportJson}>
-                            <Download className="size-4" />
-                            Export
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                            <Upload className="size-4" />
-                            Import
-                        </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={autoLayout}>
-                            <LayoutDashboard className="size-4" />
-                            Auto layout
-                        </Button>
-                        <Button type="button" variant="destructive" size="sm" onClick={remove} disabled={!id}>
-                            <Trash2 className="size-4" />
-                            Delete
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button type="button" variant="outline" size="sm">
+                                    <MoreHorizontal className="size-4" />
+                                    More
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem onSelect={() => void duplicate()} disabled={!id}>
+                                    <FileJson className="size-4" />
+                                    Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={exportJson}>
+                                    <Download className="size-4" />
+                                    Export JSON
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
+                                    <Upload className="size-4" />
+                                    Import JSON
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={autoLayout}>
+                                    <LayoutDashboard className="size-4" />
+                                    Auto layout
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)} disabled={!id}>
+                                    <Trash2 className="size-4" />
+                                    Delete workflow
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={importJson} />
                     </div>
-                </div>
-            </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
-                <div className="flex min-h-[760px] overflow-hidden rounded-2xl border bg-background shadow-sm lg:flex-row flex-col">
-                    <NodeLibrary />
-                    <div className="relative min-h-[560px] flex-1 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_28rem)]">
-                        {isLoading && (
-                            <div className="absolute inset-0 z-20 grid place-items-center bg-background/70 text-sm text-muted-foreground backdrop-blur-sm">
-                                Đang tải workflow...
-                            </div>
-                        )}
-                        <ReactFlow
-                            nodes={nodes}
-                            edges={edges}
-                            nodeTypes={workflowNodeTypes}
-                            onNodesChange={onNodesChange}
-                            onEdgesChange={onEdgesChange}
-                            onConnect={onConnect}
-                            onDrop={onDrop}
-                            onDragOver={onDragOver}
-                            onPaneClick={() => setSelectedNodeId(null)}
-                            fitView
-                            deleteKeyCode={['Backspace', 'Delete']}
-                            className={cn('workflow-canvas', isLoading && 'pointer-events-none')}
-                        >
-                            <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} />
-                            <Controls position="bottom-left" />
-                            <MiniMap pannable zoomable position="bottom-right" />
-                        </ReactFlow>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => fitView({ padding: 0.2, duration: 300 })}
-                            className="absolute left-4 top-4 z-10 shadow-sm"
-                        >
-                            Fit view
-                        </Button>
-                    </div>
-                </div>
+                <Card className="min-h-[760px] overflow-hidden py-0">
+                    <CardContent className="flex h-full min-h-[760px] flex-col p-0 lg:flex-row">
+                        <NodeLibrary />
+                        <div className="relative min-h-[560px] flex-1 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_28rem)]">
+                            {isLoading && (
+                                <div className="absolute inset-0 z-20 grid place-items-center bg-background/70 text-sm text-muted-foreground backdrop-blur-sm">
+                                    Đang tải workflow...
+                                </div>
+                            )}
+                            <ReactFlow
+                                nodes={nodes}
+                                edges={edges}
+                                nodeTypes={workflowNodeTypes}
+                                onNodesChange={onNodesChange}
+                                onEdgesChange={onEdgesChange}
+                                onConnect={onConnect}
+                                onDrop={onDrop}
+                                onDragOver={onDragOver}
+                                onPaneClick={() => setSelectedNodeId(null)}
+                                fitView
+                                deleteKeyCode={['Backspace', 'Delete']}
+                                className={cn('workflow-canvas', isLoading && 'pointer-events-none')}
+                            >
+                                <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} />
+                                <Controls position="bottom-left" />
+                                <MiniMap pannable zoomable position="bottom-right" />
+                            </ReactFlow>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => fitView({ padding: 0.2, duration: 300 })}
+                                className="absolute left-4 top-4 z-10 shadow-sm"
+                            >
+                                Fit view
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <div className="flex min-h-[760px] flex-col gap-4">
                     <NodeEditor />
@@ -420,6 +449,36 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
 
             <WorkflowLoadDialog open={loadOpen} onOpenChange={setLoadOpen} />
             <WorkflowRunDialog open={runOpen} onOpenChange={setRunOpen} />
+            <AlertDialog open={newOpen} onOpenChange={setNewOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Tạo flow mới?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Flow hiện tại chưa lưu. Nếu tiếp tục, các thay đổi trên canvas hiện tại sẽ bị bỏ qua.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction onClick={createNewConfirmed}>Tạo mới</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Xóa workflow?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Hành động này sẽ xóa workflow và toàn bộ execution/log liên quan. Không thể hoàn tác.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction className="bg-destructive text-white hover:bg-destructive/90" onClick={() => void remove()}>
+                            Xóa workflow
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

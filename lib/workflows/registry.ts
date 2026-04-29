@@ -6,6 +6,45 @@ const HttpMethodSchema = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 const SupabaseOperationSchema = z.enum(['select', 'insert', 'update', 'delete'])
 const ConditionOperatorSchema = z.enum(['equals', 'notEquals', 'contains', 'exists', 'greaterThan', 'lessThan'])
 const QrTypeSchema = z.enum(['url', 'text', 'email', 'phone', 'sms', 'wifi', 'vcard', 'location', 'event', 'social', 'crypto', 'file', 'app'])
+const TelegramMethodSchema = z.enum([
+    'getMe',
+    'getUpdates',
+    'setWebhook',
+    'deleteWebhook',
+    'getWebhookInfo',
+    'sendMessage',
+    'sendPhoto',
+    'sendDocument',
+    'sendChatAction',
+    'customMethod',
+])
+const TelegramParseModeSchema = z.enum(['none', 'HTML', 'MarkdownV2', 'Markdown'])
+const TelegramChatActionSchema = z.enum([
+    'typing',
+    'upload_photo',
+    'record_video',
+    'upload_video',
+    'record_voice',
+    'upload_voice',
+    'upload_document',
+    'choose_sticker',
+    'find_location',
+    'record_video_note',
+    'upload_video_note',
+])
+const ZaloBotMethodSchema = z.enum([
+    'getMe',
+    'getUpdates',
+    'setWebhook',
+    'deleteWebhook',
+    'getWebhookInfo',
+    'sendMessage',
+    'sendPhoto',
+    'sendSticker',
+    'sendChatAction',
+    'customMethod',
+])
+const ZaloChatActionSchema = z.enum(['typing', 'upload_photo'])
 
 const JsonTextSchema = z.string().trim().max(20_000)
 
@@ -24,11 +63,17 @@ export const HttpRequestConfigSchema = z.object({
 })
 
 export const AiAgentConfigSchema = z.object({
+    endpoint: z.string().trim().min(1, 'AI endpoint không được để trống.').max(2048),
+    apiKey: z.string().trim().min(1, 'AI API key không được để trống.').max(4096),
+    model: z.string().trim().min(1, 'AI model không được để trống.').max(200),
     system: z.string().trim().max(3000).optional().default('You are a helpful automation agent.'),
     prompt: z.string().trim().min(1, 'Prompt không được để trống.').max(20_000),
-    modelDbId: z.string().uuid().optional().nullable(),
+    headers: JsonTextSchema.optional().default('{}'),
+    extraBody: JsonTextSchema.optional().default('{}'),
+    responsePath: z.string().trim().max(200).optional().default('choices.0.message.content'),
     temperature: z.coerce.number().min(0).max(2).default(0.35),
     maxTokens: z.coerce.number().int().min(64).max(8000).default(1200),
+    timeoutMs: z.coerce.number().int().min(1000).max(120_000).default(60_000),
     outputKey: z.string().trim().max(80).optional().default('text'),
 })
 
@@ -69,6 +114,38 @@ export const LoopConfigSchema = z.object({
     maxIterations: z.coerce.number().int().min(1).max(100).default(10),
 })
 
+export const TelegramBotConfigSchema = z.object({
+    botToken: z.string().trim().min(1, 'Telegram bot token không được để trống.').max(512),
+    method: TelegramMethodSchema.default('sendMessage'),
+    customMethod: z.string().trim().max(80).optional().default('').refine(value => !value || /^[A-Za-z][A-Za-z0-9_]{1,80}$/.test(value), 'Custom method không hợp lệ.'),
+    chatId: z.string().trim().max(200).optional().default(''),
+    text: z.string().trim().max(4096).optional().default(''),
+    parseMode: TelegramParseModeSchema.default('none'),
+    mediaUrl: z.string().trim().max(4096).optional().default(''),
+    caption: z.string().trim().max(1024).optional().default(''),
+    chatAction: TelegramChatActionSchema.default('typing'),
+    webhookUrl: z.string().trim().max(2048).optional().default(''),
+    secretToken: z.string().trim().max(256).optional().default(''),
+    payload: JsonTextSchema.optional().default('{}'),
+    timeoutMs: z.coerce.number().int().min(1000).max(120_000).default(30_000),
+})
+
+export const ZaloBotConfigSchema = z.object({
+    botToken: z.string().trim().min(1, 'Zalo Bot token không được để trống.').max(512),
+    method: ZaloBotMethodSchema.default('sendMessage'),
+    customMethod: z.string().trim().max(80).optional().default('').refine(value => !value || /^[A-Za-z][A-Za-z0-9_]{1,80}$/.test(value), 'Custom method không hợp lệ.'),
+    chatId: z.string().trim().max(200).optional().default(''),
+    text: z.string().trim().max(2000).optional().default(''),
+    photoUrl: z.string().trim().max(4096).optional().default(''),
+    caption: z.string().trim().max(2000).optional().default(''),
+    sticker: z.string().trim().max(4096).optional().default(''),
+    chatAction: ZaloChatActionSchema.default('typing'),
+    webhookUrl: z.string().trim().max(2048).optional().default(''),
+    secretToken: z.string().trim().max(256).optional().default(''),
+    payload: JsonTextSchema.optional().default('{}'),
+    timeoutMs: z.coerce.number().int().min(1000).max(120_000).default(30_000),
+})
+
 export type NodeConfigSchema =
     | typeof TriggerConfigSchema
     | typeof HttpRequestConfigSchema
@@ -78,6 +155,8 @@ export type NodeConfigSchema =
     | typeof SupabaseQueryConfigSchema
     | typeof ConditionConfigSchema
     | typeof LoopConfigSchema
+    | typeof TelegramBotConfigSchema
+    | typeof ZaloBotConfigSchema
 
 export interface WorkflowNodeDefinition {
     type: WorkflowNodeType
@@ -100,14 +179,20 @@ export const WORKFLOW_NODE_DEFINITIONS: WorkflowNodeDefinition[] = [
     {
         type: 'aiAgent',
         label: 'AI Agent',
-        description: 'Gọi AI provider động đã cấu hình trong AdminCP.',
+        description: 'Gọi AI API riêng của node bằng endpoint, model và API key tự cấu hình.',
         category: 'Action',
         defaultConfig: {
+            endpoint: 'https://api.openai.com/v1/chat/completions',
+            apiKey: '{{input.aiApiKey}}',
+            model: 'gpt-4o-mini',
             system: 'You are a helpful automation agent.',
             prompt: 'Summarize this input: {{input.text}}',
-            modelDbId: null,
+            headers: '{}',
+            extraBody: '{}',
+            responsePath: 'choices.0.message.content',
             temperature: 0.35,
             maxTokens: 1200,
+            timeoutMs: 60_000,
             outputKey: 'text',
         },
         configSchema: AiAgentConfigSchema,
@@ -186,6 +271,50 @@ export const WORKFLOW_NODE_DEFINITIONS: WorkflowNodeDefinition[] = [
             limit: 50,
         },
         configSchema: SupabaseQueryConfigSchema,
+    },
+    {
+        type: 'telegramBot',
+        label: 'Telegram Bot',
+        description: 'Gọi Telegram Bot API qua HTTPS: sendMessage, sendPhoto, webhook, getUpdates hoặc custom method.',
+        category: 'Action',
+        defaultConfig: {
+            botToken: '{{input.telegramBotToken}}',
+            method: 'sendMessage',
+            customMethod: '',
+            chatId: '{{input.telegramChatId}}',
+            text: 'Hello from Allinone Flow: {{input.text}}',
+            parseMode: 'none',
+            mediaUrl: '',
+            caption: '',
+            chatAction: 'typing',
+            webhookUrl: '',
+            secretToken: '',
+            payload: '{}',
+            timeoutMs: 30_000,
+        },
+        configSchema: TelegramBotConfigSchema,
+    },
+    {
+        type: 'zaloBot',
+        label: 'Zalo Bot',
+        description: 'Gọi Zalo Bot Platform API từ bot.zapps.me: sendMessage, sendPhoto, sticker, webhook hoặc custom method.',
+        category: 'Action',
+        defaultConfig: {
+            botToken: '{{input.zaloBotToken}}',
+            method: 'sendMessage',
+            customMethod: '',
+            chatId: '{{input.zaloChatId}}',
+            text: 'Xin chào từ Allinone Flow: {{input.text}}',
+            photoUrl: '',
+            caption: '',
+            sticker: '',
+            chatAction: 'typing',
+            webhookUrl: '',
+            secretToken: '',
+            payload: '{}',
+            timeoutMs: 30_000,
+        },
+        configSchema: ZaloBotConfigSchema,
     },
 ]
 

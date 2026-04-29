@@ -2,7 +2,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
-import { generateJson, generateText } from '@/lib/ai/service'
+import { generateJson } from '@/lib/ai/service'
 import { buildQrPayload, createDefaultQrForm, mergeQrDesign, type QrFormValues, type QrType } from '@/lib/qr-code'
 import type { Database } from '@/types/database'
 import type {
@@ -21,7 +21,9 @@ import {
     LoopConfigSchema,
     QrGeneratorConfigSchema,
     SupabaseQueryConfigSchema,
+    TelegramBotConfigSchema,
     TriggerConfigSchema,
+    ZaloBotConfigSchema,
 } from '@/lib/workflows/registry'
 
 type WorkflowSupabaseClient = SupabaseClient<Database>
@@ -64,6 +66,13 @@ function getPath(source: unknown, path: string): unknown {
     let current = source
 
     for (const part of parts) {
+        if (Array.isArray(current)) {
+            const index = Number(part)
+            if (!Number.isInteger(index) || index < 0 || index >= current.length) return undefined
+            current = current[index]
+            continue
+        }
+
         if (!isRecord(current)) return undefined
         current = current[part]
     }
@@ -104,6 +113,81 @@ function parseMaybeJson(text: string) {
         return JSON.parse(text) as unknown
     } catch {
         return text
+    }
+}
+
+function compactPayload(payload: JsonRecord) {
+    return Object.fromEntries(
+        Object.entries(payload).filter(([, value]) => value !== undefined && value !== null && value !== '')
+    )
+}
+
+function assertRequired(value: string, message: string) {
+    if (!value.trim()) throw new Error(message)
+    return value.trim()
+}
+
+function stringifyHeaderValues(headers: JsonRecord) {
+    return Object.fromEntries(Object.entries(headers).map(([key, value]) => [key, stringifyTemplateValue(value)]))
+}
+
+function extractAiResponseText(body: unknown, responsePath: string) {
+    const candidates = [
+        responsePath,
+        'choices.0.message.content',
+        'choices.0.text',
+        'output_text',
+        'output.0.content.0.text',
+    ].filter(Boolean)
+
+    for (const path of candidates) {
+        const value = getPath(body, path)
+        if (value !== undefined && value !== null) return stringifyTemplateValue(value)
+    }
+
+    return stringifyTemplateValue(body)
+}
+
+async function postBotApiJson(params: {
+    url: string
+    body: JsonRecord
+    timeoutMs: number
+    provider: 'telegram' | 'zalo'
+    method: string
+}) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), params.timeoutMs)
+
+    try {
+        const response = await fetch(params.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params.body),
+            signal: controller.signal,
+        })
+        const responseText = await response.text()
+        const body = parseMaybeJson(responseText)
+
+        if (!response.ok) {
+            throw new Error(`${params.provider} ${params.method} HTTP ${response.status}: ${responseText.slice(0, 500)}`)
+        }
+
+        if (isRecord(body) && body.ok === false) {
+            const description = typeof body.description === 'string' ? body.description : 'Bot API returned ok=false.'
+            throw new Error(`${params.provider} ${params.method}: ${description}`)
+        }
+
+        return {
+            provider: params.provider,
+            method: params.method,
+            status: response.status,
+            ok: isRecord(body) && typeof body.ok === 'boolean' ? body.ok : response.ok,
+            result: isRecord(body) ? body.result : body,
+            description: isRecord(body) ? body.description : undefined,
+            errorCode: isRecord(body) ? body.error_code : undefined,
+        }
+    } finally {
+        clearTimeout(timeout)
     }
 }
 
@@ -185,23 +269,160 @@ async function executeHttpRequestNode(node: WorkflowCanvasNode, context: Runtime
     }
 }
 
+async function executeTelegramBotNode(node: WorkflowCanvasNode, context: RuntimeContext) {
+    const config = TelegramBotConfigSchema.parse(node.data.config)
+    const token = assertRequired(resolveTemplate(config.botToken, context), 'Telegram bot token không được để trống.')
+    const extraPayload = parseJsonObject(config.payload || '{}', context, 'Telegram payload')
+    const method = config.method === 'customMethod'
+        ? assertRequired(resolveTemplate(config.customMethod || '', context), 'Telegram custom method không được để trống.')
+        : config.method
+    let payload: JsonRecord = { ...extraPayload }
+
+    if (method === 'sendMessage') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Telegram chat_id không được để trống.'),
+            text: assertRequired(resolveTemplate(config.text || '', context), 'Telegram text không được để trống.'),
+            parse_mode: config.parseMode === 'none' ? undefined : config.parseMode,
+        })
+    } else if (method === 'sendPhoto') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Telegram chat_id không được để trống.'),
+            photo: assertRequired(resolveTemplate(config.mediaUrl || '', context), 'Telegram photo URL/file_id không được để trống.'),
+            caption: resolveTemplate(config.caption || '', context),
+            parse_mode: config.parseMode === 'none' ? undefined : config.parseMode,
+        })
+    } else if (method === 'sendDocument') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Telegram chat_id không được để trống.'),
+            document: assertRequired(resolveTemplate(config.mediaUrl || '', context), 'Telegram document URL/file_id không được để trống.'),
+            caption: resolveTemplate(config.caption || '', context),
+            parse_mode: config.parseMode === 'none' ? undefined : config.parseMode,
+        })
+    } else if (method === 'sendChatAction') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Telegram chat_id không được để trống.'),
+            action: config.chatAction,
+        })
+    } else if (method === 'setWebhook') {
+        payload = compactPayload({
+            ...payload,
+            url: assertRequired(resolveTemplate(config.webhookUrl || '', context), 'Telegram webhook URL không được để trống.'),
+            secret_token: resolveTemplate(config.secretToken || '', context),
+        })
+    }
+
+    return postBotApiJson({
+        url: `https://api.telegram.org/bot${token}/${method}`,
+        body: payload,
+        timeoutMs: config.timeoutMs,
+        provider: 'telegram',
+        method,
+    })
+}
+
+async function executeZaloBotNode(node: WorkflowCanvasNode, context: RuntimeContext) {
+    const config = ZaloBotConfigSchema.parse(node.data.config)
+    const token = assertRequired(resolveTemplate(config.botToken, context), 'Zalo Bot token không được để trống.')
+    const extraPayload = parseJsonObject(config.payload || '{}', context, 'Zalo Bot payload')
+    const method = config.method === 'customMethod'
+        ? assertRequired(resolveTemplate(config.customMethod || '', context), 'Zalo Bot custom method không được để trống.')
+        : config.method
+    let payload: JsonRecord = { ...extraPayload }
+
+    if (method === 'sendMessage') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Zalo chat_id không được để trống.'),
+            text: assertRequired(resolveTemplate(config.text || '', context), 'Zalo text không được để trống.'),
+        })
+    } else if (method === 'sendPhoto') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Zalo chat_id không được để trống.'),
+            photo: assertRequired(resolveTemplate(config.photoUrl || '', context), 'Zalo photo URL không được để trống.'),
+            caption: resolveTemplate(config.caption || '', context),
+        })
+    } else if (method === 'sendSticker') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Zalo chat_id không được để trống.'),
+            sticker: assertRequired(resolveTemplate(config.sticker || '', context), 'Zalo sticker không được để trống.'),
+        })
+    } else if (method === 'sendChatAction') {
+        payload = compactPayload({
+            ...payload,
+            chat_id: assertRequired(resolveTemplate(config.chatId || '', context), 'Zalo chat_id không được để trống.'),
+            action: config.chatAction,
+        })
+    } else if (method === 'setWebhook') {
+        payload = compactPayload({
+            ...payload,
+            url: assertRequired(resolveTemplate(config.webhookUrl || '', context), 'Zalo webhook URL không được để trống.'),
+            secret_token: assertRequired(resolveTemplate(config.secretToken || '', context), 'Zalo webhook secret_token không được để trống.'),
+        })
+    }
+
+    return postBotApiJson({
+        url: `https://bot-api.zaloplatforms.com/bot${token}/${method}`,
+        body: payload,
+        timeoutMs: config.timeoutMs,
+        provider: 'zalo',
+        method,
+    })
+}
+
 async function executeAiAgentNode(node: WorkflowCanvasNode, context: RuntimeContext) {
     const config = AiAgentConfigSchema.parse(node.data.config)
-    const result = await generateText({
-        featureKey: 'flow.ai.agent',
-        userId: context.userId,
-        modelDbId: config.modelDbId,
-        system: resolveTemplate(config.system || '', context),
-        prompt: resolveTemplate(config.prompt, context),
-        maxTokens: config.maxTokens,
-        temperature: config.temperature,
-    })
+    const endpoint = assertRequired(resolveTemplate(config.endpoint, context), 'AI endpoint không được để trống.')
+    const apiKey = assertRequired(resolveTemplate(config.apiKey, context), 'AI API key không được để trống.')
+    const model = assertRequired(resolveTemplate(config.model, context), 'AI model không được để trống.')
+    const headers = stringifyHeaderValues(parseJsonObject(config.headers || '{}', context, 'AI headers'))
+    const extraBody = parseJsonObject(config.extraBody || '{}', context, 'AI extra body')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), config.timeoutMs)
 
-    return {
-        [config.outputKey || 'text']: result.text,
-        text: result.text,
-        providerName: result.providerName,
-        modelName: result.modelName,
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiKey}`,
+                ...headers,
+            },
+            body: JSON.stringify(compactPayload({
+                model,
+                messages: [
+                    { role: 'system', content: resolveTemplate(config.system || '', context) },
+                    { role: 'user', content: resolveTemplate(config.prompt, context) },
+                ],
+                temperature: config.temperature,
+                max_tokens: config.maxTokens,
+                ...extraBody,
+            })),
+            signal: controller.signal,
+        })
+        const responseText = await response.text()
+        const body = parseMaybeJson(responseText)
+
+        if (!response.ok) {
+            throw new Error(`AI API HTTP ${response.status}: ${responseText.slice(0, 500)}`)
+        }
+
+        const text = extractAiResponseText(body, config.responsePath || '')
+
+        return {
+            [config.outputKey || 'text']: text,
+            text,
+            model,
+            endpoint,
+            raw: body,
+        }
+    } finally {
+        clearTimeout(timeout)
     }
 }
 
@@ -390,6 +611,8 @@ async function executeNode(node: WorkflowCanvasNode, context: RuntimeContext) {
     if (node.data.nodeType === 'flashcardGenerator') return executeFlashcardGeneratorNode(node, context)
     if (node.data.nodeType === 'qrGenerator') return executeQrGeneratorNode(node, context)
     if (node.data.nodeType === 'supabaseQuery') return executeSupabaseQueryNode(node, context)
+    if (node.data.nodeType === 'telegramBot') return executeTelegramBotNode(node, context)
+    if (node.data.nodeType === 'zaloBot') return executeZaloBotNode(node, context)
     if (node.data.nodeType === 'condition') return executeConditionNode(node, context)
     if (node.data.nodeType === 'loop') return executeLoopNode(node, context)
 

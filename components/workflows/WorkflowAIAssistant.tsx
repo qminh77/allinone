@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Bot, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -48,15 +48,15 @@ export function WorkflowAIAssistant() {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button type="button" variant="outline" size="sm">
-                    <Bot className="size-4" />
-                    AI Generate
+                    <Sparkles className="size-4" />
+                    Generate
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="size-5 text-primary" />
-                        AI Workflow Agent
+                        Generate workflow
                     </DialogTitle>
                     <DialogDescription>
                         Mô tả automation bạn muốn. AI sẽ tạo JSON workflow dùng đúng node type của Flow.

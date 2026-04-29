@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
                     description: node.description,
                     defaultConfig: node.defaultConfig,
                 })),
+                botNodeGuidance: [
+                    'For aiAgent, never use modelDbId. Use endpoint, apiKey, model, system, prompt, responsePath and outputKey. Prefer apiKey {{input.aiApiKey}} unless the user names a different runtime field.',
+                    'For telegramBot, prefer botToken {{input.telegramBotToken}} and chatId {{input.telegramChatId}} unless the user names different runtime fields.',
+                    'For zaloBot, prefer botToken {{input.zaloBotToken}} and chatId {{input.zaloChatId}} unless the user names different runtime fields.',
+                    'Use payload JSON only for optional API parameters or custom methods.',
+                ],
                 layoutGuidance: 'Place nodes left-to-right with x increments around 320 and y increments around 140.',
             }),
             maxTokens: 5000,

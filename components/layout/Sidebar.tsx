@@ -61,6 +61,7 @@ export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }
     // Default open all categories
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
         'AI': true,
+        'Automation': true,
         'General': true,
         'Network': true,
         'Utilities': true,

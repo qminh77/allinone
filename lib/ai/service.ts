@@ -73,6 +73,18 @@ function errorEndpoint(url: string) {
     }
 }
 
+function httpErrorMessage(status: number, message: string) {
+    if (status === 503) {
+        return `AI provider đang bảo trì hoặc quá tải: ${message}`
+    }
+
+    if (status === 404) {
+        return `Không tìm thấy endpoint hoặc model AI. Kiểm tra Base URL và Model ID: ${message}`
+    }
+
+    return message
+}
+
 function numberFromUnknown(value: unknown, fallback: number) {
     return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
@@ -110,7 +122,7 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs = DEFAULT_TIM
 
         if (!response.ok) {
             const message = data?.error?.message || data?.message || text || `AI request failed with ${response.status}`
-            throw new Error(`${message} (${response.status} ${errorEndpoint(url)})`)
+            throw new Error(`${httpErrorMessage(response.status, message)} (${response.status} ${errorEndpoint(url)})`)
         }
 
         return data
@@ -171,6 +183,16 @@ function usageFromResponse(adapter: AiAdapter, data: any) {
     }
 
     const usage = data?.usage
+    if (typeof usage?.input_tokens === 'number' || typeof usage?.output_tokens === 'number') {
+        const inputTokens = usage?.input_tokens
+        const outputTokens = usage?.output_tokens
+        return {
+            prompt_tokens: typeof inputTokens === 'number' ? inputTokens : null,
+            completion_tokens: typeof outputTokens === 'number' ? outputTokens : null,
+            total_tokens: typeof usage?.total_tokens === 'number' ? usage.total_tokens : null,
+        }
+    }
+
     return {
         prompt_tokens: typeof usage?.prompt_tokens === 'number' ? usage.prompt_tokens : null,
         completion_tokens: typeof usage?.completion_tokens === 'number' ? usage.completion_tokens : null,
@@ -205,7 +227,7 @@ async function logUsage(params: {
     }
 }
 
-async function loadModel(modelDbId?: string | null, capability: AiCapability = 'text') {
+async function loadModels(modelDbId?: string | null, capability: AiCapability = 'text') {
     const admin = createAdminClient()
     const db = admin as any
 
@@ -234,7 +256,7 @@ async function loadModel(modelDbId?: string | null, capability: AiCapability = '
         throw new Error('AI chưa được cấu hình model/provider khả dụng trong AdminCP.')
     }
 
-    return models[0]
+    return models
 }
 
 async function callResponsesApi(model: AiModelConfig, apiKey: string, input: GenerateTextInput) {
@@ -246,6 +268,10 @@ async function callResponsesApi(model: AiModelConfig, apiKey: string, input: Gen
         input: buildPrompt(input),
         max_output_tokens: input.maxTokens ?? numberFromUnknown(defaults.max_output_tokens, DEFAULT_MAX_TOKENS),
         temperature: input.temperature ?? numberFromUnknown(defaults.temperature, DEFAULT_TEMPERATURE),
+    }
+
+    if (input.jsonMode && !defaults.text) {
+        payload.text = { format: { type: 'json_object' } }
     }
 
     const data = await fetchJson(buildProviderEndpointUrl(provider.base_url, '/responses'), {
@@ -365,60 +391,12 @@ function parseJsonText<T>(text: string): T {
 }
 
 export async function generateText(input: GenerateTextInput): Promise<GenerateTextResult> {
-    let model: AiModelConfig | null = null
-
+    let models: AiModelConfig[]
     try {
-        model = await loadModel(input.modelDbId, input.capability || (input.jsonMode ? 'json' : 'text'))
-        const provider = model.ai_providers
-        if (!provider?.encrypted_api_key) {
-            throw new Error('Provider chưa có API key.')
-        }
-
-        let apiKey: string
-        try {
-            apiKey = decrypt(provider.encrypted_api_key)
-        } catch (error) {
-            const detail = error instanceof Error ? ` Chi tiết: ${error.message}` : ''
-            throw new Error(`Không giải mã được API key của provider "${provider.name}". Hãy nhập lại API key trong AdminCP > AI Center sau khi cấu hình ENCRYPTION_KEY ổn định.${detail}`)
-        }
-
-        let result: { text: string; usage: ReturnType<typeof usageFromResponse> }
-
-        if (provider.adapter === 'openai_responses') {
-            result = await callResponsesApi(model, apiKey, input)
-        } else if (provider.adapter === 'gemini') {
-            result = await callGeminiApi(model, apiKey, input)
-        } else if (provider.adapter === 'anthropic') {
-            result = await callAnthropicApi(model, apiKey, input)
-        } else {
-            result = await callChatApi(model, apiKey, input)
-        }
-
-        if (!result.text) {
-            throw new Error('AI provider returned an empty response.')
-        }
-
-        await logUsage({
-            userId: input.userId,
-            providerId: provider.id,
-            modelId: model.id,
-            featureKey: input.featureKey,
-            status: 'success',
-            usage: result.usage,
-        })
-
-        return {
-            text: result.text,
-            providerId: provider.id,
-            modelId: model.id,
-            providerName: provider.name,
-            modelName: model.name,
-        }
+        models = await loadModels(input.modelDbId, input.capability || (input.jsonMode ? 'json' : 'text'))
     } catch (error) {
         await logUsage({
             userId: input.userId,
-            providerId: model?.ai_providers?.id,
-            modelId: model?.id,
             featureKey: input.featureKey,
             status: 'failed',
             errorMessage: error instanceof Error ? error.message : 'Unknown AI error',
@@ -426,6 +404,73 @@ export async function generateText(input: GenerateTextInput): Promise<GenerateTe
 
         throw error
     }
+
+    let lastError: unknown = null
+
+    for (const model of models) {
+        try {
+            const provider = model.ai_providers
+            if (!provider?.encrypted_api_key) {
+                throw new Error('Provider chưa có API key.')
+            }
+
+            let apiKey: string
+            try {
+                apiKey = decrypt(provider.encrypted_api_key)
+            } catch (error) {
+                const detail = error instanceof Error ? ` Chi tiết: ${error.message}` : ''
+                throw new Error(`Không giải mã được API key của provider "${provider.name}". Hãy nhập lại API key trong AdminCP > AI Center sau khi cấu hình ENCRYPTION_KEY ổn định.${detail}`)
+            }
+
+            let result: { text: string; usage: ReturnType<typeof usageFromResponse> }
+
+            if (provider.adapter === 'openai_responses') {
+                result = await callResponsesApi(model, apiKey, input)
+            } else if (provider.adapter === 'gemini') {
+                result = await callGeminiApi(model, apiKey, input)
+            } else if (provider.adapter === 'anthropic') {
+                result = await callAnthropicApi(model, apiKey, input)
+            } else {
+                result = await callChatApi(model, apiKey, input)
+            }
+
+            if (!result.text) {
+                throw new Error('AI provider returned an empty response.')
+            }
+
+            await logUsage({
+                userId: input.userId,
+                providerId: provider.id,
+                modelId: model.id,
+                featureKey: input.featureKey,
+                status: 'success',
+                usage: result.usage,
+            })
+
+            return {
+                text: result.text,
+                providerId: provider.id,
+                modelId: model.id,
+                providerName: provider.name,
+                modelName: model.name,
+            }
+        } catch (error) {
+            lastError = error
+            await logUsage({
+                userId: input.userId,
+                providerId: model.ai_providers?.id,
+                modelId: model.id,
+                featureKey: input.featureKey,
+                status: 'failed',
+                errorMessage: error instanceof Error ? error.message : 'Unknown AI error',
+            })
+
+            if (input.modelDbId) throw error
+        }
+    }
+
+    const message = lastError instanceof Error ? lastError.message : 'Không thể gọi AI provider.'
+    throw new Error(input.modelDbId ? message : `Tất cả provider AI khả dụng đều lỗi. Lỗi cuối: ${message}`)
 }
 
 export async function generateJson<T>(input: GenerateTextInput): Promise<T> {

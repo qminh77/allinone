@@ -129,7 +129,7 @@ values
   ('KRouter', 'krouter', 'openai_responses', 'https://api.krouter.net/v1', 'https://krouter.net/docs', 'KROUTER_API_KEY', false, 20),
   ('Google Gemini', 'google-gemini', 'gemini', 'https://generativelanguage.googleapis.com/v1beta', 'https://ai.google.dev/gemini-api/docs', 'GEMINI_API_KEY', false, 30),
   ('Anthropic', 'anthropic', 'anthropic', 'https://api.anthropic.com/v1', 'https://docs.anthropic.com/en/api/messages', 'ANTHROPIC_API_KEY', false, 40),
-  ('xAI Grok', 'xai-grok', 'openai_chat', 'https://api.x.ai/v1', 'https://docs.x.ai/docs/models', 'XAI_API_KEY', false, 50)
+  ('xAI Grok', 'xai-grok', 'openai_responses', 'https://api.x.ai/v1', 'https://docs.x.ai/docs/api-reference#responses', 'XAI_API_KEY', false, 50)
 on conflict (slug) do update set
   name = excluded.name,
   adapter = excluded.adapter,
@@ -158,14 +158,14 @@ select p.id, v.name, v.model_id, v.description, v.capabilities, v.context_window
 from provider_rows p
 join (
   values
-    ('openai', 'GPT-5.2', 'gpt-5.2', 'OpenAI flagship text/reasoning model. Verify pricing/model availability in AdminCP before enabling.', array['text','json','reasoning']::text[], 1000000, null::numeric, null::numeric, 10),
-    ('openai', 'GPT-5.2 Mini', 'gpt-5.2-mini', 'Lower-cost OpenAI text/reasoning model. Verify availability in AdminCP before enabling.', array['text','json','reasoning']::text[], 1000000, null::numeric, null::numeric, 20),
+    ('openai', 'GPT-4.1', 'gpt-4.1', 'OpenAI general-purpose Responses model. Verify account availability in AdminCP before enabling.', array['text','json','reasoning']::text[], 1000000, null::numeric, null::numeric, 10),
+    ('openai', 'GPT-4.1 Mini', 'gpt-4.1-mini', 'Lower-cost OpenAI Responses model. Verify account availability in AdminCP before enabling.', array['text','json','reasoning']::text[], 1000000, null::numeric, null::numeric, 20),
     ('krouter', 'GPT-5.5 via KRouter', 'gpt-5.5', 'KRouter OpenAI-compatible Responses model from docs/sample configuration.', array['text','json','reasoning']::text[], 1000000, null::numeric, null::numeric, 10),
-    ('google-gemini', 'Gemini 3 Pro', 'gemini-3-pro', 'Gemini text/multimodal model. Edit model_id if Google publishes a regional alias.', array['text','json','vision']::text[], 1000000, null::numeric, null::numeric, 10),
-    ('google-gemini', 'Gemini 3 Flash', 'gemini-3-flash', 'Gemini fast model for low-cost generation. Edit model_id if Google publishes a regional alias.', array['text','json','vision']::text[], 1000000, null::numeric, null::numeric, 20),
+    ('google-gemini', 'Gemini 2.5 Pro', 'gemini-2.5-pro', 'Gemini model supported by the generateContent API. Use ListModels in Google AI Studio if your account exposes a newer alias.', array['text','json','vision']::text[], 1000000, null::numeric, null::numeric, 10),
+    ('google-gemini', 'Gemini 2.5 Flash', 'gemini-2.5-flash', 'Fast Gemini model supported by the generateContent API. Use ListModels in Google AI Studio if your account exposes a newer alias.', array['text','json','vision']::text[], 1000000, null::numeric, null::numeric, 20),
     ('anthropic', 'Claude Sonnet 4.6', 'claude-sonnet-4-6', 'Claude Messages API model. Edit model_id if Anthropic publishes date-suffixed aliases.', array['text','json','reasoning']::text[], 1000000, null::numeric, null::numeric, 10),
     ('anthropic', 'Claude Opus 4.7', 'claude-opus-4-7', 'Claude high-reasoning model. Edit model_id if Anthropic publishes date-suffixed aliases.', array['text','json','reasoning']::text[], 1000000, null::numeric, null::numeric, 20),
-    ('xai-grok', 'Grok 4.20', 'grok-4.20', 'xAI OpenAI-compatible chat model. Verify exact model_id in AdminCP before enabling.', array['text','json','reasoning']::text[], 2000000, null::numeric, null::numeric, 10)
+    ('xai-grok', 'Grok 4.20 Reasoning', 'grok-4.20-reasoning', 'xAI OpenAI-compatible Responses model from the current API docs.', array['text','json','reasoning']::text[], 2000000, null::numeric, null::numeric, 10)
 ) as v(slug, name, model_id, description, capabilities, context_window, input_price, output_price, sort_order)
   on p.slug = v.slug
 on conflict (provider_id, model_id) do update set
