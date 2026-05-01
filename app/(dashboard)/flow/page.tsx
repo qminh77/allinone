@@ -1,6 +1,4 @@
 import type { Metadata } from 'next'
-import { Workflow } from 'lucide-react'
-import { ToolShell } from '@/components/dashboard/ToolShell'
 import { WorkflowBuilder } from '@/components/workflows/WorkflowBuilder'
 
 export const metadata: Metadata = {
@@ -10,13 +8,8 @@ export const metadata: Metadata = {
 
 export default function FlowPage() {
     return (
-        <ToolShell
-            title="Flow"
-            description="Xây workflow automation bằng canvas kéo-thả, custom nodes, Supabase persistence, execution history và realtime logs."
-            icon={Workflow}
-            className="max-w-none"
-        >
+        <div className="-m-3 h-[calc(100vh-4rem)] min-h-[620px] overflow-hidden sm:-m-4 lg:-m-6">
             <WorkflowBuilder />
-        </ToolShell>
+        </div>
     )
 }

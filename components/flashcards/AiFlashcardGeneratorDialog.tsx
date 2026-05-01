@@ -21,7 +21,7 @@ export function AiFlashcardGeneratorDialog({ setId }: AiFlashcardGeneratorDialog
     const [open, setOpen] = useState(false)
     const [topic, setTopic] = useState('')
     const [count, setCount] = useState(12)
-    const [language, setLanguage] = useState('Vietnamese')
+    const [difficulty, setDifficulty] = useState('trung bình')
     const [notes, setNotes] = useState('')
     const [modelDbId, setModelDbId] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
@@ -31,7 +31,7 @@ export function AiFlashcardGeneratorDialog({ setId }: AiFlashcardGeneratorDialog
             const result = await generateAndImportFlashcards(setId, {
                 topic,
                 count,
-                language,
+                difficulty,
                 notes,
                 modelDbId,
             })
@@ -60,7 +60,7 @@ export function AiFlashcardGeneratorDialog({ setId }: AiFlashcardGeneratorDialog
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>AI tạo flashcard</DialogTitle>
-                    <DialogDescription>Flashcard tạo xong sẽ được thêm trực tiếp vào set hiện tại.</DialogDescription>
+                    <DialogDescription>AI dùng logic tạo câu hỏi như quiz, rồi chuyển thành mặt trước/mặt sau của flashcard.</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
@@ -74,7 +74,7 @@ export function AiFlashcardGeneratorDialog({ setId }: AiFlashcardGeneratorDialog
                             id="ai-flashcard-topic"
                             value={topic}
                             onChange={(event) => setTopic(event.target.value)}
-                            placeholder="Ví dụ: 20 từ vựng IELTS chủ đề Environment..."
+                            placeholder="Ví dụ: kiểm tra kiến thức React hooks cơ bản..."
                             rows={4}
                             maxLength={1000}
                         />
@@ -85,8 +85,8 @@ export function AiFlashcardGeneratorDialog({ setId }: AiFlashcardGeneratorDialog
                             <Input id="ai-flashcard-count" type="number" min={3} max={50} value={count} onChange={(event) => setCount(Number(event.target.value))} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="ai-flashcard-language">Ngôn ngữ</Label>
-                            <Input id="ai-flashcard-language" value={language} onChange={(event) => setLanguage(event.target.value)} />
+                            <Label htmlFor="ai-flashcard-difficulty">Độ khó</Label>
+                            <Input id="ai-flashcard-difficulty" value={difficulty} onChange={(event) => setDifficulty(event.target.value)} />
                         </div>
                     </div>
                     <div className="space-y-2">

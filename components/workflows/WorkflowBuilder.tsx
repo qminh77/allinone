@@ -13,12 +13,11 @@ import {
     ReactFlowProvider,
     useReactFlow,
 } from '@xyflow/react'
-import { Download, FileJson, FolderOpen, LayoutDashboard, MoreHorizontal, Play, Plus, Save, Trash2, Upload } from 'lucide-react'
+import { Download, FileJson, FolderOpen, LayoutDashboard, MoreHorizontal, PanelLeft, PanelRight, Play, Plus, Save, Settings2, TerminalSquare, Trash2, Upload, Workflow } from 'lucide-react'
 import { toast } from 'sonner'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -167,6 +166,9 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
     const [runOpen, setRunOpen] = useState(false)
     const [newOpen, setNewOpen] = useState(false)
     const [deleteOpen, setDeleteOpen] = useState(false)
+    const [libraryOpen, setLibraryOpen] = useState(true)
+    const [inspectorOpen, setInspectorOpen] = useState(true)
+    const [rightPanelMode, setRightPanelMode] = useState<'editor' | 'executions'>('editor')
     const { screenToFlowPosition, fitView } = useReactFlow()
 
     const id = useWorkflowStore(state => state.workflowId)
@@ -294,58 +296,72 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
     }
 
     return (
-        <div className="space-y-4">
-            <Card className="overflow-hidden py-0">
-                <CardContent className="p-4">
-                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="grid flex-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_180px]">
-                        <div className="space-y-2">
-                            <Label htmlFor="workflow-name">Tên Flow</Label>
-                            <Input
-                                id="workflow-name"
-                                value={name}
-                                onChange={(event) => setMeta({ name: event.target.value })}
-                                className="bg-background text-base font-semibold"
-                            />
+        <div className="flex h-full min-h-[620px] flex-col overflow-hidden bg-background">
+            <div className="shrink-0 border-b bg-card/95 px-3 py-3 shadow-sm sm:px-4 lg:px-5">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <div className="hidden rounded-xl border bg-background p-2 text-muted-foreground shadow-xs sm:block">
+                            <Workflow className="size-5" />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="workflow-status">Status</Label>
-                            <Select value={status} onValueChange={(value) => setMeta({ status: value as typeof status })}>
-                                <SelectTrigger id="workflow-status" className="bg-background">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="draft">Draft</SelectItem>
-                                    <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="archived">Archived</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="workflow-schedule">Schedule cron</Label>
-                            <Input
-                                id="workflow-schedule"
-                                value={scheduleCron}
-                                onChange={(event) => setMeta({ scheduleCron: event.target.value })}
-                                placeholder="0 8 * * *"
-                                className="bg-background font-mono"
-                            />
-                        </div>
-                        <div className="space-y-2 md:col-span-3">
-                            <Label htmlFor="workflow-description">Mô tả</Label>
-                            <Textarea
-                                id="workflow-description"
-                                value={description}
-                                onChange={(event) => setMeta({ description: event.target.value })}
-                                placeholder="Flow này làm gì, input/output ra sao..."
-                                className="min-h-20 bg-background"
-                            />
+                        <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                                <Label htmlFor="workflow-name" className="sr-only">Tên Flow</Label>
+                                <Input
+                                    id="workflow-name"
+                                    value={name}
+                                    onChange={(event) => setMeta({ name: event.target.value })}
+                                    className="h-9 border-0 bg-transparent px-0 text-xl font-semibold shadow-none focus-visible:ring-0 sm:text-2xl md:max-w-xl"
+                                />
+                                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                    <Badge variant={isDirty ? 'default' : 'secondary'}>{isDirty ? 'Unsaved' : 'Saved'}</Badge>
+                                    <Select value={status} onValueChange={(value) => setMeta({ status: value as typeof status })}>
+                                        <SelectTrigger id="workflow-status" className="h-8 w-[126px] bg-background text-xs">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="draft">Draft</SelectItem>
+                                            <SelectItem value="active">Active</SelectItem>
+                                            <SelectItem value="archived">Archived</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2 lg:grid-cols-[180px_minmax(0,1fr)]">
+                                <div className="flex h-9 items-center gap-2 rounded-md border bg-background px-3 text-xs text-muted-foreground shadow-xs">
+                                    <Label htmlFor="workflow-schedule" className="shrink-0 text-xs">Cron</Label>
+                                    <Input
+                                        id="workflow-schedule"
+                                        value={scheduleCron}
+                                        onChange={(event) => setMeta({ scheduleCron: event.target.value })}
+                                        placeholder="0 8 * * *"
+                                        className="h-7 border-0 bg-transparent p-0 font-mono text-xs shadow-none focus-visible:ring-0"
+                                    />
+                                </div>
+                                <div className="min-w-0">
+                                    <Label htmlFor="workflow-description" className="sr-only">Mô tả</Label>
+                                    <Textarea
+                                        id="workflow-description"
+                                        value={description}
+                                        onChange={(event) => setMeta({ description: event.target.value })}
+                                        placeholder="Mô tả flow, input/output hoặc ghi chú vận hành..."
+                                        className="max-h-20 min-h-9 resize-none overflow-y-auto bg-background py-2 text-sm"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 xl:max-w-md xl:justify-end">
-                        <Badge variant={isDirty ? 'default' : 'secondary'}>{isDirty ? 'Unsaved' : 'Saved'}</Badge>
+                    <div className="flex flex-wrap items-center gap-2 xl:max-w-[620px] xl:justify-end">
                         {error && <Badge variant="destructive" className="max-w-64 truncate">{error}</Badge>}
+                        <Button type="button" variant={libraryOpen ? 'secondary' : 'outline'} size="sm" onClick={() => setLibraryOpen(open => !open)}>
+                            <PanelLeft className="size-4" />
+                            <span className="hidden sm:inline">Nodes</span>
+                        </Button>
+                        <Button type="button" variant={inspectorOpen ? 'secondary' : 'outline'} size="sm" onClick={() => setInspectorOpen(open => !open)}>
+                            <PanelRight className="size-4" />
+                            <span className="hidden sm:inline">Inspector</span>
+                        </Button>
                         <Button type="button" variant="outline" size="sm" onClick={createNew}>
                             <Plus className="size-4" />
                             New
@@ -354,15 +370,15 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
                             <FolderOpen className="size-4" />
                             Load
                         </Button>
+                        <WorkflowAIAssistant />
                         <Button type="button" size="sm" onClick={() => void save()} disabled={isSaving || isLoading}>
                             <Save className="size-4" />
                             {isSaving ? 'Saving...' : 'Save'}
                         </Button>
-                        <Button type="button" variant="outline" size="sm" onClick={() => setRunOpen(true)} disabled={isRunning}>
+                        <Button type="button" variant="default" size="sm" onClick={() => { setRightPanelMode('executions'); setInspectorOpen(true); setRunOpen(true) }} disabled={isRunning}>
                             <Play className="size-4" />
                             Run
                         </Button>
-                        <WorkflowAIAssistant />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button type="button" variant="outline" size="sm">
@@ -396,55 +412,96 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
                         </DropdownMenu>
                         <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={importJson} />
                     </div>
-                    </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
-                <Card className="min-h-[760px] overflow-hidden py-0">
-                    <CardContent className="flex h-full min-h-[760px] flex-col p-0 lg:flex-row">
-                        <NodeLibrary />
-                        <div className="relative min-h-[560px] flex-1 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_28rem)]">
-                            {isLoading && (
-                                <div className="absolute inset-0 z-20 grid place-items-center bg-background/70 text-sm text-muted-foreground backdrop-blur-sm">
-                                    Đang tải workflow...
-                                </div>
-                            )}
-                            <ReactFlow
-                                nodes={nodes}
-                                edges={edges}
-                                nodeTypes={workflowNodeTypes}
-                                onNodesChange={onNodesChange}
-                                onEdgesChange={onEdgesChange}
-                                onConnect={onConnect}
-                                onDrop={onDrop}
-                                onDragOver={onDragOver}
-                                onPaneClick={() => setSelectedNodeId(null)}
-                                fitView
-                                deleteKeyCode={['Backspace', 'Delete']}
-                                className={cn('workflow-canvas', isLoading && 'pointer-events-none')}
-                            >
-                                <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} />
-                                <Controls position="bottom-left" />
-                                <MiniMap pannable zoomable position="bottom-right" />
-                            </ReactFlow>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => fitView({ padding: 0.2, duration: 300 })}
-                                className="absolute left-4 top-4 z-10 shadow-sm"
-                            >
-                                Fit view
+            <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto bg-muted/30 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:overflow-hidden">
+                {libraryOpen && <NodeLibrary />}
+
+                <section className="relative min-h-[560px] min-w-0 overflow-hidden border-y bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.12),transparent_30rem)] lg:min-h-0 lg:border-y-0">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-20 grid place-items-center bg-background/70 text-sm text-muted-foreground backdrop-blur-sm">
+                            Đang tải workflow...
+                        </div>
+                    )}
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        nodeTypes={workflowNodeTypes}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onConnect={onConnect}
+                        onDrop={onDrop}
+                        onDragOver={onDragOver}
+                        onPaneClick={() => setSelectedNodeId(null)}
+                        fitView
+                        deleteKeyCode={['Backspace', 'Delete']}
+                        className={cn('workflow-canvas h-full w-full', isLoading && 'pointer-events-none')}
+                    >
+                        <Background variant={BackgroundVariant.Dots} gap={24} size={1.25} />
+                        <Controls position="bottom-left" />
+                        <MiniMap pannable zoomable position="bottom-right" />
+                    </ReactFlow>
+                    <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2 sm:left-4 sm:top-4">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => fitView({ padding: 0.2, duration: 300 })}
+                            className="shadow-sm"
+                        >
+                            Fit view
+                        </Button>
+                        {!libraryOpen && (
+                            <Button type="button" variant="secondary" size="sm" onClick={() => setLibraryOpen(true)} className="shadow-sm">
+                                <PanelLeft className="size-4" />
+                                Nodes
+                            </Button>
+                        )}
+                        {!inspectorOpen && (
+                            <Button type="button" variant="secondary" size="sm" onClick={() => setInspectorOpen(true)} className="shadow-sm">
+                                <PanelRight className="size-4" />
+                                Inspector
+                            </Button>
+                        )}
+                    </div>
+                </section>
+
+                {inspectorOpen && (
+                    <aside className="flex min-h-[520px] w-full min-w-0 flex-col border-l bg-card/90 lg:min-h-0 lg:w-[420px] 2xl:w-[460px]">
+                        <div className="flex shrink-0 items-center justify-between gap-2 border-b p-3">
+                            <div className="inline-flex rounded-lg bg-muted p-1">
+                                <Button
+                                    type="button"
+                                    variant={rightPanelMode === 'editor' ? 'secondary' : 'ghost'}
+                                    size="sm"
+                                    onClick={() => setRightPanelMode('editor')}
+                                    className="h-8 px-3"
+                                >
+                                    <Settings2 className="size-4" />
+                                    Editor
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={rightPanelMode === 'executions' ? 'secondary' : 'ghost'}
+                                    size="sm"
+                                    onClick={() => setRightPanelMode('executions')}
+                                    className="h-8 px-3"
+                                >
+                                    <TerminalSquare className="size-4" />
+                                    Logs
+                                </Button>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon-sm" onClick={() => setInspectorOpen(false)}>
+                                <PanelRight className="size-4" />
+                                <span className="sr-only">Ẩn inspector</span>
                             </Button>
                         </div>
-                    </CardContent>
-                </Card>
-
-                <div className="flex min-h-[760px] flex-col gap-4">
-                    <NodeEditor />
-                    <ExecutionPanel />
-                </div>
+                        <div className="flex min-h-0 flex-1 p-3">
+                            {rightPanelMode === 'editor' ? <NodeEditor /> : <ExecutionPanel />}
+                        </div>
+                    </aside>
+                )}
             </div>
 
             <WorkflowLoadDialog open={loadOpen} onOpenChange={setLoadOpen} />

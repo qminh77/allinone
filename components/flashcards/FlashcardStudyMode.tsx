@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, RotateCcw, Shuffle, Star, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { MarkdownDefinition } from '@/components/flashcards/MarkdownDefinition'
+import { cn } from '@/lib/utils'
 import {
     saveFlashcardProgress,
     type FlashcardCard,
@@ -118,6 +119,55 @@ export function FlashcardStudyMode({ set, persistToServer = true }: FlashcardStu
     const frontText = definitionFirst ? currentCard?.definition : currentCard?.term
     const backText = definitionFirst ? currentCard?.term : currentCard?.definition
     const currentStatus = currentCard ? progressByCard[currentCard.id] : null
+    const frontIsDefinition = definitionFirst
+    const backIsDefinition = !definitionFirst
+
+    function renderFaceContent(value: string, isDefinition: boolean) {
+        return (
+            <div className={cn(
+                'max-h-[250px] w-full max-w-2xl overflow-y-auto px-1',
+                isDefinition ? 'text-left' : 'text-center'
+            )}>
+                {isDefinition ? (
+                    <MarkdownDefinition value={value} className="text-base font-normal leading-relaxed sm:text-lg" />
+                ) : (
+                    <p className="whitespace-pre-wrap break-words text-xl font-semibold leading-relaxed sm:text-2xl">
+                        {value}
+                    </p>
+                )}
+            </div>
+        )
+    }
+
+    function renderFace(label: string, value: string, isDefinition: boolean, isBack = false) {
+        return (
+            <Card
+                className="absolute inset-0 flex min-h-[340px] flex-col overflow-hidden border-2 py-5 transition-colors hover:border-primary/50"
+                style={{
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    transform: isBack ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                }}
+            >
+                <CardHeader className="px-5 sm:px-6">
+                    <CardTitle className="flex items-center justify-between gap-3 text-base">
+                        <span>{label}</span>
+                        <span className="text-sm font-normal text-muted-foreground">Click để lật thẻ</span>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-1 items-center justify-center px-5 pb-6 pt-0 sm:px-8">
+                    {renderFaceContent(value, isDefinition)}
+                </CardContent>
+            </Card>
+        )
+    }
+
+    function handleFlipKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+
+        event.preventDefault()
+        setIsFlipped(value => !value)
+    }
 
     return (
         <div className="mx-auto max-w-4xl space-y-5">
@@ -158,35 +208,26 @@ export function FlashcardStudyMode({ set, persistToServer = true }: FlashcardStu
                 </div>
             </div>
 
-            <button
-                type="button"
-                className="block w-full text-left"
+            <div
+                role="button"
+                tabIndex={0}
+                className="block w-full cursor-pointer rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 onClick={() => setIsFlipped(value => !value)}
+                onKeyDown={handleFlipKeyDown}
+                aria-pressed={isFlipped}
+                style={{ perspective: '1400px' }}
             >
-                <Card className="min-h-[320px] border-2 transition-colors hover:border-primary/50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between gap-3 text-base">
-                            <span>{isFlipped ? 'Mặt sau' : 'Mặt trước'}</span>
-                            <span className="text-sm font-normal text-muted-foreground">Click để lật thẻ</span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex min-h-[230px] items-center justify-center p-6">
-                        <div className="w-full max-w-2xl text-center text-2xl font-semibold leading-relaxed">
-                            {isFlipped ? (
-                                definitionFirst ? (
-                                    <p className="break-words">{backText}</p>
-                                ) : (
-                                    <MarkdownDefinition value={backText || ''} className="text-left text-lg font-normal" />
-                                )
-                            ) : definitionFirst ? (
-                                <MarkdownDefinition value={frontText || ''} className="text-left text-lg font-normal" />
-                            ) : (
-                                <p className="break-words">{frontText}</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            </button>
+                <div
+                    className="relative min-h-[340px] transition-transform duration-500 motion-reduce:transition-none"
+                    style={{
+                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                        transformStyle: 'preserve-3d',
+                    }}
+                >
+                    {renderFace('Mặt trước', frontText || '', frontIsDefinition)}
+                    {renderFace('Mặt sau', backText || '', backIsDefinition, true)}
+                </div>
+            </div>
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <Button type="button" variant="outline" onClick={() => move(-1)} disabled={currentIndex === 0}>

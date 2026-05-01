@@ -68,7 +68,7 @@ export function NodeLibrary() {
     }
 
     return (
-        <aside className="flex h-full w-full flex-col border-b bg-card/70 lg:w-80 lg:border-b-0 lg:border-r">
+        <aside className="flex h-full min-h-[320px] w-full min-w-0 flex-col border-b bg-card/80 lg:min-h-0 lg:w-[300px] lg:border-b-0 lg:border-r xl:w-80">
             <div className="space-y-3 border-b p-4">
                 <div>
                     <h2 className="text-sm font-semibold">Nodes Library</h2>
@@ -85,7 +85,7 @@ export function NodeLibrary() {
                 </div>
             </div>
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="min-h-0 flex-1">
                 <div className="space-y-2 p-3">
                     {nodes.map(node => {
                         const Icon = iconByType[node.type]

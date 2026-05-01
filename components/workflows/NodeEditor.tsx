@@ -190,7 +190,7 @@ export function NodeEditor() {
 
     if (!node) {
         return (
-            <Card className="py-0">
+            <Card className="flex min-h-0 flex-1 py-0">
                 <CardContent className="p-4 text-sm text-muted-foreground">
                 Chọn một node trên canvas để chỉnh cấu hình. Dùng template như <code className="rounded bg-muted px-1">{'{{input.text}}'}</code> hoặc <code className="rounded bg-muted px-1">{'{{nodes.nodeId.text}}'}</code>.
                 </CardContent>

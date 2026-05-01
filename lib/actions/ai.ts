@@ -302,17 +302,57 @@ export async function generateMailDraft(input: z.infer<typeof MailDraftInputSche
 const FlashcardGenerateInputSchema = z.object({
     topic: z.string().trim().min(3, 'Chủ đề quá ngắn').max(1000),
     count: z.coerce.number().int().min(3).max(50).default(12),
+    difficulty: z.string().trim().max(80).optional(),
     language: z.string().trim().max(80).optional(),
     notes: z.string().trim().max(1500).optional(),
     modelDbId: ModelIdSchema,
 })
 
-const FlashcardsSchema = z.object({
-    cards: z.array(z.object({
-        term: z.string().trim().min(1).max(500),
-        definition: z.string().trim().min(1).max(5000),
+const GeneratedQuizSchema = z.object({
+    questions: z.array(z.object({
+        content: z.string().trim().min(3).max(2000),
+        type: z.enum(['single', 'multiple']).default('single'),
+        explanation: z.string().trim().max(2000).optional().nullable(),
+        answers: z.array(z.object({
+            content: z.string().trim().min(1).max(1000),
+            is_correct: z.boolean(),
+        })).min(2).max(6),
     })).min(1).max(50),
 })
+
+type GeneratedQuizQuestion = z.infer<typeof GeneratedQuizSchema>['questions'][number]
+
+function normalizeGeneratedQuizQuestion(question: GeneratedQuizQuestion) {
+    const hasCorrect = question.answers.some(answer => answer.is_correct)
+    const normalizedAnswers = hasCorrect
+        ? question.answers
+        : question.answers.map((answer, answerIndex) => ({ ...answer, is_correct: answerIndex === 0 }))
+    const correctCount = normalizedAnswers.filter(answer => answer.is_correct).length
+    const questionType: 'single' | 'multiple' = correctCount > 1 ? 'multiple' : 'single'
+
+    return {
+        normalizedAnswers,
+        questionType,
+    }
+}
+
+function quizQuestionToFlashcard(question: GeneratedQuizQuestion) {
+    const { normalizedAnswers } = normalizeGeneratedQuizQuestion(question)
+    const correctAnswers = normalizedAnswers
+        .filter(answer => answer.is_correct)
+        .map(answer => answer.content)
+    const definitionParts = [`**Đáp án:** ${correctAnswers.join('; ')}`]
+    const explanation = question.explanation?.trim()
+
+    if (explanation) {
+        definitionParts.push(`**Giải thích:** ${explanation}`)
+    }
+
+    return {
+        term: trimText(question.content, 500),
+        definition: trimText(definitionParts.join('\n\n'), 5000),
+    }
+}
 
 export async function generateAndImportFlashcards(setId: string, input: z.infer<typeof FlashcardGenerateInputSchema>) {
     const user = await requireAuthenticated()
@@ -324,24 +364,37 @@ export async function generateAndImportFlashcards(setId: string, input: z.infer<
             featureKey: 'flashcards.ai.generate',
             userId: user.id,
             modelDbId: parsed.data.modelDbId,
-            system: 'You create high-quality study flashcards in Vietnamese unless another language is requested. Return JSON only.',
+            system: 'You create fair, unambiguous quiz-style study questions in Vietnamese unless another language is requested. Return JSON only.',
             prompt: JSON.stringify({
                 topic: parsed.data.topic,
                 count: parsed.data.count,
+                difficulty: parsed.data.difficulty || 'trung bình',
                 language: parsed.data.language || 'Vietnamese',
                 notes: parsed.data.notes || '',
                 requirements: [
-                    'Each term must be concise.',
-                    'Each definition must be accurate, study-friendly, and can include short markdown.',
+                    'Create questions using the same logic as the quiz generator.',
+                    'Each question needs 4 answers by default.',
+                    'Single questions must have exactly one correct answer.',
+                    'Multiple questions can have two or more correct answers.',
+                    'Add a short explanation for learning.',
+                    'Questions should test one concept and work well as the front side of a flashcard.',
                     'Avoid duplicates.',
                 ],
-                outputShape: { cards: [{ term: 'string', definition: 'string' }] },
+                outputShape: {
+                    questions: [{
+                        content: 'string',
+                        type: 'single or multiple',
+                        explanation: 'string',
+                        answers: [{ content: 'string', is_correct: true }],
+                    }],
+                },
             }),
-            maxTokens: Math.min(5000, 350 + parsed.data.count * 180),
+            maxTokens: Math.min(6000, 450 + parsed.data.count * 260),
             temperature: 0.35,
         })
 
-        const cards = FlashcardsSchema.parse(result).cards.slice(0, parsed.data.count)
+        const parsedQuestions = GeneratedQuizSchema.parse(result).questions.slice(0, parsed.data.count)
+        const cards = parsedQuestions.map(quizQuestionToFlashcard)
         const importResult = await importFlashcardCards(setId, cards)
         if (importResult.error) return { error: importResult.error }
 
@@ -357,18 +410,6 @@ const QuizGenerateInputSchema = z.object({
     difficulty: z.string().trim().max(80).optional(),
     notes: z.string().trim().max(1500).optional(),
     modelDbId: ModelIdSchema,
-})
-
-const GeneratedQuizSchema = z.object({
-    questions: z.array(z.object({
-        content: z.string().trim().min(3).max(2000),
-        type: z.enum(['single', 'multiple']).default('single'),
-        explanation: z.string().trim().max(2000).optional().nullable(),
-        answers: z.array(z.object({
-            content: z.string().trim().min(1).max(1000),
-            is_correct: z.boolean(),
-        })).min(2).max(6),
-    })).min(1).max(30),
 })
 
 export async function generateAndInsertQuizQuestions(quizId: string, input: z.infer<typeof QuizGenerateInputSchema>) {
@@ -408,12 +449,7 @@ export async function generateAndInsertQuizQuestions(quizId: string, input: z.in
 
         const parsedQuestions = GeneratedQuizSchema.parse(result).questions.slice(0, parsed.data.count)
         const questionsData = parsedQuestions.map((question, index) => {
-            const hasCorrect = question.answers.some(answer => answer.is_correct)
-            const normalizedAnswers = hasCorrect
-                ? question.answers
-                : question.answers.map((answer, answerIndex) => ({ ...answer, is_correct: answerIndex === 0 }))
-            const correctCount = normalizedAnswers.filter(answer => answer.is_correct).length
-            const questionType: 'single' | 'multiple' = correctCount > 1 ? 'multiple' : 'single'
+            const { normalizedAnswers, questionType } = normalizeGeneratedQuizQuestion(question)
 
             return {
                 question: {
@@ -433,7 +469,8 @@ export async function generateAndInsertQuizQuestions(quizId: string, input: z.in
         })
 
         const importResult = await createQuestionsBatch(quizId, questionsData)
-        if ((importResult as any).error) return { error: (importResult as any).error }
+        const importError = 'error' in importResult ? importResult.error : null
+        if (typeof importError === 'string') return { error: importError }
 
         return { success: true, count: importResult.count || questionsData.length, errors: importResult.errors || [] }
     } catch (error) {

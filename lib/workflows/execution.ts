@@ -46,12 +46,47 @@ interface RuntimeContext {
     logs: WorkflowExecutionLogRecord[]
 }
 
-const GeneratedFlashcardsSchema = z.object({
-    cards: z.array(z.object({
-        term: z.string().trim().min(1).max(500),
-        definition: z.string().trim().min(1).max(5000),
+const GeneratedFlashcardQuestionsSchema = z.object({
+    questions: z.array(z.object({
+        content: z.string().trim().min(3).max(2000),
+        type: z.enum(['single', 'multiple']).default('single'),
+        explanation: z.string().trim().max(2000).optional().nullable(),
+        answers: z.array(z.object({
+            content: z.string().trim().min(1).max(1000),
+            is_correct: z.boolean(),
+        })).min(2).max(6),
     })).min(1).max(50),
 })
+
+type GeneratedFlashcardQuestion = z.infer<typeof GeneratedFlashcardQuestionsSchema>['questions'][number]
+
+function trimText(value: string, maxLength: number) {
+    return value.trim().replace(/\0/g, '').slice(0, maxLength)
+}
+
+function normalizeGeneratedFlashcardQuestion(question: GeneratedFlashcardQuestion) {
+    const hasCorrect = question.answers.some(answer => answer.is_correct)
+    return hasCorrect
+        ? question.answers
+        : question.answers.map((answer, index) => ({ ...answer, is_correct: index === 0 }))
+}
+
+function quizQuestionToFlashcard(question: GeneratedFlashcardQuestion) {
+    const correctAnswers = normalizeGeneratedFlashcardQuestion(question)
+        .filter(answer => answer.is_correct)
+        .map(answer => answer.content)
+    const definitionParts = [`**Đáp án:** ${correctAnswers.join('; ')}`]
+    const explanation = question.explanation?.trim()
+
+    if (explanation) {
+        definitionParts.push(`**Giải thích:** ${explanation}`)
+    }
+
+    return {
+        term: trimText(question.content, 500),
+        definition: trimText(definitionParts.join('\n\n'), 5000),
+    }
+}
 
 function nowIso() {
     return new Date().toISOString()
@@ -432,19 +467,40 @@ async function executeFlashcardGeneratorNode(node: WorkflowCanvasNode, context: 
         featureKey: 'flow.flashcards.generate',
         userId: context.userId,
         modelDbId: config.modelDbId,
-        system: 'You create accurate, concise flashcards. Return JSON only.',
+        system: 'You create fair, unambiguous quiz-style study questions. Return JSON only.',
         prompt: JSON.stringify({
             topic: resolveTemplate(config.topic, context),
             count: config.count,
+            difficulty: 'trung bình',
             language: config.language || 'Vietnamese',
             notes: resolveTemplate(config.notes || '', context),
-            outputShape: { cards: [{ term: 'string', definition: 'string' }] },
+            requirements: [
+                'Create questions using the same logic as the quiz generator.',
+                'Each question needs 4 answers by default.',
+                'Single questions must have exactly one correct answer.',
+                'Multiple questions can have two or more correct answers.',
+                'Add a short explanation for learning.',
+                'Questions should test one concept and work well as the front side of a flashcard.',
+                'Avoid duplicates.',
+            ],
+            outputShape: {
+                questions: [{
+                    content: 'string',
+                    type: 'single or multiple',
+                    explanation: 'string',
+                    answers: [{ content: 'string', is_correct: true }],
+                }],
+            },
         }),
-        maxTokens: Math.min(5000, 350 + config.count * 180),
+        maxTokens: Math.min(6000, 450 + config.count * 260),
         temperature: 0.35,
     })
 
-    const cards = GeneratedFlashcardsSchema.parse(result).cards.slice(0, config.count)
+    const cards = GeneratedFlashcardQuestionsSchema
+        .parse(result)
+        .questions
+        .slice(0, config.count)
+        .map(quizQuestionToFlashcard)
     let insertedCount = 0
 
     if (config.setId) {
