@@ -73,8 +73,8 @@ export function ExecutionPanel() {
     }, [activeExecutionId, appendLog])
 
     return (
-        <Card className="flex min-h-0 flex-1 overflow-hidden py-0">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b p-4">
+        <Card className="flex h-full min-h-0 flex-1 overflow-hidden py-0">
+            <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-3 border-b p-4">
                 <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Executions</p>
                     <CardTitle className="text-base">History & realtime logs</CardTitle>
@@ -113,7 +113,7 @@ export function ExecutionPanel() {
                 </CardContent>
             </ScrollArea>
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="min-h-0 flex-1">
                 <CardContent className="space-y-2 p-3">
                     {logs.length === 0 ? (
                         <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">

@@ -15,6 +15,12 @@ interface AiWorkflowResponse {
     error?: string
 }
 
+const promptSamples = [
+    'Tạo flow manual nhận input.message, dùng AI trả lời như chat assistant, sau đó gửi kết quả qua Telegram.',
+    'Tạo flow nhận input.topic, tạo flashcard bằng thuật toán quiz và import vào flashcard set nếu có setId.',
+    'Tạo flow gọi HTTP API theo input.query, dùng AI tóm tắt response, nếu có chữ approved thì tạo QR payload.',
+]
+
 export function WorkflowAIAssistant() {
     const [open, setOpen] = useState(false)
     const [prompt, setPrompt] = useState('')
@@ -62,6 +68,20 @@ export function WorkflowAIAssistant() {
                         Mô tả automation bạn muốn. AI sẽ tạo JSON workflow dùng đúng node type của Flow.
                     </DialogDescription>
                 </DialogHeader>
+                <div className="flex flex-wrap gap-2">
+                    {promptSamples.map(sample => (
+                        <Button
+                            key={sample}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-auto max-w-full whitespace-normal text-left"
+                            onClick={() => setPrompt(sample)}
+                        >
+                            {sample}
+                        </Button>
+                    ))}
+                </div>
                 <Textarea
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}

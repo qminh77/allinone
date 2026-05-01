@@ -38,6 +38,32 @@ interface WorkflowBuilderProps {
     workflowId?: string
 }
 
+const runInputSamples = [
+    {
+        label: 'Chat input',
+        value: {
+            message: 'Xin chào, hãy tóm tắt nội dung này',
+            topic: 'React hooks',
+        },
+    },
+    {
+        label: 'Bot message',
+        value: {
+            message: 'Thông báo lịch họp lúc 9h sáng mai',
+            telegramChatId: '123456789',
+            zaloChatId: '123456789',
+        },
+    },
+    {
+        label: 'API payload',
+        value: {
+            apiToken: 'replace-me',
+            query: 'workflow automation',
+            payload: { title: 'Demo item', status: 'approved' },
+        },
+    },
+]
+
 function WorkflowLoadDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
     const router = useRouter()
     const [query, setQuery] = useState('')
@@ -143,6 +169,19 @@ function WorkflowRunDialog({ open, onOpenChange }: { open: boolean; onOpenChange
                     <DialogTitle>Run workflow</DialogTitle>
                     <DialogDescription>Nhập manual input JSON. Dữ liệu này dùng qua template <code>{'{{input.key}}'}</code>.</DialogDescription>
                 </DialogHeader>
+                <div className="flex flex-wrap gap-2">
+                    {runInputSamples.map(sample => (
+                        <Button
+                            key={sample.label}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setInput(JSON.stringify(sample.value, null, 2))}
+                        >
+                            {sample.label}
+                        </Button>
+                    ))}
+                </div>
                 <Textarea
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
@@ -468,7 +507,7 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
                 </section>
 
                 {inspectorOpen && (
-                    <aside className="flex min-h-[520px] w-full min-w-0 flex-col border-l bg-card/90 lg:min-h-0 lg:w-[420px] 2xl:w-[460px]">
+                    <aside className="flex min-h-[520px] max-h-[calc(100vh-7rem)] w-full min-w-0 flex-col overflow-hidden border-l bg-card/90 lg:h-full lg:min-h-0 lg:max-h-none lg:w-[420px] 2xl:w-[460px]">
                         <div className="flex shrink-0 items-center justify-between gap-2 border-b p-3">
                             <div className="inline-flex rounded-lg bg-muted p-1">
                                 <Button
@@ -497,7 +536,7 @@ function WorkflowBuilderInner({ workflowId }: WorkflowBuilderProps) {
                                 <span className="sr-only">Ẩn inspector</span>
                             </Button>
                         </div>
-                        <div className="flex min-h-0 flex-1 p-3">
+                        <div className="min-h-0 flex-1 overflow-hidden p-3">
                             {rightPanelMode === 'editor' ? <NodeEditor /> : <ExecutionPanel />}
                         </div>
                     </aside>

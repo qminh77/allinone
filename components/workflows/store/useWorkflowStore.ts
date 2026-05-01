@@ -72,7 +72,7 @@ interface WorkflowStoreState {
     onNodesChange: (changes: NodeChange<WorkflowCanvasNode>[]) => void
     onEdgesChange: (changes: EdgeChange<WorkflowCanvasEdge>[]) => void
     onConnect: (connection: Connection) => void
-    addNode: (type: WorkflowNodeType, position?: XYPosition) => void
+    addNode: (type: WorkflowNodeType, position?: XYPosition) => string
     setSelectedNodeId: (nodeId: string | null) => void
     updateNodeData: (nodeId: string, data: Partial<WorkflowNodeData>) => void
     updateNodeConfig: (nodeId: string, key: string, value: unknown) => void
@@ -175,14 +175,21 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
         isDirty: true,
     })),
 
-    addNode: (type, position = { x: 180, y: 180 }) => set(state => {
-        const node = createWorkflowNode(type, position, `${type}-${Date.now().toString(36)}-${state.nodes.length + 1}`)
-        return {
-            nodes: [...state.nodes, node],
-            selectedNodeId: node.id,
-            isDirty: true,
-        }
-    }),
+    addNode: (type, position = { x: 180, y: 180 }) => {
+        let nodeId = ''
+        set(state => {
+            const node = createWorkflowNode(type, position, `${type}-${Date.now().toString(36)}-${state.nodes.length + 1}`)
+            nodeId = node.id
+
+            return {
+                nodes: [...state.nodes, node],
+                selectedNodeId: node.id,
+                isDirty: true,
+            }
+        })
+
+        return nodeId
+    },
 
     setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
 

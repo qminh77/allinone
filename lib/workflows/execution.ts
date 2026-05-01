@@ -121,15 +121,86 @@ function stringifyTemplateValue(value: unknown) {
     return JSON.stringify(value)
 }
 
+function splitFunctionArgs(args: string) {
+    const result: string[] = []
+    let current = ''
+    let quote: '"' | "'" | null = null
+
+    for (const char of args) {
+        if ((char === '"' || char === "'") && !quote) {
+            quote = char
+            current += char
+            continue
+        }
+
+        if (char === quote) {
+            quote = null
+            current += char
+            continue
+        }
+
+        if (char === ',' && !quote) {
+            result.push(current.trim())
+            current = ''
+            continue
+        }
+
+        current += char
+    }
+
+    if (current.trim()) result.push(current.trim())
+    return result
+}
+
+function resolvePathExpression(path: string, context: RuntimeContext) {
+    if (path.startsWith('input.')) return getPath(context.input, path.slice(6))
+    if (path === 'input') return context.input
+    if (path.startsWith('nodes.')) return getPath(context.outputs, path.slice(6))
+
+    return getPath({ input: context.input, nodes: context.outputs }, path)
+}
+
+function resolveFunctionArg(arg: string, context: RuntimeContext): unknown {
+    const value = arg.trim()
+    if (!value) return ''
+
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        return value.slice(1, -1)
+    }
+
+    if (value === 'true') return true
+    if (value === 'false') return false
+    if (value === 'null') return null
+    if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value)
+
+    const resolved = resolvePathExpression(value, context)
+    return resolved === undefined ? value : resolved
+}
+
+function resolveTemplateExpression(expression: string, context: RuntimeContext) {
+    const path = expression.trim()
+    const functionCall = path.match(/^([a-zA-Z][a-zA-Z0-9_]*)\(([\s\S]*)\)$/)
+
+    if (functionCall) {
+        const name = functionCall[1]
+        const args = splitFunctionArgs(functionCall[2]).map(arg => resolveFunctionArg(arg, context))
+        const first = stringifyTemplateValue(args[0])
+
+        if (name === 'now') return new Date().toISOString()
+        if (name === 'today') return new Date().toISOString().slice(0, 10)
+        if (name === 'upper') return first.toUpperCase()
+        if (name === 'lower') return first.toLowerCase()
+        if (name === 'trim') return first.trim()
+        if (name === 'urlEncode') return encodeURIComponent(first)
+        if (name === 'json') return JSON.stringify(args[0] ?? {})
+    }
+
+    return resolvePathExpression(path, context)
+}
+
 function resolveTemplate(template: string, context: RuntimeContext) {
     return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_match, expression: string) => {
-        const path = expression.trim()
-
-        if (path.startsWith('input.')) return stringifyTemplateValue(getPath(context.input, path.slice(6)))
-        if (path === 'input') return stringifyTemplateValue(context.input)
-        if (path.startsWith('nodes.')) return stringifyTemplateValue(getPath(context.outputs, path.slice(6)))
-
-        return stringifyTemplateValue(getPath({ input: context.input, nodes: context.outputs }, path))
+        return stringifyTemplateValue(resolveTemplateExpression(expression, context))
     })
 }
 
@@ -471,7 +542,7 @@ async function executeFlashcardGeneratorNode(node: WorkflowCanvasNode, context: 
         prompt: JSON.stringify({
             topic: resolveTemplate(config.topic, context),
             count: config.count,
-            difficulty: 'trung bình',
+            difficulty: config.difficulty || 'trung bình',
             language: config.language || 'Vietnamese',
             notes: resolveTemplate(config.notes || '', context),
             requirements: [

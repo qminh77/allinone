@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
-import { Copy, Download, Upload, FileCode, Trash } from 'lucide-react'
+import { Copy, Download, FileCode, Trash, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { saveToolOutput } from '@/lib/client/tool-files'
-import { recordsToCsv } from '@/lib/client/spreadsheet'
+import { convertLatex, getLatexTargetFormat, type LatexConversionResult } from '@/lib/client/latex-converter'
 
 interface LatexConverterProps {
     slug: string
@@ -18,151 +18,97 @@ interface LatexConverterProps {
 }
 
 export function LatexConverter({ slug, title, description }: LatexConverterProps) {
-    const [inputContent, setInputContent] = useState<string>('')
-    const [outputContent, setOutputContent] = useState<string>('')
-    const [isProcessing, setIsProcessing] = useState(false)
-    const [fileName, setFileName] = useState<string>('')
+    const [inputContent, setInputContent] = useState('')
+    const [conversion, setConversion] = useState<LatexConversionResult | null>(null)
+    const [fileName, setFileName] = useState('')
+    const [errorMessage, setErrorMessage] = useState('')
+    const [isDownloading, setIsDownloading] = useState(false)
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
+    const targetFormat = getLatexTargetFormat(slug)
+    const outputContent = conversion?.content || ''
 
-        if (!file.name.match(/\.(tex|latex|txt)$/)) {
-            toast.error('Vui lòng tải lên file LaTeX (.tex, .latex)')
+    const processConversion = (content: string, sourceName = fileName) => {
+        if (!content.trim()) {
+            setConversion(null)
+            setErrorMessage('')
             return
         }
 
-        const reader = new FileReader()
-        reader.onload = (e) => {
-            const result = e.target?.result as string
-            setInputContent(result)
-            setFileName(file.name)
-            processConversion(result)
-        }
-        reader.readAsText(file)
-    }
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const value = e.target.value
-        setInputContent(value)
-        if (value) processConversion(value)
-        else setOutputContent('')
-    }
-
-    const parseLatexTable = (latex: string): any[] => {
-        // Find tabular environment
-        // \begin{tabular}{...} ... \end{tabular}
-        const tabularRegex = /\\begin\{tabular\}\{[^}]+\}([\s\S]*?)\\end\{tabular\}/;
-        const match = latex.match(tabularRegex);
-
-        if (!match) return [];
-
-        const body = match[1].trim();
-        const rows = body.split('\\\\').map(row => row.trim()).filter(row => row && !row.startsWith('\\hline'));
-
-        if (rows.length === 0) return [];
-
-        // Assume first row is header
-        const headerRow = rows[0];
-        const headers = headerRow.split('&').map(h => h.trim().replace(/\\textbf\{([^}]+)\}/, '$1'));
-
-        const data = [];
-        for (let i = 1; i < rows.length; i++) {
-            const rowStr = rows[i];
-            const cols = rowStr.split('&').map(c => c.trim());
-            const rowData: any = {};
-
-            headers.forEach((header, idx) => {
-                if (header) {
-                    rowData[header] = cols[idx] || '';
-                }
-            });
-
-            // Basic filtering of empty rows
-            if (Object.keys(rowData).length > 0) {
-                data.push(rowData);
-            }
-        }
-
-        return data;
-    };
-
-    const processConversion = (content: string) => {
-        setIsProcessing(true)
         try {
-            const result = convertData(content, slug)
-            setOutputContent(result)
+            setConversion(convertLatex(content, slug, { sourceName }))
+            setErrorMessage('')
         } catch (error) {
             console.error(error)
+            setConversion(null)
+            setErrorMessage(error instanceof Error ? error.message : 'Không thể chuyển đổi LaTeX hiện tại.')
+        }
+    }
+
+    const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        if (!/\.(tex|latex|ltx|txt)$/i.test(file.name)) {
+            toast.error('Vui lòng tải lên file LaTeX (.tex, .latex, .ltx, .txt)')
+            event.target.value = ''
+            return
+        }
+
+        try {
+            const content = await file.text()
+            setInputContent(content)
+            setFileName(file.name)
+            processConversion(content, file.name)
+        } catch (error) {
+            console.error(error)
+            toast.error('Không đọc được file LaTeX.')
         } finally {
-            setIsProcessing(false)
+            event.target.value = ''
         }
     }
 
-    const convertData = (content: string, slug: string): string => {
-        const targetFormat = slug.replace('latex-to-', '')
-
-        switch (targetFormat) {
-            case 'latex':
-                return content; // Formatter?
-
-            // Table Data Formats
-            case 'json': {
-                const data = parseLatexTable(content);
-                if (data.length === 0) return JSON.stringify({ error: "No LaTeX table found" });
-                return JSON.stringify(data, null, 2);
-            }
-            case 'jsonlines': {
-                const data = parseLatexTable(content);
-                return data.map(row => JSON.stringify(row)).join('\n');
-            }
-            case 'csv': {
-                const data = parseLatexTable(content);
-                if (data.length === 0) return '';
-                return recordsToCsv(data);
-            }
-            case 'sql': {
-                const data = parseLatexTable(content);
-                if (data.length === 0) return '-- No table found';
-                const tableName = fileName.split('.')[0] || 'table_name';
-                const columns = Object.keys(data[0]);
-                const values = data.map(row => {
-                    const rowValues = columns.map(col => {
-                        const val = row[col];
-                        return typeof val === 'string' ? `'${val.replace(/'/g, "''")}'` : val;
-                    });
-                    return `(${rowValues.join(', ')})`;
-                }).join(',\n');
-                return `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES\n${values};`;
-            }
-            case 'xml': {
-                const data = parseLatexTable(content);
-                if (data.length === 0) return '';
-                return data.map(row => {
-                    return `  <row>\n${Object.entries(row).map(([k, v]) => `    <${k}>${v}</${k}>`).join('\n')}\n  </row>`
-                }).join('\n').replace(/^/, '<root>\n').replace(/$/, '\n</root>')
-            }
-            case 'yaml': {
-                const data = parseLatexTable(content);
-                return data.map(row => {
-                    return `- ${Object.entries(row).map(([k, v]) => `${k}: ${v}`).join('\n  ')}`
-                }).join('\n');
-            }
-
-            default:
-                return `Conversion to ${targetFormat} from LaTeX not fully implemented yet for non-table data. \n\nRaw Content:\n${content}`
-        }
+    const handleInputChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+        const value = event.target.value
+        setInputContent(value)
+        processConversion(value)
     }
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(outputContent)
-        toast.success('Đã sao chép vào clipboard')
+    const clearInput = () => {
+        setInputContent('')
+        setFileName('')
+        setConversion(null)
+        setErrorMessage('')
+    }
+
+    const copyToClipboard = async () => {
+        if (!outputContent) return
+
+        try {
+            await navigator.clipboard.writeText(outputContent)
+            toast.success('Đã sao chép vào clipboard')
+        } catch {
+            toast.error('Không thể sao chép vào clipboard.')
+        }
     }
 
     const downloadResult = async () => {
-        const filename = `converted.${slug.replace('latex-to-', '')}`
-        const blob = new Blob([outputContent], { type: 'text/plain' })
-        await saveToolOutput({ moduleKey: slug, blob, filename, mimeType: 'text/plain' })
+        if (!conversion || !outputContent) return
+
+        setIsDownloading(true)
+        try {
+            const blob = await createDownloadBlob(conversion)
+            await saveToolOutput({
+                moduleKey: slug,
+                blob,
+                filename: buildOutputFilename(fileName, conversion),
+                mimeType: conversion.mimeType,
+            })
+        } catch (error) {
+            console.error(error)
+            toast.error(error instanceof Error ? error.message : 'Không thể tạo file tải xuống.')
+        } finally {
+            setIsDownloading(false)
+        }
     }
 
     return (
@@ -172,64 +118,74 @@ export function LatexConverter({ slug, title, description }: LatexConverterProps
                     <CardHeader>
                         <CardTitle>1. Input LaTeX</CardTitle>
                         <CardDescription>
-                            Nhập mã LaTeX hoặc tải file .tex. <br />
-                            <span className="text-muted-foreground italic text-xs">Hỗ trợ môi trường `tabular` cơ bản.</span>
+                            Nhập mã LaTeX hoặc tải file .tex. Công cụ nhận diện bảng `tabular`, `array`, `longtable` và vẫn xử lý được nội dung văn bản thường.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                             <Label
                                 htmlFor="latex-upload"
-                                className="flex items-center justify-center px-4 py-2 border border-dashed rounded-md cursor-pointer hover:bg-muted/50 transition-colors"
+                                className="flex w-fit cursor-pointer items-center justify-center rounded-md border border-dashed px-4 py-2 transition-colors hover:bg-muted/50"
                             >
-                                <Upload className="w-4 h-4 mr-2" />
+                                <Upload className="mr-2 h-4 w-4" />
                                 <span>Upload File</span>
                                 <input
                                     id="latex-upload"
                                     type="file"
                                     className="hidden"
-                                    accept=".tex, .latex, .txt"
+                                    accept=".tex,.latex,.ltx,.txt"
                                     onChange={handleFileUpload}
                                 />
                             </Label>
                             {fileName && <span className="text-sm text-green-600">File: {fileName}</span>}
-                            <Button variant="ghost" size="sm" onClick={() => { setInputContent(''); setFileName(''); setOutputContent('') }}>
-                                <Trash className="w-4 h-4 mr-2" />
+                            <Button variant="ghost" size="sm" className="w-fit" onClick={clearInput} disabled={!inputContent && !fileName}>
+                                <Trash className="mr-2 h-4 w-4" />
                                 Clear
                             </Button>
                         </div>
                         <Textarea
-                            placeholder={`\\begin{tabular}{ |c|c| } \n \\hline \n ID & Name \\\\ \n 1 & John \\\\ \n \\hline \n\\end{tabular}`}
-                            className="min-h-[200px] font-mono text-sm whitespace-pre"
+                            placeholder={`\\begin{tabular}{ |c|c| }\n\\hline\nID & Name \\\\\n1 & John \\\\\n2 & Jane \\\\\n\\hline\n\\end{tabular}`}
+                            className="min-h-[220px] font-mono text-sm whitespace-pre"
                             value={inputContent}
                             onChange={handleInputChange}
                         />
+                        {conversion && (
+                            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                                <div>{conversion.summary}</div>
+                                {conversion.warning && <div className="mt-1">{conversion.warning}</div>}
+                            </div>
+                        )}
+                        {errorMessage && (
+                            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                                {errorMessage}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">
-                            <CardTitle>2. Kết quả ({slug.replace('latex-to-', '').toUpperCase()})</CardTitle>
+                            <CardTitle>2. Kết quả ({targetFormat.toUpperCase()})</CardTitle>
                             <CardDescription>
-                                Xem trước và tải xuống kết quả
+                                Xem trước và tải xuống kết quả{conversion ? ` .${conversion.extension}` : ''}
                             </CardDescription>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={copyToClipboard} disabled={!outputContent}>
-                                <Copy className="w-4 h-4 mr-2" />
+                            <Button variant="outline" size="sm" onClick={copyToClipboard} disabled={!outputContent || isDownloading}>
+                                <Copy className="mr-2 h-4 w-4" />
                                 Copy
                             </Button>
-                            <Button size="sm" onClick={downloadResult} disabled={!outputContent}>
-                                <Download className="w-4 h-4 mr-2" />
-                                Download
+                            <Button size="sm" onClick={downloadResult} disabled={!outputContent || isDownloading}>
+                                <Download className="mr-2 h-4 w-4" />
+                                {isDownloading ? 'Đang tạo...' : 'Download'}
                             </Button>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <Textarea
                             placeholder="Kết quả chuyển đổi sẽ xuất hiện ở đây..."
-                            className="min-h-[300px] font-mono text-sm"
+                            className="min-h-[320px] font-mono text-sm"
                             value={outputContent}
                             readOnly
                         />
@@ -238,4 +194,157 @@ export function LatexConverter({ slug, title, description }: LatexConverterProps
             </div>
         </ToolShell>
     )
+}
+
+async function createDownloadBlob(conversion: LatexConversionResult) {
+    if (conversion.downloadKind === 'pdf') {
+        return renderTextPdfBlob(conversion.content)
+    }
+
+    if (conversion.downloadKind === 'png' || conversion.downloadKind === 'jpeg') {
+        return renderTextImageBlob(conversion.content, conversion.mimeType)
+    }
+
+    return new Blob([conversion.content], { type: conversion.mimeType })
+}
+
+function buildOutputFilename(inputName: string, conversion: LatexConversionResult) {
+    const baseName = inputName ? inputName.replace(/\.[^.]+$/, '') : 'converted-latex'
+    const safeName = baseName.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'converted-latex'
+    return `${safeName}.${conversion.extension}`
+}
+
+async function renderTextImageBlob(content: string, mimeType: string) {
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Không thể tạo canvas để render ảnh.')
+
+    const width = 1400
+    const padding = 48
+    const lineHeight = 30
+    const maxHeight = 16000
+    context.font = getCanvasFont()
+    const wrappedLines = wrapTextLines(context, content, width - padding * 2)
+    const maxLines = Math.max(1, Math.floor((maxHeight - padding * 2) / lineHeight) - 1)
+    const visibleLines = wrappedLines.length > maxLines
+        ? [...wrappedLines.slice(0, maxLines), `... Đã rút gọn ${wrappedLines.length - maxLines} dòng do giới hạn canvas của trình duyệt.`]
+        : wrappedLines
+
+    canvas.width = width
+    canvas.height = Math.max(260, padding * 2 + visibleLines.length * lineHeight)
+    drawTextCanvas(context, canvas.width, canvas.height, visibleLines, padding, lineHeight)
+
+    return canvasToBlob(canvas, mimeType, mimeType === 'image/jpeg' ? 0.92 : undefined)
+}
+
+async function renderTextPdfBlob(content: string) {
+    const { PDFDocument } = await import('pdf-lib')
+    const pdf = await PDFDocument.create()
+    const pageWidth = 595.28
+    const pageHeight = 841.89
+    const scale = 2
+    const canvasWidth = Math.round(pageWidth * scale)
+    const canvasHeight = Math.round(pageHeight * scale)
+    const padding = 72
+    const lineHeight = 28
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Không thể tạo canvas để render PDF.')
+
+    canvas.width = canvasWidth
+    canvas.height = canvasHeight
+    context.font = getCanvasFont()
+    const lines = wrapTextLines(context, content, canvasWidth - padding * 2)
+    const linesPerPage = Math.max(1, Math.floor((canvasHeight - padding * 2 - lineHeight) / lineHeight))
+    const totalPages = Math.max(1, Math.ceil(lines.length / linesPerPage))
+
+    for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+        const pageLines = lines.slice(pageIndex * linesPerPage, (pageIndex + 1) * linesPerPage)
+        drawTextCanvas(context, canvasWidth, canvasHeight, pageLines, padding, lineHeight, `${pageIndex + 1}/${totalPages}`)
+        const pngBlob = await canvasToBlob(canvas, 'image/png')
+        const image = await pdf.embedPng(await pngBlob.arrayBuffer())
+        const page = pdf.addPage([pageWidth, pageHeight])
+        page.drawImage(image, { x: 0, y: 0, width: pageWidth, height: pageHeight })
+    }
+
+    const bytes = await pdf.save()
+    const pdfBuffer = new ArrayBuffer(bytes.byteLength)
+    new Uint8Array(pdfBuffer).set(bytes)
+
+    return new Blob([pdfBuffer], { type: 'application/pdf' })
+}
+
+function getCanvasFont() {
+    return '24px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+}
+
+function drawTextCanvas(
+    context: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    lines: string[],
+    padding: number,
+    lineHeight: number,
+    footer?: string
+) {
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
+    context.fillStyle = '#111827'
+    context.font = getCanvasFont()
+    context.textBaseline = 'top'
+
+    lines.forEach((line, index) => {
+        context.fillText(line || ' ', padding, padding + index * lineHeight)
+    })
+
+    if (footer) {
+        context.fillStyle = '#6b7280'
+        context.font = '20px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+        context.fillText(footer, width - padding - context.measureText(footer).width, height - padding + 12)
+    }
+}
+
+function wrapTextLines(context: CanvasRenderingContext2D, content: string, maxWidth: number) {
+    const lines: string[] = []
+
+    for (const paragraph of content.split('\n')) {
+        if (!paragraph.trim()) {
+            lines.push('')
+            continue
+        }
+
+        let currentLine = ''
+        for (const word of paragraph.split(/\s+/)) {
+            const candidate = currentLine ? `${currentLine} ${word}` : word
+            if (context.measureText(candidate).width <= maxWidth) {
+                currentLine = candidate
+                continue
+            }
+
+            if (currentLine) lines.push(currentLine)
+            currentLine = word
+
+            while (context.measureText(currentLine).width > maxWidth && currentLine.length > 1) {
+                let splitAt = currentLine.length - 1
+                while (splitAt > 1 && context.measureText(currentLine.slice(0, splitAt)).width > maxWidth) {
+                    splitAt--
+                }
+                lines.push(currentLine.slice(0, splitAt))
+                currentLine = currentLine.slice(splitAt)
+            }
+        }
+
+        lines.push(currentLine)
+    }
+
+    return lines.length > 0 ? lines : ['']
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, mimeType: string, quality?: number) {
+    return new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob) resolve(blob)
+            else reject(new Error('Không thể tạo file từ canvas.'))
+        }, mimeType, quality)
+    })
 }

@@ -12,6 +12,7 @@ import {
     Repeat2,
     Search,
     Send,
+    Sparkles,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -50,9 +51,73 @@ const accentByType: Record<WorkflowNodeType, string> = {
     zaloBot: 'bg-blue-500',
 }
 
+interface NodePreset {
+    label: string
+    description: string
+    type: WorkflowNodeType
+    config: Record<string, unknown>
+}
+
+const nodePresets: NodePreset[] = [
+    {
+        label: 'AI chat input',
+        description: 'Nhận {{input.message}} và trả về answer.',
+        type: 'aiAgent',
+        config: {
+            system: 'You are a concise Vietnamese assistant.',
+            prompt: 'Trả lời người dùng bằng tiếng Việt.\n\nUser: {{input.message}}',
+            outputKey: 'answer',
+        },
+    },
+    {
+        label: 'HTTP POST JSON',
+        description: 'Gửi JSON body từ input tới API.',
+        type: 'httpRequest',
+        config: {
+            method: 'POST',
+            url: 'https://api.example.com/items',
+            headers: '{"Content-Type":"application/json","Authorization":"Bearer {{input.apiToken}}"}',
+            body: '{"message":"{{input.message}}","date":"{{today()}}"}',
+        },
+    },
+    {
+        label: 'Telegram reply',
+        description: 'Gửi message tới chatId từ input.',
+        type: 'telegramBot',
+        config: {
+            method: 'sendMessage',
+            chatId: '{{input.telegramChatId}}',
+            text: '{{input.message}}',
+        },
+    },
+    {
+        label: 'Zalo reply',
+        description: 'Gửi message tới Zalo chatId từ input.',
+        type: 'zaloBot',
+        config: {
+            method: 'sendMessage',
+            chatId: '{{input.zaloChatId}}',
+            text: '{{input.message}}',
+        },
+    },
+    {
+        label: 'Quiz-style flashcards',
+        description: 'Tạo flashcard theo thuật toán quiz.',
+        type: 'flashcardGenerator',
+        config: {
+            topic: '{{input.topic}}',
+            count: 12,
+            difficulty: 'trung bình',
+            notes: 'Tạo câu hỏi rõ ràng, có đáp án và giải thích ngắn.',
+        },
+    },
+]
+
 export function NodeLibrary() {
     const [query, setQuery] = useState('')
     const addNode = useWorkflowStore(state => state.addNode)
+    const updateNodeData = useWorkflowStore(state => state.updateNodeData)
+    const updateNodeConfig = useWorkflowStore(state => state.updateNodeConfig)
     const normalizedQuery = query.trim().toLowerCase()
     const nodes = WORKFLOW_NODE_DEFINITIONS.filter(node => {
         if (!normalizedQuery) return true
@@ -65,6 +130,15 @@ export function NodeLibrary() {
     const onDragStart = (event: DragEvent<HTMLButtonElement>, type: WorkflowNodeType) => {
         event.dataTransfer.setData('application/allinone-flow-node', type)
         event.dataTransfer.effectAllowed = 'move'
+    }
+
+    const addPreset = (preset: NodePreset) => {
+        const nodeId = addNode(preset.type)
+        updateNodeData(nodeId, {
+            label: preset.label,
+            description: preset.description,
+        })
+        Object.entries(preset.config).forEach(([key, value]) => updateNodeConfig(nodeId, key, value))
     }
 
     return (
@@ -87,6 +161,29 @@ export function NodeLibrary() {
 
             <ScrollArea className="min-h-0 flex-1">
                 <div className="space-y-2 p-3">
+                    <div className="space-y-2 rounded-xl border bg-background/70 p-3">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            <Sparkles className="size-3.5" />
+                            Quick nodes
+                        </div>
+                        <div className="space-y-2">
+                            {nodePresets.map(preset => (
+                                <Button
+                                    key={preset.label}
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => addPreset(preset)}
+                                    className="h-auto w-full justify-start whitespace-normal rounded-lg border bg-muted/30 p-2 text-left hover:bg-muted/70"
+                                >
+                                    <span className="min-w-0 space-y-0.5">
+                                        <span className="block truncate text-xs font-medium">{preset.label}</span>
+                                        <span className="line-clamp-2 text-[11px] font-normal text-muted-foreground">{preset.description}</span>
+                                    </span>
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+
                     {nodes.map(node => {
                         const Icon = iconByType[node.type]
                         return (
@@ -97,7 +194,7 @@ export function NodeLibrary() {
                                 draggable
                                 onDragStart={(event) => onDragStart(event, node.type)}
                                 onClick={() => addNode(node.type)}
-                                className="h-auto w-full justify-start gap-3 rounded-xl border bg-background/70 p-3 text-left hover:bg-muted/70"
+                                className="h-auto w-full justify-start gap-3 whitespace-normal rounded-xl border bg-background/70 p-3 text-left hover:bg-muted/70"
                             >
                                 <span className={cn('rounded-lg p-2 text-white shadow-sm', accentByType[node.type])}>
                                     <Icon className="size-4" />

@@ -80,6 +80,7 @@ export const AiAgentConfigSchema = z.object({
 export const FlashcardGeneratorConfigSchema = z.object({
     topic: z.string().trim().min(3, 'Chủ đề quá ngắn.').max(1000),
     count: z.coerce.number().int().min(1).max(50).default(12),
+    difficulty: z.string().trim().max(80).optional().default('trung bình'),
     language: z.string().trim().max(80).optional().default('Vietnamese'),
     notes: z.string().trim().max(1500).optional().default(''),
     setId: z.string().uuid().optional().nullable(),
@@ -236,6 +237,7 @@ export const WORKFLOW_NODE_DEFINITIONS: WorkflowNodeDefinition[] = [
         defaultConfig: {
             topic: 'Next.js App Router basics',
             count: 12,
+            difficulty: 'trung bình',
             language: 'Vietnamese',
             notes: '',
             setId: null,
