@@ -16,7 +16,6 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { updateUser, deleteUser } from '@/lib/actions/users'
-import { Switch } from '@/components/ui/switch'
 import { Pencil, Trash2 } from 'lucide-react'
 import {
     AlertDialog,
@@ -29,7 +28,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface User {
     id: string
@@ -43,7 +41,7 @@ export function CreateUserDialog() {
     const [open, setOpen] = useState(false)
     const { register, handleSubmit, reset } = useForm()
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async () => {
         // Placeholder for create action
         // const result = await createUser(data)
         toast.info('Tính năng tạo user đang được phát triển (Cần Service Role)')
@@ -95,7 +93,7 @@ export function EditUserDialog({ user }: { user: User }) {
         },
     })
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: { fullName: string; isActive: boolean }) => {
         const result = await updateUser({ id: user.id, ...data })
         if (result.error) {
             toast.error(result.error)

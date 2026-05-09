@@ -857,7 +857,12 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_shortlink_clicks: {
+        Args: {
+          shortlink_id: string
+        }
+        Returns: void
+      }
     }
     Enums: {
       [_ in never]: never

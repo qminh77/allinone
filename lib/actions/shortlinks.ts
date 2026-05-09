@@ -3,11 +3,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import bcrypt from 'bcryptjs'
 import { checkRateLimit, RateLimits } from '@/lib/rate-limit'
 import { randomBytes } from 'crypto'
 import { UrlSchema, SlugSchema } from '@/lib/validation'
+import type { Database } from '@/types/database'
+
+type ShortlinkRow = Database['public']['Tables']['shortlinks']['Row']
+type ShortlinkInsert = Database['public']['Tables']['shortlinks']['Insert']
+type PublicShortlink = Pick<ShortlinkRow, 'id' | 'target_url' | 'password_hash' | 'expires_at'>
+type PasswordShortlink = Pick<ShortlinkRow, 'id' | 'target_url' | 'password_hash'>
 
 const RESERVED_SLUGS = [
     'admin', 'admincp', 'dashboard', 'auth', 'api', 'tools', 'settings',
@@ -64,19 +69,21 @@ export async function createShortlink(formData: FormData) {
     // skipped manual select.
 
     // 3. Password Hashing
-    let passwordHash = null
+    let passwordHash: string | null = null
     if (password && password.trim()) {
         passwordHash = await bcrypt.hash(password.trim(), 10)
     }
 
     // 4. Insert
-    const { error } = await supabase.from('shortlinks' as any).insert({
+    const insertPayload: ShortlinkInsert = {
         user_id: user.id,
         slug,
         target_url: targetUrl,
         password_hash: passwordHash,
         expires_at: expiresAt || null
-    } as any)
+    }
+
+    const { error } = await supabase.from('shortlinks').insert(insertPayload as never)
 
     if (error) {
         // Handle unique constraint violation (duplicate slug)
@@ -96,7 +103,7 @@ export async function deleteShortlink(id: string) {
     if (!user) return { error: 'Unauthorized' }
 
     const { error } = await supabase
-        .from('shortlinks' as any)
+        .from('shortlinks')
         .delete()
         .eq('id', id)
         .eq('user_id', user.id)
@@ -112,7 +119,7 @@ export async function getShortlinks() {
     if (!user) return []
 
     const { data } = await supabase
-        .from('shortlinks' as any)
+        .from('shortlinks')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -125,20 +132,20 @@ export async function getShortlinks() {
 export async function getPublicShortlink(slug: string) {
     const supabase = createAdminClient()
 
-    const { data } = await (supabase
-        .from('shortlinks' as any) as any)
+    const { data } = await supabase
+        .from('shortlinks')
         .select('id, target_url, password_hash, expires_at')
         .eq('slug', slug)
         .single()
 
-    return data
+    return data as PublicShortlink | null
 }
 
 // ✅ Use secure function to increment clicks
 export async function incrementClicks(id: string) {
     const supabase = createAdminClient()
     // Call the SECURITY DEFINER function from migration
-    await supabase.rpc('increment_shortlink_clicks' as any, { shortlink_id: id } as any)
+    await supabase.rpc('increment_shortlink_clicks', { shortlink_id: id } as never)
 }
 
 export async function verifyShortlinkPassword(slug: string, passwordInput: string) {
@@ -154,19 +161,21 @@ export async function verifyShortlinkPassword(slug: string, passwordInput: strin
     }
 
     const supabase = createAdminClient()
-    const { data } = await (supabase
-        .from('shortlinks' as any) as any)
+    const { data } = await supabase
+        .from('shortlinks')
         .select('id, target_url, password_hash')
         .eq('slug', slug)
         .single()
 
-    if (!data || !(data as any).password_hash) {
+    const shortlink = data as PasswordShortlink | null
+
+    if (!shortlink?.password_hash) {
         // ✅ Add delay to prevent timing attacks
         await new Promise(resolve => setTimeout(resolve, 1000))
         return { error: 'Invalid link' }
     }
 
-    const isValid = await bcrypt.compare(passwordInput, (data as any).password_hash)
+    const isValid = await bcrypt.compare(passwordInput, shortlink.password_hash)
 
     if (!isValid) {
         // ✅ Add delay to prevent timing attacks
@@ -174,6 +183,6 @@ export async function verifyShortlinkPassword(slug: string, passwordInput: strin
         return { error: 'Incorrect Password' }
     }
 
-    await incrementClicks((data as any).id)
-    return { success: true, url: (data as any).target_url }
+    await incrementClicks(shortlink.id)
+    return { success: true, url: shortlink.target_url }
 }

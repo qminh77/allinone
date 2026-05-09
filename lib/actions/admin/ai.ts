@@ -7,6 +7,11 @@ import { createAdminClient, isAdminClientConfigured } from '@/lib/supabase/admin
 import { createAuditLog } from '@/lib/audit/log'
 import { encrypt, getEncryptionConfigError } from '@/lib/encryption'
 import { AI_MODELS_TAG, generateText, normalizeAiProviderBaseUrl } from '@/lib/ai/service'
+import type { Database } from '@/types/database'
+
+type AiProviderRow = Database['public']['Tables']['ai_providers']['Row']
+type AiProviderInsert = Database['public']['Tables']['ai_providers']['Insert']
+type AiProviderUpdate = Database['public']['Tables']['ai_providers']['Update']
 
 const AdapterSchema = z.enum(['openai_responses', 'openai_chat', 'openai_compatible', 'gemini', 'anthropic'])
 const IdSchema = z.string().uuid('Invalid ID')
@@ -48,7 +53,7 @@ function parseRequestDefaults(value: FormDataEntryValue | null) {
     }
 }
 
-function sanitizeProvider(provider: any) {
+function sanitizeProvider(provider: AiProviderRow) {
     return {
         id: provider.id,
         name: provider.name,
@@ -92,7 +97,7 @@ function createAiAdminClient() {
     return createAdminClient()
 }
 
-async function audit(userId: string, action: Parameters<typeof createAuditLog>[0]['action'], resourceType: string, resourceId?: string, metadata?: Record<string, any>) {
+async function audit(userId: string, action: Parameters<typeof createAuditLog>[0]['action'], resourceType: string, resourceId?: string, metadata?: Record<string, unknown>) {
     await createAuditLog({
         userId,
         action,
@@ -110,12 +115,11 @@ export async function getAiAdminData() {
 
     try {
         const admin = createAiAdminClient()
-        const db = admin as any
 
         const [providersResult, modelsResult, logsResult] = await Promise.all([
-            db.from('ai_providers').select('*').order('sort_order', { ascending: true }).order('name', { ascending: true }),
-            db.from('ai_models').select('*, ai_providers(id, name, slug)').order('sort_order', { ascending: true }).order('name', { ascending: true }),
-            db.from('ai_usage_logs')
+            admin.from('ai_providers').select('*').order('sort_order', { ascending: true }).order('name', { ascending: true }),
+            admin.from('ai_models').select('*, ai_providers(id, name, slug)').order('sort_order', { ascending: true }).order('name', { ascending: true }),
+            admin.from('ai_usage_logs')
                 .select('*, ai_providers(name), ai_models(name, model_id)')
                 .order('created_at', { ascending: false })
                 .limit(30),
@@ -183,7 +187,7 @@ export async function createAiProvider(formData: FormData) {
             encryptedApiKey = encrypted.value
         }
 
-        const payload: Record<string, any> = {
+        const payload: AiProviderInsert = {
             name: parsed.value!.name,
             slug: parsed.value!.slug,
             adapter: parsed.value!.adapter,
@@ -196,15 +200,17 @@ export async function createAiProvider(formData: FormData) {
             updated_by: user.id,
         }
 
-        const { data, error } = await (createAiAdminClient() as any)
+        const { data, error } = await createAiAdminClient()
             .from('ai_providers')
-            .insert(payload)
+            .insert(payload as never)
             .select('id, slug')
             .single()
 
         if (error) return { error: error.message }
+        const createdProvider = data as { id: string; slug: string } | null
+        if (!createdProvider) return { error: 'Không thể tạo provider' }
 
-        await audit(user.id, 'ai.provider.create', 'ai_provider', data.id, { slug: data.slug })
+        await audit(user.id, 'ai.provider.create', 'ai_provider', createdProvider.id, { slug: createdProvider.slug })
         revalidateAiModelOptions()
         revalidatePath('/admin/ai')
         return { success: true }
@@ -222,7 +228,7 @@ export async function updateAiProvider(providerId: string, formData: FormData) {
         const parsed = parseProviderForm(formData)
         if (parsed.error) return { error: parsed.error }
 
-        const payload: Record<string, any> = {
+        const payload: AiProviderUpdate = {
             name: parsed.value!.name,
             slug: parsed.value!.slug,
             adapter: parsed.value!.adapter,
@@ -242,9 +248,9 @@ export async function updateAiProvider(providerId: string, formData: FormData) {
             payload.encrypted_api_key = encryptedApiKey.value
         }
 
-        const { error } = await (createAiAdminClient() as any)
+        const { error } = await createAiAdminClient()
             .from('ai_providers')
-            .update(payload)
+            .update(payload as never)
             .eq('id', id.data)
 
         if (error) return { error: error.message }
@@ -263,7 +269,7 @@ export async function deleteAiProvider(providerId: string) {
     const id = IdSchema.safeParse(providerId)
     if (!id.success) return { error: 'Invalid provider id' }
 
-    const { error } = await (createAiAdminClient() as any)
+    const { error } = await createAiAdminClient()
         .from('ai_providers')
         .delete()
         .eq('id', id.data)
@@ -281,9 +287,9 @@ export async function toggleAiProvider(providerId: string, enabled: boolean) {
     const id = IdSchema.safeParse(providerId)
     if (!id.success) return { error: 'Invalid provider id' }
 
-    const { error } = await (createAiAdminClient() as any)
+    const { error } = await createAiAdminClient()
         .from('ai_providers')
-        .update({ is_enabled: enabled, updated_by: user.id })
+        .update({ is_enabled: enabled, updated_by: user.id } as never)
         .eq('id', id.data)
 
     if (error) return { error: error.message }
@@ -329,9 +335,9 @@ function parseModelForm(formData: FormData) {
 }
 
 async function clearDefaultModelExcept(modelId?: string) {
-    let query = (createAiAdminClient() as any)
+    let query = createAiAdminClient()
         .from('ai_models')
-        .update({ is_default: false })
+        .update({ is_default: false } as never)
         .eq('is_default', true)
 
     if (modelId) {
@@ -350,15 +356,17 @@ export async function createAiModel(formData: FormData) {
         await clearDefaultModelExcept()
     }
 
-    const { data, error } = await (createAiAdminClient() as any)
+    const { data, error } = await createAiAdminClient()
         .from('ai_models')
-        .insert(parsed.value)
+        .insert(parsed.value as never)
         .select('id, model_id')
         .single()
 
     if (error) return { error: error.message }
+    const createdModel = data as { id: string; model_id: string } | null
+    if (!createdModel) return { error: 'Không thể tạo model' }
 
-    await audit(user.id, 'ai.model.create', 'ai_model', data.id, { model_id: data.model_id })
+    await audit(user.id, 'ai.model.create', 'ai_model', createdModel.id, { model_id: createdModel.model_id })
     revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
@@ -376,9 +384,9 @@ export async function updateAiModel(modelDbId: string, formData: FormData) {
         await clearDefaultModelExcept(id.data)
     }
 
-    const { error } = await (createAiAdminClient() as any)
+    const { error } = await createAiAdminClient()
         .from('ai_models')
-        .update(parsed.value)
+        .update(parsed.value as never)
         .eq('id', id.data)
 
     if (error) return { error: error.message }
@@ -394,7 +402,7 @@ export async function deleteAiModel(modelDbId: string) {
     const id = IdSchema.safeParse(modelDbId)
     if (!id.success) return { error: 'Invalid model id' }
 
-    const { error } = await (createAiAdminClient() as any)
+    const { error } = await createAiAdminClient()
         .from('ai_models')
         .delete()
         .eq('id', id.data)
@@ -412,9 +420,9 @@ export async function toggleAiModel(modelDbId: string, enabled: boolean) {
     const id = IdSchema.safeParse(modelDbId)
     if (!id.success) return { error: 'Invalid model id' }
 
-    const { error } = await (createAiAdminClient() as any)
+    const { error } = await createAiAdminClient()
         .from('ai_models')
-        .update({ is_enabled: enabled })
+        .update({ is_enabled: enabled } as never)
         .eq('id', id.data)
 
     if (error) return { error: error.message }
@@ -431,9 +439,9 @@ export async function setDefaultAiModel(modelDbId: string) {
     if (!id.success) return { error: 'Invalid model id' }
 
     await clearDefaultModelExcept(id.data)
-    const { error } = await (createAiAdminClient() as any)
+    const { error } = await createAiAdminClient()
         .from('ai_models')
-        .update({ is_default: true })
+        .update({ is_default: true } as never)
         .eq('id', id.data)
 
     if (error) return { error: error.message }

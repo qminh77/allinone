@@ -16,16 +16,16 @@ import { CheckCircle, XCircle } from 'lucide-react'
 // Define type matching the join query
 interface MailLog {
     id: string
-    config_id: string
+    config_id: string | null
     recipients: string[] | string
     subject: string
-    body: string
+    body: string | null
     status: 'success' | 'failed'
     error_message: string | null
     sent_at: string
-    smtp_configs: {
+    smtp_configs?: {
         name: string
-    } | null
+    } | null | undefined
 }
 
 export function MailHistoryTable({ logs }: { logs: MailLog[] }) {

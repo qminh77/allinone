@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveBootstrapRoleId } from '@/lib/auth/bootstrap'
 
-export async function POST(request: Request) {
+export async function POST() {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -21,11 +21,12 @@ export async function POST(request: Request) {
         if (existingProfile) {
             try {
                 const adminClient = createAdminClient()
-                const { roleId, roleName } = await resolveBootstrapRoleId(adminClient as any, user.email)
+                const { roleId, roleName } = await resolveBootstrapRoleId(adminClient, user.email)
 
                 if (roleName === 'Admin' && roleId) {
-                    await (adminClient.from('user_profiles') as any)
-                        .update({ role_id: roleId, updated_at: new Date().toISOString() })
+                    await adminClient
+                        .from('user_profiles')
+                        .update({ role_id: roleId, updated_at: new Date().toISOString() } as never)
                         .eq('id', user.id)
 
                     return NextResponse.json({ success: true, message: 'Profile exists', role: roleName })
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true, message: 'Profile exists' })
         }
 
-        let adminClient: any
+        let adminClient: ReturnType<typeof createAdminClient>
         try {
             adminClient = createAdminClient()
         } catch (error) {
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
         }
 
         {
-            const { roleId, roleName } = await resolveBootstrapRoleId(adminClient as any, user.email)
+            const { roleId, roleName } = await resolveBootstrapRoleId(adminClient, user.email)
 
             const { error: insertError } = await adminClient
                 .from('user_profiles')
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
                     is_active: true,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
-                } as any)
+                } as never)
 
             if (insertError) {
                 console.error('Error syncing profile:', insertError)
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
 
             return NextResponse.json({ success: true, message: 'Profile created', role: roleName })
         }
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+    } catch (error) {
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
     }
 }

@@ -1,5 +1,5 @@
 import { ToolShell } from '@/components/dashboard/ToolShell'
-import { ListFilter, Plus, MoreHorizontal, Play, Edit, Trash2, Share2 } from 'lucide-react'
+import { ListFilter, Plus, MoreHorizontal, Play, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { getQuizzes, type Quiz } from '@/lib/actions/quiz'

@@ -28,7 +28,6 @@ export function UniversalAudioConverter({ slug, title, description }: UniversalA
     const [progress, setProgress] = useState(0)
     const [statusMessage, setStatusMessage] = useState('')
     const ffmpegRef = useRef<FFmpeg | null>(null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messageRef = useRef<HTMLDivElement>(null)
 
     const loadRef = useRef(false)

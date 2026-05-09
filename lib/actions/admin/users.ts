@@ -7,10 +7,34 @@ import { createAdminDataClient, getActionErrorMessage } from '@/lib/admin/db'
 import { EmailSchema, PasswordSchema, sanitizeInput } from '@/lib/validation'
 import { randomInt } from 'crypto'
 import { z } from 'zod'
+import type { Database } from '@/types/database'
 
 const UuidSchema = z.string().uuid()
 const NameSchema = z.string().trim().min(2, 'Full name is required').max(120, 'Full name is too long')
 const CSV_MAX_ROWS = 200
+
+type RoleRow = Database['public']['Tables']['roles']['Row']
+type UserProfileRow = Database['public']['Tables']['user_profiles']['Row']
+type UserProfileInsert = Database['public']['Tables']['user_profiles']['Insert']
+type UserProfileUpdate = Database['public']['Tables']['user_profiles']['Update']
+type UserWithRole = UserProfileRow & {
+    roles?: Pick<RoleRow, 'id' | 'name'> | null
+}
+type UserWithLogin = UserWithRole & {
+    email?: string
+    last_ip?: string | null
+    last_device?: string | null
+    last_login?: string
+}
+type BulkImportResult = {
+    email: string
+    fullName?: string
+    role?: string
+    error?: string
+    success?: boolean
+    tempPassword?: string
+    userId?: string
+}
 
 function validateUuid(id: string, label = 'id') {
     const result = UuidSchema.safeParse(id)
@@ -30,42 +54,42 @@ function getAdminSupabase() {
 
 async function getRoleById(roleId: string) {
     const supabase = await createAdminDataClient()
-    const db = supabase as any
-    const { data, error } = await db
+    const { data, error } = await supabase
         .from('roles')
         .select('id, name')
         .eq('id', roleId)
         .single()
 
     if (error || !data) return null
-    return data
+    return data as Pick<RoleRow, 'id' | 'name'>
 }
 
 async function isLastActiveAdmin(userId: string) {
     const supabase = await createAdminDataClient()
-    const db = supabase as any
-    const { data: adminRole } = await db
+    const { data: adminRole } = await supabase
         .from('roles')
         .select('id')
         .eq('name', 'Admin')
         .single()
 
-    if (!adminRole?.id) return false
+    const adminRoleRow = adminRole as Pick<RoleRow, 'id'> | null
+    if (!adminRoleRow?.id) return false
 
-    const { data: target } = await db
+    const { data: target } = await supabase
         .from('user_profiles')
         .select('role_id, is_active')
         .eq('id', userId)
         .single()
 
-    if (!target || target.role_id !== adminRole.id || !target.is_active) {
+    const targetRow = target as Pick<UserProfileRow, 'role_id' | 'is_active'> | null
+    if (!targetRow || targetRow.role_id !== adminRoleRow.id || !targetRow.is_active) {
         return false
     }
 
-    const { count } = await db
+    const { count } = await supabase
         .from('user_profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('role_id', adminRole.id)
+        .eq('role_id', adminRoleRow.id)
         .eq('is_active', true)
 
     return (count || 0) <= 1
@@ -79,10 +103,9 @@ function parseBoolean(value: FormDataEntryValue | null, fallback = false) {
 export async function getUsers() {
     await requireAdmin()
     const supabase = await createAdminDataClient()
-    const db = supabase as any
 
     // 1. Fetch users
-    const { data: users, error } = await db
+    const { data: users, error } = await supabase
         .from('user_profiles')
         .select(`
             *,
@@ -116,7 +139,7 @@ export async function getUsers() {
     // 2. Fetch latest audit log (login) for each user
     // Optimization: Fetch all 'login' logs, ordered by time desc
     // In a real large app, this should be optimized with a specific RPC or better query
-    const { data: logs } = await db
+    const { data: logs } = await supabase
         .from('audit_logs')
         .select('user_id, ip_address, user_agent, created_at')
         .eq('action', 'login')
@@ -124,7 +147,7 @@ export async function getUsers() {
         .limit(1000) // Limit scanning for now
 
     // Map logs to users
-    const userRows = (users || []) as any[]
+    const userRows = (users || []) as UserWithRole[]
     const loginLogs = (logs || []) as Array<{
         user_id: string | null
         ip_address: string | null
@@ -132,7 +155,7 @@ export async function getUsers() {
         created_at: string
     }>
 
-    const usersWithLogs = userRows.map((user: any) => {
+    const usersWithLogs: UserWithLogin[] = userRows.map((user) => {
         const lastLogin = loginLogs.find((log) => log.user_id === user.id)
         return {
             ...user,
@@ -152,9 +175,8 @@ export async function getUser(id: string) {
     if (uuid.error) return null
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
 
-    const { data } = await db
+    const { data } = await supabase
         .from('user_profiles')
         .select(`
             *,
@@ -215,14 +237,16 @@ export async function createUser(formData: FormData) {
         if (authError) return { error: authError.message }
 
         // Create user profile
-        const { error: profileError } = await (adminSupabase
-            .from('user_profiles' as any) as any)
-            .upsert({
-                id: authData.user.id,
-                full_name: fullName,
-                role_id: roleValidation.value,
-                is_active: true
-            } as any, { onConflict: 'id' })
+        const profilePayload: UserProfileInsert = {
+            id: authData.user.id,
+            full_name: fullName,
+            role_id: roleValidation.value,
+            is_active: true
+        }
+
+        const { error: profileError } = await adminSupabase
+            .from('user_profiles')
+            .upsert(profilePayload as never, { onConflict: 'id' })
 
         if (profileError) {
             // Rollback: delete auth user if profile creation fails
@@ -232,8 +256,8 @@ export async function createUser(formData: FormData) {
 
         revalidatePath('/admin/users')
         return { success: true, tempPassword, userId: authData.user.id }
-    } catch (err: any) {
-        return { error: err.message || 'Failed to create user' }
+    } catch (err) {
+        return { error: getActionErrorMessage(err, 'Failed to create user') }
     }
 }
 
@@ -273,15 +297,17 @@ export async function updateUser(id: string, formData: FormData) {
 
     try {
         const supabase = await createAdminDataClient()
-        const { error } = await (supabase
-            .from('user_profiles' as any) as any)
-            .update({
-                full_name: fullName,
-                role_id: roleValidation.value,
-                is_active: isActive,
-                updated_at: new Date().toISOString()
-            } as any)
-            .eq('id', uuid.value)
+        const profileUpdate: UserProfileUpdate = {
+            full_name: fullName,
+            role_id: roleValidation.value,
+            is_active: isActive,
+            updated_at: new Date().toISOString()
+        }
+
+        const { error } = await supabase
+            .from('user_profiles')
+            .update(profileUpdate as never)
+            .eq('id', uuid.value!)
 
         if (error) return { error: error.message }
 
@@ -315,8 +341,8 @@ export async function deleteUser(id: string) {
 
         revalidatePath('/admin/users')
         return { success: true }
-    } catch (err: any) {
-        return { error: err.message || 'Failed to delete user' }
+    } catch (err) {
+        return { error: getActionErrorMessage(err, 'Failed to delete user') }
     }
 }
 
@@ -348,8 +374,8 @@ export async function updateUserPassword(userId: string, password: string) {
         if (error) return { error: error.message }
 
         return { success: true, newPassword: passwordValidation.data }
-    } catch (err: any) {
-        return { error: err.message || 'Failed to update password' }
+    } catch (err) {
+        return { error: getActionErrorMessage(err, 'Failed to update password') }
     }
 }
 
@@ -379,16 +405,16 @@ export async function bulkImportUsers(csvText: string) {
         return { error: 'CSV must have columns: email, full_name, role' }
     }
 
-    const results: any[] = []
+    const results: BulkImportResult[] = []
     const supabase = await createAdminDataClient()
-    const db = supabase as any
 
     // Get roles mapping
-    const { data: roles } = await db
+    const { data: roles } = await supabase
         .from('roles')
         .select('id, name')
+    const roleRows = (roles || []) as Array<Pick<RoleRow, 'id' | 'name'>>
     const roleMap = new Map<string, string>(
-        (roles || []).map((r: any) => [String(r.name).toLowerCase(), String(r.id)])
+        roleRows.map((role) => [role.name.toLowerCase(), role.id])
     )
 
     // Process each row

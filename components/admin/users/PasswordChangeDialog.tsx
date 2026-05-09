@@ -39,10 +39,10 @@ export function PasswordChangeDialog({ open, onClose, userId, userName }: Passwo
                 ? await resetPassword(userId)
                 : await updateUserPassword(userId, manualPassword)
 
-            if (result.error) {
+            if ('error' in result && result.error) {
                 toast.error(result.error)
-            } else {
-                setResultPassword(result.newPassword!)
+            } else if ('newPassword' in result) {
+                setResultPassword(result.newPassword)
                 toast.success('Đã đổi mật khẩu thành công')
             }
         } catch (error) {

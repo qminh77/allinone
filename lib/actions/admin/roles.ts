@@ -6,10 +6,17 @@ import { sanitizeInput } from '@/lib/validation'
 import { createAuditLog } from '@/lib/audit/log'
 import { createAdminDataClient, getActionErrorMessage } from '@/lib/admin/db'
 import { z } from 'zod'
+import type { Database } from '@/types/database'
 
 const UuidSchema = z.string().uuid()
 const RoleNameSchema = z.string().trim().min(2, 'Role name is required').max(60, 'Role name is too long')
 const RoleDescriptionSchema = z.string().trim().max(300, 'Description is too long').optional()
+
+type RoleRow = Database['public']['Tables']['roles']['Row']
+type RoleInsert = Database['public']['Tables']['roles']['Insert']
+type RoleUpdate = Database['public']['Tables']['roles']['Update']
+type RolePermissionRow = Database['public']['Tables']['role_permissions']['Row']
+type UserProfileRow = Database['public']['Tables']['user_profiles']['Row']
 
 function parseRoleForm(formData: FormData) {
     const nameResult = RoleNameSchema.safeParse(String(formData.get('name') || ''))
@@ -58,9 +65,8 @@ async function writeAuditLog(params: Parameters<typeof createAuditLog>[0]) {
 export async function getRoles() {
     await requireAdmin()
     const supabase = await createAdminDataClient()
-    const db = supabase as any
 
-    const { data: roles, error } = await db
+    const { data: roles, error } = await supabase
         .from('roles')
         .select('*')
         .order('is_system', { ascending: false })
@@ -72,27 +78,30 @@ export async function getRoles() {
     }
 
     const [{ data: rolePermissions }, { data: userProfiles }] = await Promise.all([
-        db.from('role_permissions').select('role_id, permission_id'),
-        db.from('user_profiles').select('role_id'),
+        supabase.from('role_permissions').select('role_id, permission_id'),
+        supabase.from('user_profiles').select('role_id'),
     ])
+    const roleRows = (roles ?? []) as RoleRow[]
+    const permissionRows = (rolePermissions ?? []) as Array<Pick<RolePermissionRow, 'role_id' | 'permission_id'>>
+    const userRows = (userProfiles ?? []) as Array<Pick<UserProfileRow, 'role_id'>>
 
     const permissionCounts = new Map<string, number>()
-    rolePermissions?.forEach((row: any) => {
+    permissionRows.forEach((row) => {
         permissionCounts.set(row.role_id, (permissionCounts.get(row.role_id) || 0) + 1)
     })
 
     const userCounts = new Map<string, number>()
-    userProfiles?.forEach((row: any) => {
+    userRows.forEach((row) => {
         if (row.role_id) {
             userCounts.set(row.role_id, (userCounts.get(row.role_id) || 0) + 1)
         }
     })
 
-    return roles.map((role: any) => ({
+    return roleRows.map((role) => ({
         ...role,
-        permissionIds: rolePermissions
-            ?.filter((row: any) => row.role_id === role.id)
-            .map((row: any) => row.permission_id) || [],
+        permissionIds: permissionRows
+            ?.filter((row) => row.role_id === role.id)
+            .map((row) => row.permission_id) || [],
         permissionCount: permissionCounts.get(role.id) || 0,
         userCount: userCounts.get(role.id) || 0,
     }))
@@ -104,9 +113,8 @@ export async function getRole(id: string) {
     if (uuid.error) return null
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
 
-    const { data } = await db
+    const { data } = await supabase
         .from('roles')
         .select(`
             *,
@@ -132,30 +140,32 @@ export async function createRole(formData: FormData) {
         if (parsed.error) return { error: parsed.error }
 
         const supabase = await createAdminDataClient()
-        const db = supabase as any
-        const { data, error } = await db
+        const payload: RoleInsert = {
+            name: parsed.value!.name,
+            description: parsed.value!.description,
+            is_system: false,
+        }
+        const { data, error } = await supabase
             .from('roles')
-            .insert({
-                name: parsed.value!.name,
-                description: parsed.value!.description,
-                is_system: false,
-            })
+            .insert(payload as never)
             .select()
             .single()
 
         if (error) return { error: error.message }
+        const createdRole = data as RoleRow | null
+        if (!createdRole) return { error: 'Role not found' }
 
         await writeAuditLog({
             userId: currentUser.id,
             action: 'role.create',
             resourceType: 'role',
-            resourceId: data.id,
-            metadata: { name: data.name },
+            resourceId: createdRole.id,
+            metadata: { name: createdRole.name },
         })
 
         revalidatePath('/admin')
         revalidatePath('/admin/roles')
-        return { success: true, role: data }
+        return { success: true, role: createdRole }
     } catch (error) {
         return { error: getActionErrorMessage(error, 'Failed to create role') }
     }
@@ -170,8 +180,12 @@ export async function updateRole(id: string, formData: FormData) {
     if (parsed.error) return { error: parsed.error }
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
-    const { data: currentRole, error: currentRoleError } = await db
+    const payload: RoleUpdate = {
+        name: parsed.value!.name,
+        description: parsed.value!.description,
+        updated_at: new Date().toISOString(),
+    }
+    const { data: currentRole, error: currentRoleError } = await supabase
         .from('roles')
         .select('id, name, is_system')
         .eq('id', uuid.value!)
@@ -180,18 +194,15 @@ export async function updateRole(id: string, formData: FormData) {
     if (currentRoleError || !currentRole) {
         return { error: 'Role not found' }
     }
+    const currentRoleRow = currentRole as Pick<RoleRow, 'id' | 'name' | 'is_system'>
 
-    if (currentRole.is_system && currentRole.name !== parsed.value!.name) {
+    if (currentRoleRow.is_system && currentRoleRow.name !== parsed.value!.name) {
         return { error: 'System roles cannot be renamed' }
     }
 
-    const { error } = await db
+    const { error } = await supabase
         .from('roles')
-        .update({
-            name: parsed.value!.name,
-            description: parsed.value!.description,
-            updated_at: new Date().toISOString(),
-        })
+        .update(payload as never)
         .eq('id', uuid.value!)
 
     if (error) return { error: error.message }
@@ -215,21 +226,21 @@ export async function deleteRole(id: string) {
     if (uuid.error) return { error: uuid.error }
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
 
-    const { data: role } = await db
+    const { data: role } = await supabase
         .from('roles')
         .select('id, name, is_system')
         .eq('id', uuid.value!)
         .single()
 
     if (!role) return { error: 'Role not found' }
+    const roleRow = role as Pick<RoleRow, 'id' | 'name' | 'is_system'>
 
-    if (role.is_system || role.name === 'Admin' || role.name === 'User') {
+    if (roleRow.is_system || roleRow.name === 'Admin' || roleRow.name === 'User') {
         return { error: 'Cannot delete system roles' }
     }
 
-    const { count } = await db
+    const { count } = await supabase
         .from('user_profiles')
         .select('id', { count: 'exact', head: true })
         .eq('role_id', uuid.value!)
@@ -238,7 +249,7 @@ export async function deleteRole(id: string) {
         return { error: 'Cannot delete role with active users' }
     }
 
-    const { error } = await db
+    const { error } = await supabase
         .from('roles')
         .delete()
         .eq('id', uuid.value!)
@@ -250,7 +261,7 @@ export async function deleteRole(id: string) {
         action: 'role.delete',
         resourceType: 'role',
         resourceId: uuid.value,
-        metadata: { name: role.name },
+        metadata: { name: roleRow.name },
     })
 
     revalidatePath('/admin')
@@ -264,14 +275,14 @@ export async function getRolePermissions(roleId: string) {
     if (uuid.error) return []
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
 
-    const { data } = await db
+    const { data } = await supabase
         .from('role_permissions')
         .select('permission_id')
         .eq('role_id', uuid.value!)
 
-    return (data || []).map((rp: any) => rp.permission_id)
+    const rows = (data || []) as Array<Pick<RolePermissionRow, 'permission_id'>>
+    return rows.map((rp) => rp.permission_id)
 }
 
 export async function updateRolePermissions(roleId: string, permissionIds: string[]) {
@@ -283,8 +294,7 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
     if (normalized.error) return { error: normalized.error }
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
-    const { data: role } = await db
+    const { data: role } = await supabase
         .from('roles')
         .select('id, name')
         .eq('id', roleUuid.value!)
@@ -293,9 +303,10 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
     if (!role) {
         return { error: 'Role not found' }
     }
+    const roleRow = role as Pick<RoleRow, 'id' | 'name'>
 
     if (normalized.value!.length > 0) {
-        const { count } = await db
+        const { count } = await supabase
             .from('permissions')
             .select('id', { count: 'exact', head: true })
             .in('id', normalized.value!)
@@ -305,7 +316,7 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
         }
     }
 
-    const { error: deleteError } = await db
+    const { error: deleteError } = await supabase
         .from('role_permissions')
         .delete()
         .eq('role_id', roleUuid.value!)
@@ -318,9 +329,9 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
             permission_id: permissionId,
         }))
 
-        const { error } = await db
+        const { error } = await supabase
             .from('role_permissions')
-            .insert(rolePermissions)
+            .insert(rolePermissions as never)
 
         if (error) return { error: error.message }
     }
@@ -330,7 +341,7 @@ export async function updateRolePermissions(roleId: string, permissionIds: strin
         action: 'role.assign_permissions',
         resourceType: 'role',
         resourceId: roleUuid.value,
-        metadata: { role: role.name, permission_count: normalized.value!.length },
+        metadata: { role: roleRow.name, permission_count: normalized.value!.length },
     })
 
     revalidatePath('/admin/roles')

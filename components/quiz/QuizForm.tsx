@@ -53,22 +53,24 @@ export function QuizForm({ quiz, isEditing = false }: QuizFormProps) {
         try {
             if (isEditing && quiz) {
                 const res = await updateQuiz(quiz.id, data)
-                if (res.error) {
-                    toast.error(res.error)
+                const result = res as { error?: string }
+                if (result.error) {
+                    toast.error(result.error)
                 } else {
                     toast.success('Cập nhật bộ câu hỏi thành công')
                     router.push('/dashboard/quiz/my-quizzes')
                 }
             } else {
                 const res = await createQuiz(data.title, data.description || '', data.is_public)
-                if (res.error) {
-                    toast.error(res.error)
+                const result = res as { error?: string; data?: { id: string } }
+                if (result.error) {
+                    toast.error(result.error)
                 } else {
                     toast.success('Tạo bộ câu hỏi thành công')
                     // Redirect to edit page to add questions immediately? or list?
                     // Usually users want to add questions right away.
-                    if (res.data) {
-                        router.push(`/dashboard/quiz/${res.data.id}/edit`)
+                    if (result.data) {
+                        router.push(`/dashboard/quiz/${result.data.id}/edit`)
                     } else {
                         router.push('/dashboard/quiz/my-quizzes')
                     }

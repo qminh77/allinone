@@ -2,6 +2,18 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { decrypt } from '@/lib/encryption'
 import type { AiAdapter, AiCapability, AiModelConfig, GenerateTextInput, GenerateTextResult } from '@/lib/ai/types'
 import { unstable_cache } from 'next/cache'
+import type { Database } from '@/types/database'
+
+type JsonRecord = Record<string, unknown>
+type AiUsageLogInsert = Database['public']['Tables']['ai_usage_logs']['Insert']
+
+function isRecord(value: unknown): value is JsonRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function asRecord(value: unknown): JsonRecord {
+    return isRecord(value) ? value : {}
+}
 
 const DEFAULT_TIMEOUT_MS = 60_000
 const DEFAULT_MAX_TOKENS = 1600
@@ -113,7 +125,7 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs = DEFAULT_TIM
         })
 
         const text = await response.text()
-        let data: any = null
+        let data: unknown = null
         if (text) {
             try {
                 data = JSON.parse(text)
@@ -123,7 +135,12 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs = DEFAULT_TIM
         }
 
         if (!response.ok) {
-            const message = data?.error?.message || data?.message || text || `AI request failed with ${response.status}`
+            const responseData = asRecord(data)
+            const responseError = isRecord(responseData.error) ? responseData.error : undefined
+            const message = (typeof responseError?.message === 'string' ? responseError.message : undefined)
+                || (typeof responseData.message === 'string' ? responseData.message : undefined)
+                || text
+                || `AI request failed with ${response.status}`
             throw new Error(`${httpErrorMessage(response.status, message)} (${response.status} ${errorEndpoint(url)})`)
         }
 
@@ -133,41 +150,68 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs = DEFAULT_TIM
     }
 }
 
-function extractResponsesText(data: any) {
-    if (typeof data?.output_text === 'string') return data.output_text
+function extractResponsesText(data: unknown) {
+    const record = asRecord(data)
+    if (typeof record.output_text === 'string') return record.output_text
 
     const parts: string[] = []
-    for (const item of data?.output || []) {
-        for (const content of item?.content || []) {
-            if (typeof content?.text === 'string') parts.push(content.text)
-            if (typeof content?.output_text === 'string') parts.push(content.output_text)
+    const output = Array.isArray(record.output) ? record.output : []
+    for (const item of output) {
+        const itemRecord = asRecord(item)
+        const contents = Array.isArray(itemRecord.content) ? itemRecord.content : []
+        for (const content of contents) {
+            const contentRecord = asRecord(content)
+            if (typeof contentRecord.text === 'string') parts.push(contentRecord.text)
+            if (typeof contentRecord.output_text === 'string') parts.push(contentRecord.output_text)
         }
     }
 
     return parts.join('\n').trim()
 }
 
-function extractChatText(data: any) {
-    return data?.choices?.[0]?.message?.content?.trim?.() || ''
+function extractChatText(data: unknown) {
+    const record = asRecord(data)
+    const choices = Array.isArray(record.choices) ? record.choices : []
+    const firstChoice = asRecord(choices[0])
+    const message = asRecord(firstChoice.message)
+    return typeof message.content === 'string' ? message.content.trim() : ''
 }
 
-function extractGeminiText(data: any) {
-    const parts = data?.candidates?.[0]?.content?.parts || []
-    return parts.map((part: any) => part?.text).filter(Boolean).join('\n').trim()
-}
-
-function extractAnthropicText(data: any) {
-    return (data?.content || [])
-        .map((item: any) => item?.type === 'text' ? item.text : '')
+function extractGeminiText(data: unknown) {
+    const record = asRecord(data)
+    const candidates = Array.isArray(record.candidates) ? record.candidates : []
+    const firstCandidate = asRecord(candidates[0])
+    const content = asRecord(firstCandidate.content)
+    const parts = Array.isArray(content.parts) ? content.parts : []
+    return parts
+        .map(part => {
+            const partRecord = asRecord(part)
+            return typeof partRecord.text === 'string' ? partRecord.text : ''
+        })
         .filter(Boolean)
         .join('\n')
         .trim()
 }
 
-function usageFromResponse(adapter: AiAdapter, data: any) {
+function extractAnthropicText(data: unknown) {
+    const record = asRecord(data)
+    const content = Array.isArray(record.content) ? record.content : []
+    return content
+        .map(item => {
+            const itemRecord = asRecord(item)
+            return itemRecord.type === 'text' && typeof itemRecord.text === 'string' ? itemRecord.text : ''
+        })
+        .filter(Boolean)
+        .join('\n')
+        .trim()
+}
+
+function usageFromResponse(adapter: AiAdapter, data: unknown) {
+    const record = asRecord(data)
     if (adapter === 'anthropic') {
-        const inputTokens = data?.usage?.input_tokens
-        const outputTokens = data?.usage?.output_tokens
+        const usage = asRecord(record.usage)
+        const inputTokens = usage.input_tokens
+        const outputTokens = usage.output_tokens
         return {
             prompt_tokens: typeof inputTokens === 'number' ? inputTokens : null,
             completion_tokens: typeof outputTokens === 'number' ? outputTokens : null,
@@ -176,29 +220,29 @@ function usageFromResponse(adapter: AiAdapter, data: any) {
     }
 
     if (adapter === 'gemini') {
-        const usage = data?.usageMetadata
+        const usage = asRecord(record.usageMetadata)
         return {
-            prompt_tokens: typeof usage?.promptTokenCount === 'number' ? usage.promptTokenCount : null,
-            completion_tokens: typeof usage?.candidatesTokenCount === 'number' ? usage.candidatesTokenCount : null,
-            total_tokens: typeof usage?.totalTokenCount === 'number' ? usage.totalTokenCount : null,
+            prompt_tokens: typeof usage.promptTokenCount === 'number' ? usage.promptTokenCount : null,
+            completion_tokens: typeof usage.candidatesTokenCount === 'number' ? usage.candidatesTokenCount : null,
+            total_tokens: typeof usage.totalTokenCount === 'number' ? usage.totalTokenCount : null,
         }
     }
 
-    const usage = data?.usage
-    if (typeof usage?.input_tokens === 'number' || typeof usage?.output_tokens === 'number') {
-        const inputTokens = usage?.input_tokens
-        const outputTokens = usage?.output_tokens
+    const usage = asRecord(record.usage)
+    if (typeof usage.input_tokens === 'number' || typeof usage.output_tokens === 'number') {
+        const inputTokens = usage.input_tokens
+        const outputTokens = usage.output_tokens
         return {
             prompt_tokens: typeof inputTokens === 'number' ? inputTokens : null,
             completion_tokens: typeof outputTokens === 'number' ? outputTokens : null,
-            total_tokens: typeof usage?.total_tokens === 'number' ? usage.total_tokens : null,
+            total_tokens: typeof usage.total_tokens === 'number' ? usage.total_tokens : null,
         }
     }
 
     return {
-        prompt_tokens: typeof usage?.prompt_tokens === 'number' ? usage.prompt_tokens : null,
-        completion_tokens: typeof usage?.completion_tokens === 'number' ? usage.completion_tokens : null,
-        total_tokens: typeof usage?.total_tokens === 'number' ? usage.total_tokens : null,
+        prompt_tokens: typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : null,
+        completion_tokens: typeof usage.completion_tokens === 'number' ? usage.completion_tokens : null,
+        total_tokens: typeof usage.total_tokens === 'number' ? usage.total_tokens : null,
     }
 }
 
@@ -213,7 +257,7 @@ async function logUsage(params: {
 }) {
     try {
         const admin = createAdminClient()
-        await (admin as any).from('ai_usage_logs').insert({
+        const payload: AiUsageLogInsert = {
             user_id: params.userId || null,
             provider_id: params.providerId || null,
             model_id: params.modelId || null,
@@ -223,7 +267,8 @@ async function logUsage(params: {
             prompt_tokens: params.usage?.prompt_tokens ?? null,
             completion_tokens: params.usage?.completion_tokens ?? null,
             total_tokens: params.usage?.total_tokens ?? null,
-        })
+        }
+        await admin.from('ai_usage_logs').insert(payload as never)
     } catch (error) {
         console.error('Failed to write AI usage log:', error)
     }
@@ -231,9 +276,8 @@ async function logUsage(params: {
 
 async function loadModels(modelDbId?: string | null, capability: AiCapability = 'text') {
     const admin = createAdminClient()
-    const db = admin as any
 
-    let query = db
+    let query = admin
         .from('ai_models')
         .select('*, ai_providers(*)')
         .eq('is_enabled', true)
@@ -482,7 +526,7 @@ export async function generateJson<T>(input: GenerateTextInput): Promise<T> {
 
 async function loadPublicAiModels() {
     const admin = createAdminClient()
-    const { data, error } = await (admin as any)
+    const { data, error } = await admin
         .from('ai_models')
         .select('id, name, model_id, capabilities, is_default, ai_providers(id, name, slug, is_enabled, encrypted_api_key)')
         .eq('is_enabled', true)
@@ -491,17 +535,34 @@ async function loadPublicAiModels() {
 
     if (error) return []
 
-    return (data || [])
-        .filter((model: any) => model.ai_providers?.is_enabled && model.ai_providers?.encrypted_api_key)
-        .map((model: any) => ({
-            id: model.id,
-            name: model.name,
-            modelId: model.model_id,
-            providerName: model.ai_providers.name,
-            providerSlug: model.ai_providers.slug,
-            capabilities: model.capabilities || [],
-            isDefault: model.is_default,
-        }))
+    return ((data || []) as Array<{
+        id: string
+        name: string
+        model_id: string
+        capabilities: string[]
+        is_default: boolean
+        ai_providers: {
+            id: string
+            name: string
+            slug: string
+            is_enabled: boolean
+            encrypted_api_key: string | null
+        } | null
+    }>)
+        .flatMap(model => {
+            const provider = model.ai_providers
+            if (!provider?.is_enabled || !provider.encrypted_api_key) return []
+
+            return [{
+                id: model.id,
+                name: model.name,
+                modelId: model.model_id,
+                providerName: provider.name,
+                providerSlug: provider.slug,
+                capabilities: model.capabilities || [],
+                isDefault: model.is_default,
+            }]
+        })
 }
 
 const getCachedPublicAiModels = unstable_cache(

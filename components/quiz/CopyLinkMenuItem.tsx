@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 interface CopyLinkMenuItemProps {
     quizId: string
-    shareToken?: string
+    shareToken?: string | null
 }
 
 export function CopyLinkMenuItem({ quizId, shareToken }: CopyLinkMenuItemProps) {
