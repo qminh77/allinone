@@ -8,10 +8,9 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Upload, Scissors, Download, FileText } from 'lucide-react'
-import { PDFDocument } from 'pdf-lib'
-import JSZip from 'jszip'
 import { toast } from 'sonner'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadJsZip, loadPdfLib } from '@/lib/client/lazy-libraries'
 
 interface SplitPdfProps {
     slug: string
@@ -36,6 +35,7 @@ export function SplitPDF({ slug, title, description }: SplitPdfProps) {
             setFile(selectedFile)
 
             try {
+                const { PDFDocument } = await loadPdfLib()
                 const arrayBuffer = await selectedFile.arrayBuffer()
                 const pdf = await PDFDocument.load(arrayBuffer)
                 setPageCount(pdf.getPageCount())
@@ -74,10 +74,12 @@ export function SplitPDF({ slug, title, description }: SplitPdfProps) {
 
         setIsProcessing(true)
         try {
+            const { PDFDocument } = await loadPdfLib()
             const arrayBuffer = await file.arrayBuffer()
             const sourcePdf = await PDFDocument.load(arrayBuffer)
 
             if (splitMode === 'all') {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
 
                 for (let i = 0; i < sourcePdf.getPageCount(); i++) {

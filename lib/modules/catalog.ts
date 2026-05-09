@@ -161,7 +161,7 @@ export const getCachedModuleCatalog = unstable_cache(
     loadModuleCatalog,
     ['module-catalog'],
     {
-        revalidate: 60,
+        revalidate: 300,
         tags: [MODULE_CATALOG_TAG],
     }
 )

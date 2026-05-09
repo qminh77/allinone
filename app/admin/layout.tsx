@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser, getCurrentUserProfile } from '@/lib/auth/session'
-import { hasRole } from '@/lib/permissions/check'
 import { AdminNavigation } from '@/components/admin/AdminNavigation'
 
 export default async function AdminLayout({
@@ -14,13 +13,12 @@ export default async function AdminLayout({
         redirect('/login')
     }
 
-    const isAdmin = await hasRole(user.id, 'Admin')
+    const profile = await getCurrentUserProfile(user.id)
+    const isAdmin = profile?.role?.name === 'Admin'
 
     if (!isAdmin) {
         redirect('/dashboard')
     }
-
-    const profile = await getCurrentUserProfile(user.id)
 
     return (
         <div className="min-h-screen bg-muted/30 lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">

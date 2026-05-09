@@ -8,10 +8,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Upload, X, Music, Loader2, Download } from 'lucide-react'
 import { toast } from 'sonner'
-import JSZip from 'jszip'
-import { FFmpeg } from '@ffmpeg/ffmpeg'
-import { toBlobURL } from '@ffmpeg/util'
+import type { FFmpeg } from '@ffmpeg/ffmpeg'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadFFmpeg, loadFFmpegUtil, loadJsZip } from '@/lib/client/lazy-libraries'
 
 interface UniversalAudioConverterProps {
     slug: string
@@ -43,6 +42,7 @@ export function UniversalAudioConverter({ slug, title, description }: UniversalA
         loadRef.current = true
 
         if (!ffmpegRef.current) {
+            const { FFmpeg } = await loadFFmpeg()
             ffmpegRef.current = new FFmpeg()
         }
 
@@ -62,6 +62,7 @@ export function UniversalAudioConverter({ slug, title, description }: UniversalA
 
         try {
             // Use local files to avoid COOP/COEP issues with CDNs
+            const { toBlobURL } = await loadFFmpegUtil()
             const baseURL = `${window.location.origin}/ffmpeg`
             await ffmpeg.load({
                 coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
@@ -149,6 +150,7 @@ export function UniversalAudioConverter({ slug, title, description }: UniversalA
                 await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
                 let successCount = 0
 

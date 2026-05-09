@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { categories, getCategoryName, type ModuleCatalogItem } from '@/config/module-metadata'
 import { ModuleCard } from './ModuleCard'
 import { Input } from '@/components/ui/input'
@@ -25,36 +25,65 @@ export function DashboardShell({ modules }: { modules: ModuleCatalogItem[] }) {
     const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES)
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
-    const activeModules = modules.filter(m => m.isEnabled !== false)
-    const categoryItems = [
-        ...categories,
-        ...Array.from(new Set(activeModules.map(module => module.category)))
-            .filter(categoryKey => !categories.some(category => category.key === categoryKey))
-            .map(categoryKey => ({ key: categoryKey, name: categoryKey })),
-    ]
+    const normalizedSearchQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery])
+    const activeModules = useMemo(
+        () => modules.filter(moduleItem => moduleItem.isEnabled !== false),
+        [modules]
+    )
+    const categoryItems = useMemo(() => {
+        const knownCategoryKeys = new Set(categories.map(category => category.key as string))
+        const extraCategories = Array.from(new Set(activeModules.map(moduleItem => moduleItem.category)))
+            .filter(categoryKey => !knownCategoryKeys.has(categoryKey))
+            .map(categoryKey => ({ key: categoryKey, name: categoryKey }))
 
-    const categorySummaries = categoryItems
-        .map(category => ({
-            ...category,
-            count: activeModules.filter(module => module.category === category.key).length,
-        }))
-        .filter(category => category.count > 0)
+        return [...categories, ...extraCategories]
+    }, [activeModules])
+    const categorySummaries = useMemo(() => {
+        const counts = new Map<string, number>()
+        activeModules.forEach(moduleItem => {
+            counts.set(moduleItem.category, (counts.get(moduleItem.category) || 0) + 1)
+        })
 
-    const filteredModules = activeModules.filter(m => {
-        const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            m.description.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesCategory = selectedCategory === ALL_CATEGORIES || m.category === selectedCategory
-        return matchesSearch && matchesCategory
-    })
+        return categoryItems
+            .map(category => ({
+                ...category,
+                count: counts.get(category.key) || 0,
+            }))
+            .filter(category => category.count > 0)
+    }, [activeModules, categoryItems])
 
-    const activeCategories = Array.from(new Set(filteredModules.map(m => m.category)))
-    const sortedActiveCategories = categoryItems
-        .filter(c => activeCategories.includes(c.key))
-        .map(c => c.key as string)
+    const filteredModules = useMemo(() => {
+        return activeModules.filter(moduleItem => {
+            const matchesSearch = !normalizedSearchQuery
+                || moduleItem.name.toLowerCase().includes(normalizedSearchQuery)
+                || moduleItem.description.toLowerCase().includes(normalizedSearchQuery)
+            const matchesCategory = selectedCategory === ALL_CATEGORIES || moduleItem.category === selectedCategory
+            return matchesSearch && matchesCategory
+        })
+    }, [activeModules, normalizedSearchQuery, selectedCategory])
 
-    activeCategories.forEach(c => {
-        if (!sortedActiveCategories.includes(c)) sortedActiveCategories.push(c)
-    })
+    const categoryModulesMap = useMemo(() => {
+        return filteredModules.reduce((acc, moduleItem) => {
+            const categoryModules = acc.get(moduleItem.category) || []
+            categoryModules.push(moduleItem)
+            acc.set(moduleItem.category, categoryModules)
+            return acc
+        }, new Map<string, ModuleCatalogItem[]>())
+    }, [filteredModules])
+
+    const sortedActiveCategories = useMemo(() => {
+        const ordered = categoryItems
+            .filter(category => categoryModulesMap.has(category.key))
+            .map(category => category.key as string)
+
+        categoryModulesMap.forEach((_, categoryKey) => {
+            if (!ordered.includes(categoryKey)) {
+                ordered.push(categoryKey)
+            }
+        })
+
+        return ordered
+    }, [categoryItems, categoryModulesMap])
 
     const clearSearch = () => {
         setSearchQuery('')
@@ -133,7 +162,7 @@ export function DashboardShell({ modules }: { modules: ModuleCatalogItem[] }) {
                 ) : (
                     sortedActiveCategories.map(categoryKey => {
                         const categoryName = getCategoryName(categoryKey)
-                        const categoryModules = filteredModules.filter(m => m.category === categoryKey)
+                        const categoryModules = categoryModulesMap.get(categoryKey) || []
                         const isExpanded = expandedCategories[categoryKey]
                         const visibleModules = isExpanded
                             ? categoryModules

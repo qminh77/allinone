@@ -1,12 +1,12 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { z } from 'zod'
 import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import { createAdminClient, isAdminClientConfigured } from '@/lib/supabase/admin'
 import { createAuditLog } from '@/lib/audit/log'
 import { encrypt, getEncryptionConfigError } from '@/lib/encryption'
-import { generateText, normalizeAiProviderBaseUrl } from '@/lib/ai/service'
+import { AI_MODELS_TAG, generateText, normalizeAiProviderBaseUrl } from '@/lib/ai/service'
 
 const AdapterSchema = z.enum(['openai_responses', 'openai_chat', 'openai_compatible', 'gemini', 'anthropic'])
 const IdSchema = z.string().uuid('Invalid ID')
@@ -67,6 +67,10 @@ function sanitizeProvider(provider: any) {
 function encryptionConfigMessage() {
     const configError = getEncryptionConfigError()
     return configError ? `Cấu hình mã hóa API key AI chưa hợp lệ: ${configError}` : null
+}
+
+function revalidateAiModelOptions() {
+    revalidateTag(AI_MODELS_TAG, 'max')
 }
 
 function encryptProviderApiKey(apiKey: string): { ok: true; value: string } | { ok: false; error: string } {
@@ -201,6 +205,7 @@ export async function createAiProvider(formData: FormData) {
         if (error) return { error: error.message }
 
         await audit(user.id, 'ai.provider.create', 'ai_provider', data.id, { slug: data.slug })
+        revalidateAiModelOptions()
         revalidatePath('/admin/ai')
         return { success: true }
     } catch (error) {
@@ -245,6 +250,7 @@ export async function updateAiProvider(providerId: string, formData: FormData) {
         if (error) return { error: error.message }
 
         await audit(user.id, 'ai.provider.update', 'ai_provider', id.data, { slug: parsed.value!.slug })
+        revalidateAiModelOptions()
         revalidatePath('/admin/ai')
         return { success: true }
     } catch (error) {
@@ -265,6 +271,7 @@ export async function deleteAiProvider(providerId: string) {
     if (error) return { error: error.message }
 
     await audit(user.id, 'ai.provider.delete', 'ai_provider', id.data)
+    revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
 }
@@ -282,6 +289,7 @@ export async function toggleAiProvider(providerId: string, enabled: boolean) {
     if (error) return { error: error.message }
 
     await audit(user.id, 'ai.provider.update', 'ai_provider', id.data, { enabled })
+    revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
 }
@@ -351,6 +359,7 @@ export async function createAiModel(formData: FormData) {
     if (error) return { error: error.message }
 
     await audit(user.id, 'ai.model.create', 'ai_model', data.id, { model_id: data.model_id })
+    revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
 }
@@ -375,6 +384,7 @@ export async function updateAiModel(modelDbId: string, formData: FormData) {
     if (error) return { error: error.message }
 
     await audit(user.id, 'ai.model.update', 'ai_model', id.data, { model_id: parsed.value!.model_id })
+    revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
 }
@@ -392,6 +402,7 @@ export async function deleteAiModel(modelDbId: string) {
     if (error) return { error: error.message }
 
     await audit(user.id, 'ai.model.delete', 'ai_model', id.data)
+    revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
 }
@@ -409,6 +420,7 @@ export async function toggleAiModel(modelDbId: string, enabled: boolean) {
     if (error) return { error: error.message }
 
     await audit(user.id, 'ai.model.update', 'ai_model', id.data, { enabled })
+    revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
 }
@@ -427,6 +439,7 @@ export async function setDefaultAiModel(modelDbId: string) {
     if (error) return { error: error.message }
 
     await audit(user.id, 'ai.model.update', 'ai_model', id.data, { is_default: true })
+    revalidateAiModelOptions()
     revalidatePath('/admin/ai')
     return { success: true }
 }

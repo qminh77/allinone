@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/sheet'
 import { SidebarContent } from '@/components/layout/Sidebar'
 import type { ModuleCatalogItem } from '@/config/module-metadata'
+import { resetPermissionStateCache } from '@/lib/permissions/hooks'
 // Removed server action import as it cannot be used in client component directly without prop passing
 
 
@@ -45,6 +46,7 @@ export function Navbar({ user, modules, isAdmin = false }: NavbarProps) {
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
+        resetPermissionStateCache()
         router.push('/login')
         router.refresh()
     }

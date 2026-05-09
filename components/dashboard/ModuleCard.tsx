@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { getModuleIcon, type ModuleCatalogItem } from '@/config/module-metadata'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
+import { memo } from 'react'
 
 interface ModuleCardProps {
     module: ModuleCatalogItem
@@ -16,7 +17,7 @@ function renderModuleIcon(module: ModuleCatalogItem) {
     )
 }
 
-export function ModuleCard({ module }: ModuleCardProps) {
+export const ModuleCard = memo(function ModuleCard({ module }: ModuleCardProps) {
     return (
         <Button
             asChild
@@ -47,4 +48,4 @@ export function ModuleCard({ module }: ModuleCardProps) {
             </Link>
         </Button>
     )
-}
+})

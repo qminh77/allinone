@@ -8,9 +8,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileCode, Trash } from 'lucide-react'
 import { toast } from 'sonner'
-import TurndownService from 'turndown'
 import { recordsToCsv } from '@/lib/client/spreadsheet'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadTurndown } from '@/lib/client/lazy-libraries'
 
 interface HtmlConverterProps {
     slug: string
@@ -38,7 +38,7 @@ export function HtmlConverter({ slug, title, description }: HtmlConverterProps) 
             const result = e.target?.result as string
             setInputContent(result)
             setFileName(file.name)
-            processConversion(result)
+            void processConversion(result)
         }
         reader.readAsText(file)
     }
@@ -46,7 +46,7 @@ export function HtmlConverter({ slug, title, description }: HtmlConverterProps) 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value
         setInputContent(value)
-        if (value) processConversion(value)
+        if (value) void processConversion(value)
         else setOutputContent('')
     }
 
@@ -88,10 +88,10 @@ export function HtmlConverter({ slug, title, description }: HtmlConverterProps) 
         return data;
     };
 
-    const processConversion = (content: string) => {
+    const processConversion = async (content: string) => {
         setIsProcessing(true)
         try {
-            const result = convertData(content, slug)
+            const result = await convertData(content, slug)
             setOutputContent(result)
         } catch (error) {
             console.error(error)
@@ -100,14 +100,16 @@ export function HtmlConverter({ slug, title, description }: HtmlConverterProps) 
         }
     }
 
-    const convertData = (content: string, slug: string): string => {
+    const convertData = async (content: string, slug: string): Promise<string> => {
         const targetFormat = slug.replace('html-to-', '')
 
         switch (targetFormat) {
             // Document Formats
-            case 'markdown':
-                const turndownService = new TurndownService();
-                return turndownService.turndown(content);
+            case 'markdown': {
+                const { default: TurndownService } = await loadTurndown()
+                const turndownService = new TurndownService()
+                return turndownService.turndown(content)
+            }
 
             case 'html': // Beautify?
                 // Simple naive formatter for now 
@@ -160,7 +162,7 @@ export function HtmlConverter({ slug, title, description }: HtmlConverterProps) 
                 // Not standard text output, but binary. We can't really display binary in textarea.
                 // Maybe show message "Click download to get .xlsx file" or return base64 string?
                 // For now, let's skip or return CSV-like representation
-                return "For Excel file, please simply ensure this CSV preview looks correct, then we might strictly technically format as CSV which Excel opens. Real .xlsx download requires blob handling on button click logic update. \n\n" + convertData(content, 'html-to-csv');
+                return "For Excel file, please simply ensure this CSV preview looks correct, then we might strictly technically format as CSV which Excel opens. Real .xlsx download requires blob handling on button click logic update. \n\n" + await convertData(content, 'html-to-csv');
             }
 
 

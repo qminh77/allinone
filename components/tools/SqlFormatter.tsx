@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { format } from 'sql-formatter'
 import { toast } from 'sonner'
 import { Copy, Database, Trash2, Code } from 'lucide-react'
+import { loadSqlFormatter } from '@/lib/client/lazy-libraries'
 
 export function SqlFormatter() {
     const [input, setInput] = useState('')
@@ -15,10 +15,11 @@ export function SqlFormatter() {
     const [language, setLanguage] = useState('sql')
     const [error, setError] = useState<string | null>(null)
 
-    const handleFormat = () => {
+    const handleFormat = async () => {
         if (!input.trim()) return
 
         try {
+            const { format } = await loadSqlFormatter()
             const formatted = format(input, {
                 language: language as any,
                 tabWidth: 2,

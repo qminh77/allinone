@@ -32,7 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useEffect, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 
 interface SidebarProps {
     modules: ModuleCatalogItem[]
@@ -74,32 +74,34 @@ export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }
         setOpenCategories(prev => ({ ...prev, [key]: !prev[key] }))
     }
 
-    const isFeatureEnabled = (key: string) => {
-        const moduleItem = modules.find(item => item.key === key)
-        return moduleItem ? moduleItem.isEnabled !== false : true
-    }
+    const moduleByKey = useMemo(() => new Map(modules.map(moduleItem => [moduleItem.key, moduleItem])), [modules])
+    const activeModules = useMemo(
+        () => modules.filter(moduleItem => moduleItem.isEnabled !== false && !FEATURE_MODULE_KEYS.has(moduleItem.key)),
+        [modules]
+    )
+    const showShortlinks = moduleByKey.get('shortlinks')?.isEnabled !== false
+    const showMail = moduleByKey.get('mail-system')?.isEnabled !== false
+    const showQuiz = moduleByKey.get('quiz-system')?.isEnabled !== false
+    const showFlashcards = moduleByKey.get('flashcard-system')?.isEnabled !== false
+    const modulesByCategory = useMemo(() => {
+        return activeModules.reduce((acc, moduleItem) => {
+            const cat = moduleItem.category || 'Other'
+            if (!acc[cat]) acc[cat] = []
+            acc[cat].push(moduleItem)
+            return acc
+        }, {} as Record<string, ModuleCatalogItem[]>)
+    }, [activeModules])
 
-    const showShortlinks = isFeatureEnabled('shortlinks')
-    const showMail = isFeatureEnabled('mail-system')
-    const showQuiz = isFeatureEnabled('quiz-system')
-    const showFlashcards = isFeatureEnabled('flashcard-system')
+    const categoryItems = useMemo(() => {
+        const knownCategoryKeys = new Set(categories.map(category => category.key as string))
 
-    const activeModules = modules.filter(m => m.isEnabled !== false && !FEATURE_MODULE_KEYS.has(m.key))
-
-    // Group by category
-    const modulesByCategory = activeModules.reduce((acc, moduleItem) => {
-        const cat = moduleItem.category || 'Other'
-        if (!acc[cat]) acc[cat] = []
-        acc[cat].push(moduleItem)
-        return acc
-    }, {} as Record<string, ModuleCatalogItem[]>)
-
-    const categoryItems = [
-        ...categories,
-        ...Array.from(new Set(activeModules.map(moduleItem => moduleItem.category)))
-            .filter(categoryKey => !categories.some(category => category.key === categoryKey))
-            .map(categoryKey => ({ key: categoryKey, name: categoryKey })),
-    ]
+        return [
+            ...categories,
+            ...Array.from(new Set(activeModules.map(moduleItem => moduleItem.category)))
+                .filter(categoryKey => !knownCategoryKeys.has(categoryKey))
+                .map(categoryKey => ({ key: categoryKey, name: categoryKey })),
+        ]
+    }, [activeModules])
 
     const withTooltip = (content: ReactNode, label: string, key?: string) => {
         if (!collapsed) return content

@@ -1,6 +1,18 @@
 'use client'
 
-import { Editor } from '@tinymce/tinymce-react';
+import dynamic from 'next/dynamic'
+
+const Editor = dynamic(
+    () => import('@tinymce/tinymce-react').then(module => module.Editor),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="grid h-[400px] place-items-center border text-sm text-muted-foreground">
+                Đang tải trình soạn thảo...
+            </div>
+        ),
+    }
+)
 
 interface TinyEditorProps {
     value: string

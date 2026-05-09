@@ -1,11 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decrypt } from '@/lib/encryption'
 import type { AiAdapter, AiCapability, AiModelConfig, GenerateTextInput, GenerateTextResult } from '@/lib/ai/types'
+import { unstable_cache } from 'next/cache'
 
 const DEFAULT_TIMEOUT_MS = 60_000
 const DEFAULT_MAX_TOKENS = 1600
 const DEFAULT_TEMPERATURE = 0.35
 const KNOWN_ENDPOINT_SUFFIXES = ['/responses', '/chat/completions', '/messages', '/models']
+export const AI_MODELS_TAG = 'ai-model-options'
 
 function withDefaultVersion(url: URL) {
     if (url.pathname !== '/' && url.pathname !== '') return url
@@ -478,7 +480,7 @@ export async function generateJson<T>(input: GenerateTextInput): Promise<T> {
     return parseJsonText<T>(result.text)
 }
 
-export async function getPublicAiModels() {
+async function loadPublicAiModels() {
     const admin = createAdminClient()
     const { data, error } = await (admin as any)
         .from('ai_models')
@@ -500,4 +502,17 @@ export async function getPublicAiModels() {
             capabilities: model.capabilities || [],
             isDefault: model.is_default,
         }))
+}
+
+const getCachedPublicAiModels = unstable_cache(
+    loadPublicAiModels,
+    ['public-ai-models'],
+    {
+        revalidate: 300,
+        tags: [AI_MODELS_TAG],
+    }
+)
+
+export async function getPublicAiModels() {
+    return getCachedPublicAiModels()
 }

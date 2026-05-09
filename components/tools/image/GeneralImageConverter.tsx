@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X, ArrowDown, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import JSZip from 'jszip'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadJsZip } from '@/lib/client/lazy-libraries'
 
 interface GeneralImageConverterProps {
     slug: string
@@ -104,6 +104,7 @@ export function GeneralImageConverter({ slug, title, description }: GeneralImage
                 await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
 
                 for (const file of files) {

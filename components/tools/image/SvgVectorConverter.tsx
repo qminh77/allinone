@@ -7,10 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
-import JSZip from 'jszip'
 import { saveToolOutput } from '@/lib/client/tool-files'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import ImageTracer from 'imagetracerjs'
+import { loadImageTracer, loadJsZip } from '@/lib/client/lazy-libraries'
 
 interface SvgVectorConverterProps {
     slug: string
@@ -34,10 +32,11 @@ export function SvgVectorConverter({ slug, title, description }: SvgVectorConver
     }
 
     const convertFile = async (file: File): Promise<{ content: string, name: string }> => {
+        const { default: ImageTracer } = await loadImageTracer()
+
         return new Promise((resolve, reject) => {
             const url = URL.createObjectURL(file)
 
-            // Default options for better quality
             const options = {
                 corsenabled: false,
                 ltres: 1,
@@ -56,7 +55,7 @@ export function SvgVectorConverter({ slug, title, description }: SvgVectorConver
                 desc: false,
                 viewbox: false,
                 blurradius: 0,
-                blurdelta: 20
+                blurdelta: 20,
             }
 
             try {
@@ -87,6 +86,7 @@ export function SvgVectorConverter({ slug, title, description }: SvgVectorConver
                 await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Vector hóa thành công!')
             } else {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
 
                 for (const file of files) {

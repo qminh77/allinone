@@ -8,9 +8,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Copy, Download, Upload, FileCode, Trash, FileText } from 'lucide-react'
 import { toast } from 'sonner'
-import { marked } from 'marked'
 import { recordsToCsv } from '@/lib/client/spreadsheet'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadMarked } from '@/lib/client/lazy-libraries'
 
 interface MarkdownConverterProps {
     slug: string
@@ -38,7 +38,7 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
             const result = e.target?.result as string
             setInputContent(result)
             setFileName(file.name)
-            processConversion(result)
+            void processConversion(result)
         }
         reader.readAsText(file)
     }
@@ -46,7 +46,7 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value
         setInputContent(value)
-        if (value) processConversion(value)
+        if (value) void processConversion(value)
         else setOutputContent('')
     }
 
@@ -75,10 +75,10 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
         return data;
     };
 
-    const processConversion = (content: string) => {
+    const processConversion = async (content: string) => {
         setIsProcessing(true)
         try {
-            const result = convertData(content, slug)
+            const result = await convertData(content, slug)
             setOutputContent(result)
         } catch (error) {
             console.error(error)
@@ -87,13 +87,15 @@ export function MarkdownConverter({ slug, title, description }: MarkdownConverte
         }
     }
 
-    const convertData = (content: string, slug: string): string => {
+    const convertData = async (content: string, slug: string): Promise<string> => {
         const targetFormat = slug.replace('markdown-to-', '')
 
         switch (targetFormat) {
             // Document Formats
-            case 'html':
-                return marked.parse(content) as string;
+            case 'html': {
+                const { marked } = await loadMarked()
+                return (await marked.parse(content)) as string
+            }
 
             case 'markdown':
                 // Already markdown, maybe beautify?

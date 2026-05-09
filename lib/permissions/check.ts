@@ -6,6 +6,54 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { PermissionKey } from '@/types/permissions'
+import { cache } from 'react'
+
+type UserAccess = {
+    role: string | null
+    permissions: string[]
+}
+
+const getUserAccess = cache(async (userId: string): Promise<UserAccess> => {
+    const supabase = await createClient()
+
+    const { data: profile } = (await supabase
+        .from('user_profiles')
+        .select('role_id')
+        .eq('id', userId)
+        .single()) as { data: { role_id: string | null } | null }
+
+    if (!profile?.role_id) {
+        return { role: null, permissions: [] }
+    }
+
+    const [roleResult, rolePermsResult] = await Promise.all([
+        supabase
+            .from('roles')
+            .select('name')
+            .eq('id', profile.role_id)
+            .single(),
+        supabase
+            .from('role_permissions')
+            .select(`
+      permissions (
+        key
+      )
+    `)
+            .eq('role_id', profile.role_id),
+        ])
+
+    const roleData = roleResult as { data?: { name?: string | null } | null }
+    const rolePermsData = rolePermsResult as { data?: Array<{ permissions?: { key?: string | null } | null }> | null }
+
+    const permissions = (rolePermsData.data || [])
+        .map((rp: any) => rp.permissions?.key)
+        .filter(Boolean)
+
+    return {
+        role: roleData.data?.name ?? null,
+        permissions,
+    }
+})
 
 /**
  * Kiểm tra user có permission cụ thể không
@@ -17,34 +65,8 @@ export async function hasPermission(
     userId: string,
     permissionKey: PermissionKey
 ): Promise<boolean> {
-    const supabase = await createClient()
-
-    // Lấy role của user
-    const { data: profile } = (await supabase
-        .from('user_profiles')
-        .select('role_id')
-        .eq('id', userId)
-        .single()) as { data: any }
-
-    if (!profile || !profile.role_id) return false
-
-    // Kiểm tra role này có permission không
-    const { data: rolePerms } = await supabase
-        .from('role_permissions')
-        .select(`
-      permission_id,
-      permissions (
-        key
-      )
-    `)
-        .eq('role_id', profile.role_id)
-
-    if (!rolePerms) return false
-
-    // Tìm xem có permission.key === permissionKey không
-    return rolePerms.some(
-        (rp: any) => rp.permissions?.key === permissionKey
-    )
+    const access = await getUserAccess(userId)
+    return access.permissions.includes(permissionKey)
 }
 
 /**
@@ -54,12 +76,8 @@ export async function hasAnyPermission(
     userId: string,
     permissionKeys: PermissionKey[]
 ): Promise<boolean> {
-    for (const key of permissionKeys) {
-        if (await hasPermission(userId, key)) {
-            return true
-        }
-    }
-    return false
+    const access = await getUserAccess(userId)
+    return permissionKeys.some(key => access.permissions.includes(key))
 }
 
 /**
@@ -69,12 +87,8 @@ export async function hasAllPermissions(
     userId: string,
     permissionKeys: PermissionKey[]
 ): Promise<boolean> {
-    for (const key of permissionKeys) {
-        if (!(await hasPermission(userId, key))) {
-            return false
-        }
-    }
-    return true
+    const access = await getUserAccess(userId)
+    return permissionKeys.every(key => access.permissions.includes(key))
 }
 
 /**
@@ -86,24 +100,8 @@ export async function hasRole(
     userId: string,
     roleName: string
 ): Promise<boolean> {
-    const supabase = await createClient()
-
-    // Query profile và role riêng biệt
-    const { data: profile } = (await supabase
-        .from('user_profiles')
-        .select('role_id')
-        .eq('id', userId)
-        .single()) as { data: any }
-
-    if (!profile?.role_id) return false
-
-    const { data: roleData } = (await supabase
-        .from('roles')
-        .select('name')
-        .eq('id', profile.role_id)
-        .single()) as { data: any }
-
-    return roleData?.name === roleName
+    const access = await getUserAccess(userId)
+    return access.role === roleName
 }
 
 /**
@@ -112,28 +110,8 @@ export async function hasRole(
 export async function getUserPermissions(
     userId: string
 ): Promise<string[]> {
-    const supabase = await createClient()
-
-    const { data: profile } = (await supabase
-        .from('user_profiles')
-        .select('role_id')
-        .eq('id', userId)
-        .single()) as { data: any }
-
-    if (!profile || !profile.role_id) return []
-
-    const { data: rolePerms } = await supabase
-        .from('role_permissions')
-        .select(`
-      permissions (
-        key
-      )
-    `)
-        .eq('role_id', profile.role_id)
-
-    if (!rolePerms) return []
-
-    return rolePerms.map((rp: any) => rp.permissions?.key).filter(Boolean)
+    const access = await getUserAccess(userId)
+    return access.permissions
 }
 
 /**

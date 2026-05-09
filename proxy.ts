@@ -12,6 +12,69 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { applySecurityHeaders } from '@/lib/security-headers'
 
+type ModuleStatusRow = {
+    key: string
+    href: string | null
+    is_enabled: boolean | null
+}
+
+type ModuleStatusSnapshot = {
+    expiresAt: number
+    byKey: Map<string, boolean>
+    byHref: Map<string, boolean>
+}
+
+const MODULE_STATUS_CACHE_TTL_MS = 30_000
+
+let moduleStatusSnapshot: ModuleStatusSnapshot | null = null
+let moduleStatusLoadPromise: Promise<ModuleStatusSnapshot | null> | null = null
+
+function buildModuleStatusSnapshot(rows: ModuleStatusRow[]): ModuleStatusSnapshot {
+    const snapshot: ModuleStatusSnapshot = {
+        expiresAt: Date.now() + MODULE_STATUS_CACHE_TTL_MS,
+        byKey: new Map(),
+        byHref: new Map(),
+    }
+
+    rows.forEach(row => {
+        const enabled = row.is_enabled !== false
+        snapshot.byKey.set(row.key, enabled)
+        if (row.href) {
+            snapshot.byHref.set(row.href, enabled)
+        }
+    })
+
+    return snapshot
+}
+
+async function getModuleStatusSnapshot(
+    supabase: ReturnType<typeof createServerClient>
+): Promise<ModuleStatusSnapshot | null> {
+    if (moduleStatusSnapshot && moduleStatusSnapshot.expiresAt > Date.now()) {
+        return moduleStatusSnapshot
+    }
+
+    if (!moduleStatusLoadPromise) {
+        moduleStatusLoadPromise = (async () => {
+            const { data, error } = await supabase
+                .from('modules')
+                .select('key, href, is_enabled')
+
+            if (error || !data) {
+                return null
+            }
+
+            const snapshot = buildModuleStatusSnapshot(data as ModuleStatusRow[])
+            moduleStatusSnapshot = snapshot
+            return snapshot
+        })().finally(() => {
+            moduleStatusLoadPromise = null
+        })
+    }
+
+    return moduleStatusLoadPromise
+}
+
 function getModuleRoute(pathname: string) {
     if (pathname.startsWith('/tools/')) {
         const slug = pathname.split('/')[2]
@@ -37,24 +100,20 @@ async function getModuleEnabled(
     supabase: ReturnType<typeof createServerClient>,
     route: { key: string; href: string }
 ) {
-    const { data: byKey, error: keyError } = await supabase
-        .from('modules')
-        .select('is_enabled')
-        .eq('key', route.key)
-        .maybeSingle()
+    const snapshot = await getModuleStatusSnapshot(supabase)
 
-    if (!keyError && byKey) {
-        return byKey.is_enabled !== false
+    if (!snapshot) {
+        return true
     }
 
-    const { data: byHref, error: hrefError } = await supabase
-        .from('modules')
-        .select('is_enabled')
-        .eq('href', route.href)
-        .maybeSingle()
+    const byKey = snapshot.byKey.get(route.key)
+    if (typeof byKey === 'boolean') {
+        return byKey
+    }
 
-    if (!hrefError && byHref) {
-        return byHref.is_enabled !== false
+    const byHref = snapshot.byHref.get(route.href)
+    if (typeof byHref === 'boolean') {
+        return byHref
     }
 
     return true

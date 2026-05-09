@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Upload, Unlock, X, File as FileIcon } from 'lucide-react'
-import { PDFDocument } from 'pdf-lib'
 import { toast } from 'sonner'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadPdfLib } from '@/lib/client/lazy-libraries'
 
 interface UnlockPdfProps {
     slug: string
@@ -50,6 +50,7 @@ export function UnlockPDF({ slug, title, description }: UnlockPdfProps) {
 
         setIsProcessing(true)
         try {
+            const { PDFDocument } = await loadPdfLib()
             const arrayBuffer = await file.arrayBuffer()
 
             // Try to load with password

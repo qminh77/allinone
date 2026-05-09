@@ -19,6 +19,7 @@ import {
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { resetPermissionStateCache } from '@/lib/permissions/hooks'
 
 const navItems = [
     { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
@@ -44,6 +45,7 @@ export function AdminNavigation({ userName, userEmail }: AdminNavigationProps) {
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
+        resetPermissionStateCache()
         router.push('/login')
         router.refresh()
     }

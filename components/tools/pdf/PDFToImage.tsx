@@ -1,18 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, Image as ImageIcon, Download } from 'lucide-react'
-import JSZip from 'jszip'
 import { toast } from 'sonner'
-import * as pdfjsLib from 'pdfjs-dist'
 import { saveToolOutput } from '@/lib/client/tool-files'
-
-// Set worker source to CDN to avoid build issues
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+import { loadJsZip, loadPdfJsDist } from '@/lib/client/lazy-libraries'
 
 interface PdfToImageProps {
     slug: string
@@ -24,7 +20,6 @@ export function PDFToImage({ slug, title, description }: PdfToImageProps) {
     const [file, setFile] = useState<File | null>(null)
     const [pageCount, setPageCount] = useState<number>(0)
     const [isProcessing, setIsProcessing] = useState(false)
-    const canvasRef = useRef<HTMLCanvasElement>(null)
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
@@ -36,6 +31,8 @@ export function PDFToImage({ slug, title, description }: PdfToImageProps) {
             setFile(selectedFile)
             setIsProcessing(true)
             try {
+                const pdfjsLib = await loadPdfJsDist()
+                pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
                 const arrayBuffer = await selectedFile.arrayBuffer()
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
                 setPageCount(pdf.numPages)
@@ -54,6 +51,9 @@ export function PDFToImage({ slug, title, description }: PdfToImageProps) {
 
         setIsProcessing(true)
         try {
+            const pdfjsLib = await loadPdfJsDist()
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+            const { default: JSZip } = await loadJsZip()
             const arrayBuffer = await file.arrayBuffer()
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
             const zip = new JSZip()

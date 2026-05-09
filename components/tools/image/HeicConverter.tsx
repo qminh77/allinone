@@ -7,9 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
-import JSZip from 'jszip'
-import heic2any from 'heic2any'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadHeic2Any, loadJsZip } from '@/lib/client/lazy-libraries'
 
 interface HeicConverterProps {
     slug: string
@@ -48,6 +47,7 @@ export function HeicConverter({ slug, title, description }: HeicConverterProps) 
 
     const convertFile = async (file: File): Promise<{ blob: Blob, name: string }> => {
         try {
+            const { default: heic2any } = await loadHeic2Any()
             const outputBlob = await heic2any({
                 blob: file,
                 toType: targetFormat,
@@ -79,6 +79,7 @@ export function HeicConverter({ slug, title, description }: HeicConverterProps) 
                 await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
 
                 for (const file of files) {

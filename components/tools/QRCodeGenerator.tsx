@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import * as QRCode from 'qrcode'
 import type { QRCodeRenderersOptions, QRCodeToStringOptions } from 'qrcode'
 import { toast } from 'sonner'
 import {
@@ -59,6 +58,7 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { AiQrCodeDialog } from '@/components/tools/AiQrCodeDialog'
+import { loadPdfLib, loadQRCode } from '@/lib/client/lazy-libraries'
 
 const STORAGE_KEY = 'allinone.qr-codes.v1'
 const MAX_HISTORY_ITEMS = 100
@@ -153,6 +153,7 @@ export function QRCodeGenerator() {
         let cancelled = false
         const timeout = window.setTimeout(async () => {
             try {
+                const QRCode = await loadQRCode()
                 await QRCode.toCanvas(canvas, effectivePayload, getRenderOptions(design, Math.min(design.size, PREVIEW_WIDTH)))
                 if (!cancelled) setPreviewError('')
             } catch (error) {
@@ -205,6 +206,7 @@ export function QRCodeGenerator() {
     })
 
     const handleDownloadSvg = () => withQrAction('svg', async () => {
+        const QRCode = await loadQRCode()
         const svg = await QRCode.toString(effectivePayload, getSvgOptions(design))
         const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
         downloadBlob(blob, `${sanitizeQrFilename(activeName)}.svg`)
@@ -1217,6 +1219,7 @@ function getSvgOptions(design: QrDesign): QRCodeToStringOptions {
 
 async function renderPngBlob(payload: string, design: QrDesign) {
     const canvas = document.createElement('canvas')
+    const QRCode = await loadQRCode()
     await QRCode.toCanvas(canvas, payload, getRenderOptions(design, design.size))
 
     return new Promise<Blob>((resolve, reject) => {
@@ -1228,7 +1231,7 @@ async function renderPngBlob(payload: string, design: QrDesign) {
 }
 
 async function renderPdfBlob(pngBlob: Blob) {
-    const { PDFDocument } = await import('pdf-lib')
+    const { PDFDocument } = await loadPdfLib()
     const pdf = await PDFDocument.create()
     const page = pdf.addPage([595.28, 841.89])
     const image = await pdf.embedPng(await pngBlob.arrayBuffer())

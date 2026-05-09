@@ -4,8 +4,6 @@
  * Enforces strong password requirements using zxcvbn
  */
 
-import zxcvbn from 'zxcvbn'
-
 export type PasswordStrengthResult = {
     score: number // 0-4
     feedback: {
@@ -19,10 +17,19 @@ export type PasswordStrengthResult = {
 const MIN_LENGTH = 8
 const MIN_SCORE = 3 // 0-4, 3 is "safe"
 
+let zxcvbnPromise: Promise<any> | null = null
+
+async function loadZxcvbn(): Promise<any> {
+    zxcvbnPromise ||= import('zxcvbn') as Promise<any>
+    return zxcvbnPromise
+}
+
 /**
  * Validate password strength
  */
-export function validatePasswordStrength(password: string): PasswordStrengthResult {
+export async function validatePasswordStrength(password: string): Promise<PasswordStrengthResult> {
+    const zxcvbnModule = await loadZxcvbn()
+    const zxcvbn = zxcvbnModule.default || zxcvbnModule
     const result = zxcvbn(password)
     const errors: string[] = []
 

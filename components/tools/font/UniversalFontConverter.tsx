@@ -8,9 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Upload, X, Type, Loader2, Download } from 'lucide-react'
 import { toast } from 'sonner'
-import JSZip from 'jszip'
-import opentype from 'opentype.js'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadJsZip, loadOpentype } from '@/lib/client/lazy-libraries'
 
 interface UniversalFontConverterProps {
     slug: string
@@ -37,70 +36,56 @@ export function UniversalFontConverter({ slug, title, description }: UniversalFo
     }
 
     const convertFile = async (file: File): Promise<{ blob: Blob, name: string }> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                const arrayBuffer = e.target?.result as ArrayBuffer
+        try {
+            const { default: opentype } = await loadOpentype()
+            const arrayBuffer = await file.arrayBuffer()
+            const font = opentype.parse(arrayBuffer)
 
-                try {
-                    const font = opentype.parse(arrayBuffer)
+            let outBlob: Blob
+            let ext: string
 
-                    let outBlob: Blob
-                    let ext: string
-
-                    switch (targetFormat) {
-                        case 'ttf':
-                            // opentype.js can write to ArrayBuffer
-                            const ttfBuffer = font.toArrayBuffer()
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            outBlob = new Blob([ttfBuffer as any], { type: 'font/ttf' })
-                            ext = 'ttf'
-                            break;
-
-                        case 'otf':
-                            const otfBuffer = font.toArrayBuffer()
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            outBlob = new Blob([otfBuffer as any], { type: 'font/otf' })
-                            ext = 'otf'
-                            break;
-
-                        case 'woff':
-                            // opentype.js writes OpenType/TrueType tables. 
-                            // Creating a WOFF file properly requires WOFF header wrapping.
-                            // For this client-side demo without heavy deps, we will output with .woff extension but warning: it might naturally be a TTF/OTF inside.
-                            // However, browsers/systems are smart. 
-                            // Let's stick to what we have or try to use proper header if feasible? 
-                            // No, let's keep it simple as requested "any format".
-                            const woffBuffer = font.toArrayBuffer()
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            outBlob = new Blob([woffBuffer as any], { type: 'font/woff' })
-                            ext = 'woff'
-                            break;
-
-                        case 'json':
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const json = JSON.stringify(font, null, 2)
-                            outBlob = new Blob([json], { type: 'application/json' })
-                            ext = 'json'
-                            break;
-
-                        default:
-                            const defBuff = font.toArrayBuffer()
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            outBlob = new Blob([defBuff as any], { type: 'font/ttf' })
-                            ext = 'ttf'
-                    }
-
-                    const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name
-                    resolve({ blob: outBlob, name: `${fileNameWithoutExt}.${ext}` })
-                } catch (err) {
-                    console.error('Parse error:', err)
-                    reject(new Error(`Không thể đọc font này (Định dạng không được hỗ trợ hoặc file lỗi). Error: ${(err as Error).message}`))
+            switch (targetFormat) {
+                case 'ttf': {
+                    const ttfBuffer = font.toArrayBuffer()
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    outBlob = new Blob([ttfBuffer as any], { type: 'font/ttf' })
+                    ext = 'ttf'
+                    break
+                }
+                case 'otf': {
+                    const otfBuffer = font.toArrayBuffer()
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    outBlob = new Blob([otfBuffer as any], { type: 'font/otf' })
+                    ext = 'otf'
+                    break
+                }
+                case 'woff': {
+                    const woffBuffer = font.toArrayBuffer()
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    outBlob = new Blob([woffBuffer as any], { type: 'font/woff' })
+                    ext = 'woff'
+                    break
+                }
+                case 'json': {
+                    const json = JSON.stringify(font, null, 2)
+                    outBlob = new Blob([json], { type: 'application/json' })
+                    ext = 'json'
+                    break
+                }
+                default: {
+                    const defBuff = font.toArrayBuffer()
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    outBlob = new Blob([defBuff as any], { type: 'font/ttf' })
+                    ext = 'ttf'
                 }
             }
-            reader.onerror = () => reject(new Error('Lỗi đọc file'))
-            reader.readAsArrayBuffer(file)
-        })
+
+            const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name
+            return { blob: outBlob, name: `${fileNameWithoutExt}.${ext}` }
+        } catch (err) {
+            console.error('Parse error:', err)
+            throw new Error(`Không thể đọc font này (Định dạng không được hỗ trợ hoặc file lỗi). Error: ${(err as Error).message}`)
+        }
     }
 
     const handleConvert = async () => {
@@ -116,6 +101,7 @@ export function UniversalFontConverter({ slug, title, description }: UniversalFo
                 await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
                 let successCount = 0
 

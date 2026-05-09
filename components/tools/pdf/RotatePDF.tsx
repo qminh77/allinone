@@ -6,10 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, RotateCw, RotateCcw, ArrowDown, X, Files } from 'lucide-react'
-import { PDFDocument, degrees } from 'pdf-lib'
 import { toast } from 'sonner'
-import JSZip from 'jszip'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadJsZip, loadPdfLib } from '@/lib/client/lazy-libraries'
 
 interface RotatePdfProps {
     slug: string
@@ -51,6 +50,7 @@ export function RotatePDF({ slug, title, description }: RotatePdfProps) {
 
         setIsProcessing(true)
         try {
+            const { PDFDocument, degrees } = await loadPdfLib()
             if (files.length === 1) {
                 const file = files[0]
                 const arrayBuffer = await file.arrayBuffer()
@@ -68,6 +68,7 @@ export function RotatePDF({ slug, title, description }: RotatePdfProps) {
                 await saveToolOutput({ moduleKey: slug, blob, filename: `rotated-${file.name}` })
                 toast.success('Xoay PDF thành công!')
             } else {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
 
                 for (const file of files) {

@@ -8,13 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Upload, X, Image as ImageIcon, Loader2, Download } from 'lucide-react'
 import { toast } from 'sonner'
-import JSZip from 'jszip'
 import { saveToolOutput } from '@/lib/client/tool-files'
-import {
-    initializeImageMagick,
-    ImageMagick,
-    MagickFormat
-} from '@imagemagick/magick-wasm'
+import { loadJsZip, loadMagickWasm } from '@/lib/client/lazy-libraries'
 
 interface UniversalImageConverterProps {
     slug: string
@@ -39,6 +34,7 @@ export function UniversalImageConverter({ slug, title, description }: UniversalI
             }
 
             try {
+                const { initializeImageMagick } = await loadMagickWasm()
                 // Check if already initialized globally (if multiple instances)
                 // But initializeImageMagick usually handles idempotency or we should safeguard
                 await initializeImageMagick(new URL(WASM_URL, window.location.origin))
@@ -77,11 +73,12 @@ export function UniversalImageConverter({ slug, title, description }: UniversalI
     const convertFile = async (file: File): Promise<{ blob: Blob, name: string }> => {
         return new Promise(async (resolve, reject) => {
             try {
+                const { ImageMagick, MagickFormat } = await loadMagickWasm()
                 const arrayBuffer = await file.arrayBuffer()
                 const uint8Array = new Uint8Array(arrayBuffer)
 
                 ImageMagick.read(uint8Array, (image) => {
-                    let format: MagickFormat = MagickFormat.Png
+                    let format: any = MagickFormat.Png
                     let mime = 'image/png'
 
                     switch (targetFormat) {
@@ -159,6 +156,7 @@ export function UniversalImageConverter({ slug, title, description }: UniversalI
                 await saveToolOutput({ moduleKey: slug, blob, filename: name })
                 toast.success('Chuyển đổi thành công!')
             } else {
+                const { default: JSZip } = await loadJsZip()
                 const zip = new JSZip()
 
                 for (const file of files) {

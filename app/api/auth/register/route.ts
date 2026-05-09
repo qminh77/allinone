@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         }
 
         // ✅ Validate Password Strength
-        const passwordCheck = validatePasswordStrength(password)
+        const passwordCheck = await validatePasswordStrength(password)
         if (!passwordCheck.isValid) {
             return NextResponse.json(
                 {

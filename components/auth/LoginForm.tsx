@@ -53,20 +53,19 @@ export function LoginForm() {
 
             // Audit log & Sync Profile
             try {
-                // Sync profile first (in case it's missing)
-                await fetch('/api/auth/sync-profile', {
-                    method: 'POST',
-                })
-
-                // Then audit log
-                await fetch('/api/audit/log', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'login',
-                        userId: data.user?.id,
+                await Promise.all([
+                    fetch('/api/auth/sync-profile', {
+                        method: 'POST',
                     }),
-                })
+                    fetch('/api/audit/log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'login',
+                            userId: data.user?.id,
+                        }),
+                    }),
+                ])
             } catch { }
 
             router.push('/dashboard')

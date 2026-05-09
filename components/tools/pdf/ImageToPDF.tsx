@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Upload, FileDown, Trash, ArrowDown, X } from 'lucide-react'
-import { PDFDocument } from 'pdf-lib'
 import { toast } from 'sonner'
 import { saveToolOutput } from '@/lib/client/tool-files'
+import { loadPdfLib } from '@/lib/client/lazy-libraries'
 
 interface ImageToPdfProps {
     slug: string
@@ -59,6 +59,7 @@ export function ImageToPDF({ slug, title, description }: ImageToPdfProps) {
 
         setIsProcessing(true)
         try {
+            const { PDFDocument } = await loadPdfLib()
             const pdfDoc = await PDFDocument.create()
 
             for (const file of files) {
