@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { Copy, Trash2, FileJson, Check, X, Minimize2, Maximize2 } from 'lucide-react'
+import { Copy, Trash2, FileJson, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -34,8 +33,8 @@ export function JsonValidator() {
             } else {
                 setOutput(JSON.stringify(parsed, null, Number(currentIndent)))
             }
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Invalid JSON')
             // Keep the output generally empty or maybe previous valid output? 
             // Let's clear output to indicate invalid state clearly in the output box, 
             // but the input remains for them to fix.
@@ -60,7 +59,7 @@ export function JsonValidator() {
         try {
             JSON.parse(input)
             toast.success('JSON Valid & Formatted')
-        } catch (e) {
+        } catch {
             toast.error('Invalid JSON')
         }
     }

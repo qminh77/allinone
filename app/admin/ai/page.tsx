@@ -1,4 +1,5 @@
 import { BrainCircuit } from 'lucide-react'
+import type { ComponentProps } from 'react'
 import { StatsCard } from '@/components/admin/StatsCard'
 import { AiManagement } from '@/components/admin/ai/AiManagement'
 import { getAiAdminData } from '@/lib/actions/admin/ai'
@@ -6,9 +7,14 @@ import { Card, CardContent } from '@/components/ui/card'
 
 export default async function AdminAiPage() {
     const { providers, models, usageLogs, configurationError } = await getAiAdminData()
-    const readyProviders = providers.filter((provider: any) => provider.is_enabled && provider.has_api_key).length
-    const enabledModels = models.filter((model: any) => model.is_enabled).length
-    const failedCalls = usageLogs.filter((log: any) => log.status === 'failed').length
+    type AiManagementProps = ComponentProps<typeof AiManagement>
+    const typedProviders = providers as AiManagementProps['providers']
+    const typedModels = models as AiManagementProps['models']
+    const typedUsageLogs = usageLogs as AiManagementProps['usageLogs']
+
+    const readyProviders = typedProviders.filter(provider => provider.is_enabled && provider.has_api_key).length
+    const enabledModels = typedModels.filter(model => model.is_enabled).length
+    const failedCalls = typedUsageLogs.filter(log => log.status === 'failed').length
 
     return (
         <div className="space-y-6">
@@ -34,7 +40,7 @@ export default async function AdminAiPage() {
                 </Card>
             )}
 
-            <AiManagement providers={providers as any} models={models as any} usageLogs={usageLogs as any} />
+            <AiManagement providers={typedProviders} models={typedModels} usageLogs={typedUsageLogs} />
         </div>
     )
 }

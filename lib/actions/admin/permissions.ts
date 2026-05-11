@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/auth/authorization-middleware'
 import { sanitizeInput } from '@/lib/validation'
 import { createAuditLog } from '@/lib/audit/log'
 import { createAdminDataClient } from '@/lib/admin/db'
+import type { Database } from '@/types/database'
 import { z } from 'zod'
 
 const UuidSchema = z.string().uuid()
@@ -16,6 +17,8 @@ const PermissionKeySchema = z.string()
 const PermissionNameSchema = z.string().trim().min(2, 'Permission name is required').max(120, 'Permission name is too long')
 const ModuleSchema = z.string().trim().max(80, 'Module name is too long').optional()
 const DescriptionSchema = z.string().trim().max(300, 'Description is too long').optional()
+type PermissionRow = Database['public']['Tables']['permissions']['Row']
+type RolePermissionRow = Database['public']['Tables']['role_permissions']['Row']
 
 function validateUuid(id: string, label = 'id') {
     const result = UuidSchema.safeParse(id)
@@ -54,7 +57,7 @@ async function writeAuditLog(params: Parameters<typeof createAuditLog>[0]) {
 export async function getPermissions() {
     await requireAdmin()
     const supabase = await createAdminDataClient()
-    const db = supabase as any
+    const db = supabase
 
     const { data: permissions, error } = await db
         .from('permissions')
@@ -72,11 +75,12 @@ export async function getPermissions() {
         .select('permission_id')
 
     const roleCounts = new Map<string, number>()
-    rolePermissions?.forEach((row: any) => {
+    const rolePermissionRows = (rolePermissions ?? []) as Array<Pick<RolePermissionRow, 'permission_id'>>
+    rolePermissionRows.forEach((row) => {
         roleCounts.set(row.permission_id, (roleCounts.get(row.permission_id) || 0) + 1)
     })
 
-    return permissions.map((permission: any) => ({
+    return (permissions ?? []).map((permission: PermissionRow) => ({
         ...permission,
         roleCount: roleCounts.get(permission.id) || 0,
     }))
@@ -88,7 +92,7 @@ export async function getPermission(id: string) {
     if (uuid.error) return null
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
+    const db = supabase
 
     const { data } = await db
         .from('permissions')
@@ -105,7 +109,7 @@ export async function createPermission(formData: FormData) {
     if (parsed.error) return { error: parsed.error }
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
+    const db = supabase
 
     const { data: existing } = await db
         .from('permissions')
@@ -119,24 +123,26 @@ export async function createPermission(formData: FormData) {
 
     const { data, error } = await db
         .from('permissions')
-        .insert(parsed.value!)
+        .insert(parsed.value as never)
         .select()
         .single()
 
     if (error) return { error: error.message }
+    const createdPermission = data as PermissionRow | null
+    if (!createdPermission) return { error: 'Permission not found' }
 
     await writeAuditLog({
         userId: currentUser.id,
         action: 'permission.create',
         resourceType: 'permission',
-        resourceId: data.id,
-        metadata: { key: data.key },
+        resourceId: createdPermission.id,
+        metadata: { key: createdPermission.key },
     })
 
     revalidatePath('/admin')
     revalidatePath('/admin/permissions')
     revalidatePath('/admin/roles')
-    return { success: true, permission: data }
+    return { success: true, permission: createdPermission }
 }
 
 export async function updatePermission(id: string, formData: FormData) {
@@ -148,7 +154,7 @@ export async function updatePermission(id: string, formData: FormData) {
     if (parsed.error) return { error: parsed.error }
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
+    const db = supabase
     const { data: existingWithKey } = await db
         .from('permissions')
         .select('id')
@@ -162,7 +168,7 @@ export async function updatePermission(id: string, formData: FormData) {
 
     const { error } = await db
         .from('permissions')
-        .update(parsed.value!)
+        .update(parsed.value as never)
         .eq('id', uuid.value!)
 
     if (error) return { error: error.message }
@@ -186,7 +192,7 @@ export async function deletePermission(id: string) {
     if (uuid.error) return { error: uuid.error }
 
     const supabase = await createAdminDataClient()
-    const db = supabase as any
+    const db = supabase
 
     const { data: permission } = await db
         .from('permissions')
@@ -194,7 +200,9 @@ export async function deletePermission(id: string) {
         .eq('id', uuid.value!)
         .single()
 
-    if (!permission) {
+    const existingPermission = permission as PermissionRow | null
+
+    if (!existingPermission) {
         return { error: 'Permission not found' }
     }
 
@@ -219,7 +227,7 @@ export async function deletePermission(id: string) {
         action: 'permission.delete',
         resourceType: 'permission',
         resourceId: uuid.value,
-        metadata: { key: permission.key },
+        metadata: { key: existingPermission.key },
     })
 
     revalidatePath('/admin')

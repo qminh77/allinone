@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ToolShell } from '@/components/dashboard/ToolShell'
-import { Copy, Download, Upload, FileSpreadsheet, FileWarning } from 'lucide-react'
+import { Copy, Download, Upload, FileSpreadsheet } from 'lucide-react'
 import { toast } from 'sonner'
 import { readSpreadsheetRows, recordsToHtmlTable, rowsToCsv, rowsToRecords, type TableRow } from '@/lib/client/spreadsheet'
 import { saveToolOutput } from '@/lib/client/tool-files'
@@ -18,9 +18,7 @@ interface ExcelConverterProps {
 }
 
 export function ExcelConverter({ slug, title, description }: ExcelConverterProps) {
-    const [inputContent, setInputContent] = useState<string>('')
     const [outputContent, setOutputContent] = useState<string>('')
-    const [isProcessing, setIsProcessing] = useState(false)
     const [fileName, setFileName] = useState<string>('')
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +30,6 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
             return
         }
 
-        setIsProcessing(true)
         setFileName(file.name)
 
         try {
@@ -46,12 +43,10 @@ export function ExcelConverter({ slug, title, description }: ExcelConverterProps
         } catch (error) {
             console.error(error)
             toast.error('Có lỗi xảy ra khi đọc file!')
-        } finally {
-            setIsProcessing(false)
         }
     }
 
-    const convertData = (data: any[], slug: string, tableRows: TableRow[]): string => {
+    const convertData = (data: Record<string, unknown>[], slug: string, tableRows: TableRow[]): string => {
         const targetFormat = slug.replace('excel-to-', '')
 
         switch (targetFormat) {

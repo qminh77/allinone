@@ -1,33 +1,49 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useRef, useState } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Download, Eraser, PenTool, RefreshCw } from 'lucide-react'
+import { Download, Eraser, PenTool } from 'lucide-react'
 import { toast } from 'sonner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { saveToolOutput } from '@/lib/client/tool-files'
 
 export function SignatureGenerator() {
-    const padRef = useRef<any>(null)
+    const padRef = useRef<InstanceType<typeof SignatureCanvas> | null>(null)
     const [penColor, setPenColor] = useState('#000000')
     const [penWidth, setPenWidth] = useState([2])
-    const [bgColor, setBgColor] = useState('transparent') // 'transparent' or '#ffffff'
 
     const clear = () => {
         padRef.current?.clear()
     }
 
     const download = async (format: 'png' | 'jpg') => {
-        if (padRef.current?.isEmpty()) {
+        const pad = padRef.current
+
+        if (!pad || pad.isEmpty()) {
             toast.error('Signature is empty')
             return
         }
 
         const mimeType = format === 'png' ? 'image/png' : 'image/jpeg'
-        const dataURL = padRef.current.getTrimmedCanvas().toDataURL(mimeType)
+        const sourceCanvas = pad.getTrimmedCanvas()
+        const exportCanvas = format === 'jpg'
+            ? document.createElement('canvas')
+            : sourceCanvas
+
+        if (format === 'jpg') {
+            exportCanvas.width = sourceCanvas.width
+            exportCanvas.height = sourceCanvas.height
+            const ctx = exportCanvas.getContext('2d')
+            if (ctx) {
+                ctx.fillStyle = '#ffffff'
+                ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height)
+                ctx.drawImage(sourceCanvas, 0, 0)
+            }
+        }
+
+        const dataURL = exportCanvas.toDataURL(mimeType)
         const blob = await (await fetch(dataURL)).blob()
         await saveToolOutput({
             moduleKey: 'signature-generator',
@@ -86,11 +102,11 @@ export function SignatureGenerator() {
                                 value={penWidth}
                                 onValueChange={setPenWidth}
                                 max={10}
-                                min={1}
-                                step={0.5}
-                            />
-                        </div>
+                            min={1}
+                            step={0.5}
+                        />
                     </div>
+                </div>
 
                     {/* Canvas Area */}
                     <div className="border-2 border-dashed rounded-xl overflow-hidden relative h-[400px] w-full bg-white dark:bg-white touch-none">
@@ -103,7 +119,7 @@ export function SignatureGenerator() {
                             canvasProps={{
                                 className: 'w-full h-full cursor-crosshair'
                             }}
-                            backgroundColor={bgColor === 'transparent' ? 'rgba(0,0,0,0)' : bgColor}
+                            backgroundColor="rgba(0,0,0,0)"
                         />
                         <div className="absolute bottom-2 right-2 text-xs text-gray-300 pointer-events-none select-none font-bold">
                             UMTERS.CLUB

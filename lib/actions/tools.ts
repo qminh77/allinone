@@ -12,13 +12,42 @@ import { promisify } from 'util'
 
 export type DnsRecordType = 'A' | 'AAAA' | 'MX' | 'NS' | 'TXT' | 'CNAME' | 'SOA'
 
-interface DnsResult {
-    type: DnsRecordType
-    data: string | object
-    ttl?: number // Node dns module doesn't always return TTL easily with standard resolve methods, but we'll try standard resolve
-}
+type DnsLookupResult = string[] | Awaited<ReturnType<typeof dns.resolveMx>> | Awaited<ReturnType<typeof dns.resolveSoa>>
 
 type NormalizedUrl = { ok: true; url: string } | { ok: false; error: string }
+
+function getErrorMessage(error: unknown) {
+    if (error instanceof Error) {
+        return error.message
+    }
+
+    if (error && typeof error === 'object' && 'message' in error && typeof (error as { message?: unknown }).message === 'string') {
+        return (error as { message: string }).message
+    }
+
+    return String(error)
+}
+
+function getErrorCode(error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && typeof (error as { code?: unknown }).code === 'string') {
+        return (error as { code: string }).code
+    }
+
+    return undefined
+}
+
+function getErrorCauseCode(error: unknown) {
+    if (!error || typeof error !== 'object' || !('cause' in error)) {
+        return undefined
+    }
+
+    const cause = (error as { cause?: unknown }).cause
+    if (!cause || typeof cause !== 'object' || !('code' in cause) || typeof (cause as { code?: unknown }).code !== 'string') {
+        return undefined
+    }
+
+    return (cause as { code: string }).code
+}
 
 function normalizePublicUrl(input: string): NormalizedUrl {
     let targetUrl = input.trim()
@@ -78,7 +107,7 @@ export async function performDnsLookup(domain: string, type: DnsRecordType = 'A'
     const cleanDomain = domain.replace(/https?:\/\//, '').replace(/\/$/, '')
 
     try {
-        let results: any = []
+        let results: DnsLookupResult = []
 
         switch (type) {
             case 'A':
@@ -94,9 +123,8 @@ export async function performDnsLookup(domain: string, type: DnsRecordType = 'A'
                 results = await dns.resolveNs(cleanDomain)
                 break
             case 'TXT':
-                results = await dns.resolveTxt(cleanDomain)
                 // TXT returns array of arrays (chunks), join them
-                results = results.map((chunks: string[]) => chunks.join(''))
+                results = (await dns.resolveTxt(cleanDomain)).map((chunks) => chunks.join(''))
                 break
             case 'CNAME':
                 results = await dns.resolveCname(cleanDomain)
@@ -109,12 +137,13 @@ export async function performDnsLookup(domain: string, type: DnsRecordType = 'A'
         }
 
         return { success: true, data: results }
-    } catch (error: any) {
+    } catch (error: unknown) {
         // ENODATA means no records of this type found, which is a valid result (not a system error)
-        if (error.code === 'ENODATA' || error.code === 'ENOTFOUND') {
+        const code = getErrorCode(error)
+        if (code === 'ENODATA' || code === 'ENOTFOUND') {
             return { success: true, data: [] }
         }
-        return { error: `Lookup failed: ${error.code || error.message}` }
+        return { error: `Lookup failed: ${code || getErrorMessage(error)}` }
     }
 }
 
@@ -144,8 +173,8 @@ export async function performIpLookup(query: string = '') {
 
         return { success: true, data }
 
-    } catch (error: any) {
-        return { error: `System Error: ${error.message}` }
+    } catch (error: unknown) {
+        return { error: `System Error: ${getErrorMessage(error)}` }
     }
 }
 
@@ -184,9 +213,11 @@ export async function performHeaderLookup(url: string) {
                 url: res.url
             }
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Retry with GET if HEAD fails (some servers block HEAD)
-        if (error.cause?.code === 'UND_ERR_HEADERS_TIMEOUT' || error.message.includes('HEAD')) {
+        const causeCode = getErrorCauseCode(error)
+        const message = getErrorMessage(error)
+        if (causeCode === 'UND_ERR_HEADERS_TIMEOUT' || message.includes('HEAD')) {
             try {
                 const normalized = normalizePublicUrl(url)
                 if (!normalized.ok) return { error: normalized.error }
@@ -204,11 +235,11 @@ export async function performHeaderLookup(url: string) {
                         url: res.url
                     }
                 }
-            } catch (retryError: any) {
-                return { error: `Lookup failed: ${retryError.message}` }
+            } catch (retryError: unknown) {
+                return { error: `Lookup failed: ${getErrorMessage(retryError)}` }
             }
         }
-        return { error: `Lookup failed: ${error.message}` }
+        return { error: `Lookup failed: ${message}` }
     }
 }
 
@@ -260,8 +291,8 @@ export async function performMetaTagLookup(url: string) {
             success: true,
             data
         }
-    } catch (error: any) {
-        return { error: `Lookup failed: ${error.message}` }
+    } catch (error: unknown) {
+        return { error: `Lookup failed: ${getErrorMessage(error)}` }
     }
 }
 
@@ -311,10 +342,6 @@ function mapYtdlFormat(format: VideoFormat) {
         filesize: parseContentLength(format.contentLength),
         tbr: format.bitrate || format.averageBitrate,
     }
-}
-
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : String(error)
 }
 
 function getCommandErrorOutput(error: unknown) {

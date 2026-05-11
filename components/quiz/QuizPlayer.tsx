@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { submitQuizAttempt, type Quiz, type Question, type QuizReviewItem } from '@/lib/actions/quiz'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, CheckCircle2, XCircle, AlertCircle, Clock, Shuffle, Settings2, ChevronRight, ChevronLeft, Eye, Send } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, AlertCircle, Clock, Settings2, ChevronRight, ChevronLeft, Eye, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from 'next/link'
@@ -99,32 +98,12 @@ export function QuizPlayer({ quiz, revealAnswers = true, accessToken }: QuizPlay
         }
 
         setQuestions(qList)
-        setQuestions(qList)
         setTimeLeft(config.timeLimit * 60)
         setAnswers({})
         setPracticeChecks({})
         setCurrentQIndex(0)
         setStatus('playing')
     }
-
-    // --- Timer Effect ---
-    useEffect(() => {
-        if (status === 'playing' && config.mode === 'exam' && config.timeLimit > 0) {
-            timerRef.current = setInterval(() => {
-                setTimeLeft(prev => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current!)
-                        handleSubmit(true) // Helper to auto submit
-                        return 0
-                    }
-                    return prev - 1
-                })
-            }, 1000)
-        }
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current)
-        }
-    }, [status, config.mode, config.timeLimit])
 
     // --- Interaction ---
     const handleSelect = (questionId: string, answerId: string, type: 'single' | 'multiple') => {
@@ -149,15 +128,7 @@ export function QuizPlayer({ quiz, revealAnswers = true, accessToken }: QuizPlay
         setPracticeChecks(prev => ({ ...prev, [qId]: true }))
     }
 
-    const handleSubmit = async (auto = false) => {
-        if (!auto) {
-            setConfirmOpen(true)
-            return
-        }
-        performSubmit(true)
-    }
-
-    const performSubmit = async (auto = false) => {
+    const performSubmit = useCallback(async (auto = false) => {
         setIsSubmitting(true)
         if (timerRef.current) clearInterval(timerRef.current)
 
@@ -180,13 +151,40 @@ export function QuizPlayer({ quiz, revealAnswers = true, accessToken }: QuizPlay
                 })
                 setStatus('finished')
             }
-        } catch (error) {
+        } catch {
             toast.error('Lỗi kết nối')
         } finally {
             setIsSubmitting(false)
             setConfirmOpen(false)
         }
-    }
+    }, [accessToken, answers, quiz.id])
+
+    const handleSubmit = useCallback(async (auto = false) => {
+        if (!auto) {
+            setConfirmOpen(true)
+            return
+        }
+        await performSubmit(true)
+    }, [performSubmit])
+
+    // --- Timer Effect ---
+    useEffect(() => {
+        if (status === 'playing' && config.mode === 'exam' && config.timeLimit > 0) {
+            timerRef.current = setInterval(() => {
+                setTimeLeft(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timerRef.current!)
+                        void handleSubmit(true)
+                        return 0
+                    }
+                    return prev - 1
+                })
+            }, 1000)
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current)
+        }
+    }, [status, config.mode, config.timeLimit, handleSubmit])
 
     // --- Render Helpers ---
     const renderMedia = (q: Question) => {
@@ -205,7 +203,14 @@ export function QuizPlayer({ quiz, revealAnswers = true, accessToken }: QuizPlay
         }
         return (
             <div className="my-4 rounded-lg overflow-hidden border bg-muted/20">
-                <img src={q.media_url} alt="Question Media" className="w-full h-auto max-h-[400px] object-contain mx-auto" />
+                <Image
+                    unoptimized
+                    src={q.media_url}
+                    alt="Question Media"
+                    width={800}
+                    height={450}
+                    className="w-full h-auto max-h-[400px] object-contain mx-auto"
+                />
             </div>
         )
     }

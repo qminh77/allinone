@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea'
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -23,18 +22,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Switch } from '@/components/ui/switch'
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Plus, Trash2, X } from 'lucide-react'
-import { createQuestion, updateQuestion, type Question, type Answer } from '@/lib/actions/quiz'
+import { Loader2, Plus, X } from 'lucide-react'
+import { createQuestion, updateQuestion, type Question } from '@/lib/actions/quiz'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 
 // Zod Schema
 const answerSchema = z.object({
     content: z.string().min(1, "Nội dung đáp án không được để trống"),
-    is_correct: z.boolean().default(false),
+    is_correct: z.boolean(),
 })
 
 const questionSchema = z.object({
@@ -59,7 +56,7 @@ export function QuestionEditor({ quizId, question, onSuccess, onCancel }: Questi
     const [isLoading, setIsLoading] = useState(false)
 
     const form = useForm<QuestionFormValues>({
-        resolver: zodResolver(questionSchema) as any,
+        resolver: zodResolver(questionSchema),
         defaultValues: {
             content: question?.content || '',
             type: (question?.type as 'single' | 'multiple') || 'single',
@@ -130,7 +127,7 @@ export function QuestionEditor({ quizId, question, onSuccess, onCancel }: Questi
                     onSuccess()
                 }
             }
-        } catch (e) {
+        } catch {
             toast.error('Có lỗi xảy ra')
         } finally {
             setIsLoading(false)
@@ -193,29 +190,19 @@ export function QuestionEditor({ quizId, question, onSuccess, onCancel }: Questi
                                 <div key={field.id} className="flex items-start gap-3">
                                     <div className="pt-3">
                                         {watchType === 'single' ? (
-                                            <RadioGroup value={form.getValues().answers.findIndex(a => a.is_correct) > -1 ? "exists" : ""}>
-                                                {/* 
-                                                    Simulating Radio behavior: checking one unchecks others. 
-                                                    Note: RadioGroup expects a value matching a RadioGroupItem. 
-                                                    Here we just use checkboxes manually controlled below, relying on the 'single' logic. 
-                                                    Visual only for RadioGroup wrapper (maybe remove wrapper if causing issues).
-                                                    Actually, let's keep it simple: no RadioGroup wrapper, just logic.
-                                                */}
-                                                <Checkbox
-                                                    checked={form.watch(`answers.${index}.is_correct`)}
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) {
-                                                            // Uncheck all others
-                                                            fields.forEach((_, i) => {
-                                                                if (i !== index) form.setValue(`answers.${i}.is_correct`, false)
-                                                            })
-                                                            form.setValue(`answers.${index}.is_correct`, true)
-                                                        } else {
-                                                            form.setValue(`answers.${index}.is_correct`, false)
-                                                        }
-                                                    }}
-                                                />
-                                            </RadioGroup>
+                                            <Checkbox
+                                                checked={form.watch(`answers.${index}.is_correct`)}
+                                                onCheckedChange={(checked) => {
+                                                    if (checked) {
+                                                        fields.forEach((_, i) => {
+                                                            if (i !== index) form.setValue(`answers.${i}.is_correct`, false)
+                                                        })
+                                                        form.setValue(`answers.${index}.is_correct`, true)
+                                                    } else {
+                                                        form.setValue(`answers.${index}.is_correct`, false)
+                                                    }
+                                                }}
+                                            />
                                         ) : (
                                             <FormField
                                                 control={form.control}

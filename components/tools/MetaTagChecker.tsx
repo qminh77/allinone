@@ -1,20 +1,43 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { performMetaTagLookup } from '@/lib/actions/tools'
 import { toast } from 'sonner'
-import { Loader2, Search, ImageIcon, LayoutTemplate, Globe, Share2 } from 'lucide-react'
+import { Loader2, Search, LayoutTemplate, Globe, Share2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+type MetaTagResult = {
+    title: string
+    description: string
+    keywords: string
+    canonical: string
+    favicon?: string | null
+    og: {
+        title?: string | null
+        description?: string | null
+        image?: string | null
+        type?: string | null
+        site_name?: string | null
+    }
+    twitter: {
+        card?: string | null
+        title?: string | null
+        description?: string | null
+        image?: string | null
+        site?: string | null
+    }
+}
 
 export function MetaTagChecker() {
     const [url, setUrl] = useState('')
     const [loading, setLoading] = useState(false)
-    const [result, setResult] = useState<any>(null)
+    const [result, setResult] = useState<MetaTagResult | null>(null)
     const [error, setError] = useState<string | null>(null)
 
     const handleLookup = async (e: React.FormEvent) => {
@@ -31,7 +54,7 @@ export function MetaTagChecker() {
             setError(res.error)
             toast.error(res.error)
         } else {
-            setResult(res.data)
+            setResult(res.data as MetaTagResult)
             toast.success('Meta tags fetched successfully!')
         }
 
@@ -144,7 +167,17 @@ export function MetaTagChecker() {
                                     <div className="group cursor-pointer">
                                         <div className="text-sm text-[#202124] flex items-center gap-2 mb-1">
                                             {result.favicon && (
-                                                <img src={result.favicon.startsWith('/') ? new URL(result.favicon, url).toString() : result.favicon} className="w-4 h-4 rounded-full bg-gray-100" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                                <Image
+                                                    unoptimized
+                                                    src={result.favicon.startsWith('/') ? new URL(result.favicon, url).toString() : result.favicon}
+                                                    alt="favicon"
+                                                    width={16}
+                                                    height={16}
+                                                    className="w-4 h-4 rounded-full bg-gray-100"
+                                                    onError={(event) => {
+                                                        event.currentTarget.style.display = 'none'
+                                                    }}
+                                                />
                                             )}
                                             <span className="truncate">{url}</span>
                                             <span className="text-gray-500 text-xs">⋮</span>
@@ -164,7 +197,7 @@ export function MetaTagChecker() {
     )
 }
 
-function MetaItem({ label, value, isImage }: { label: string, value: string, isImage?: boolean }) {
+function MetaItem({ label, value, isImage }: { label: string, value?: string | null, isImage?: boolean }) {
     if (!value) return null
     return (
         <div className="space-y-1 border-b last:border-0 pb-3 last:pb-0">
@@ -174,14 +207,16 @@ function MetaItem({ label, value, isImage }: { label: string, value: string, isI
                     <p className="font-mono text-xs break-all text-muted-foreground mb-2">{value}</p>
                     {/* Try to resolve relative URLs if needed, but for now display raw. The actual img tag needs absolute */}
                     <div className="relative h-32 w-full max-w-[200px] rounded-lg overflow-hidden border bg-muted/50">
-                        <img
+                        <Image
+                            unoptimized
                             src={value}
                             alt={label}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                                e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center')
-                                e.currentTarget.parentElement!.innerText = 'Image not loadable'
+                            fill
+                            className="object-cover"
+                            onError={(event) => {
+                                event.currentTarget.style.display = 'none'
+                                event.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center')
+                                event.currentTarget.parentElement!.innerText = 'Image not loadable'
                             }}
                         />
                     </div>
