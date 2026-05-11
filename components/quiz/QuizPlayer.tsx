@@ -26,7 +26,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-interface QuizPlayerProps {
+export interface QuizPlayerProps {
     quiz: Quiz & { questions: Question[] }
     revealAnswers?: boolean
     accessToken?: string

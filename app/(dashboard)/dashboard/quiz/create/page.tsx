@@ -1,5 +1,5 @@
 import { ToolShell } from '@/components/dashboard/ToolShell'
-import { QuizForm } from '@/components/quiz/QuizForm'
+import { QuizFormClient } from '@/components/quiz/QuizFormClient'
 import { PenTool } from 'lucide-react'
 
 export default function CreateQuizPage() {
@@ -11,7 +11,7 @@ export default function CreateQuizPage() {
         >
             <div className="flex justify-center">
                 <div className="w-full max-w-3xl">
-                    <QuizForm />
+                    <QuizFormClient />
                 </div>
             </div>
         </ToolShell>

@@ -1,6 +1,6 @@
 import { ToolShell } from '@/components/dashboard/ToolShell'
 import { getQuizWithDetails } from '@/lib/actions/quiz'
-import { QuizPlayer } from '@/components/quiz/QuizPlayer'
+import { QuizPlayerClient } from '@/components/quiz/QuizPlayerClient'
 import { Play } from 'lucide-react'
 import { notFound } from 'next/navigation'
 
@@ -24,7 +24,7 @@ export default async function TakeQuizPage({ params }: PageProps) {
             description={quiz.description || "Làm bài trắc nghiệm"}
             icon={Play}
         >
-            <QuizPlayer quiz={quiz as any} />
+            <QuizPlayerClient quiz={quiz} />
         </ToolShell>
     )
 }

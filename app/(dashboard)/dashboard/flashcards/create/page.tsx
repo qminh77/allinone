@@ -1,6 +1,6 @@
 import { BookPlus } from 'lucide-react'
 import { ToolShell } from '@/components/dashboard/ToolShell'
-import { FlashcardSetForm } from '@/components/flashcards/FlashcardSetForm'
+import { FlashcardSetFormClient } from '@/components/flashcards/FlashcardSetFormClient'
 
 export default function CreateFlashcardSetPage() {
     return (
@@ -10,7 +10,7 @@ export default function CreateFlashcardSetPage() {
             icon={BookPlus}
         >
             <div className="mx-auto max-w-3xl">
-                <FlashcardSetForm />
+                <FlashcardSetFormClient />
             </div>
         </ToolShell>
     )
