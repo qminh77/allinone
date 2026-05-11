@@ -1,34 +1,31 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { createShortlink, deleteShortlink, getShortlinks } from '@/lib/actions/shortlinks'
+import { deleteShortlink, getShortlinks } from '@/lib/actions/shortlinks'
 import { Shortlink } from '@/types/database'
 import { toast } from 'sonner'
-import { CalendarIcon, Copy, Link, Loader2, Plus, Trash2, Lock, Clock } from 'lucide-react'
-import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { Copy, Link, Loader2, Trash2, Lock, Clock } from 'lucide-react'
+
+const ShortlinkCreateDialog = dynamic(
+    () => import('@/components/shortlinks/ShortlinkCreateDialog').then(module => module.ShortlinkCreateDialog),
+    {
+        ssr: false,
+        loading: () => (
+            <Button disabled>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Create New
+            </Button>
+        ),
+    }
+)
 
 export default function ShortlinksPage() {
     const [links, setLinks] = useState<Shortlink[]>([])
     const [loading, setLoading] = useState(true)
-    const [isCreateOpen, setIsCreateOpen] = useState(false)
-    const [creating, setCreating] = useState(false)
-
-    // Form State
-    const [targetUrl, setTargetUrl] = useState('')
-    const [slug, setSlug] = useState('')
-    const [password, setPassword] = useState('')
-    const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined)
-    const [usePassword, setUsePassword] = useState(false)
 
     const loadLinks = useCallback(async () => {
         const data = await getShortlinks()
@@ -41,28 +38,6 @@ export default function ShortlinksPage() {
         loadLinks()
     }, [loadLinks])
 
-    const handleCreate = async () => {
-        if (!targetUrl) return
-        setCreating(true)
-
-        const formData = new FormData()
-        formData.append('target_url', targetUrl)
-        if (slug) formData.append('slug', slug)
-        if (usePassword && password) formData.append('password', password)
-        if (expiresAt) formData.append('expires_at', expiresAt.toISOString())
-
-        const res = await createShortlink(formData)
-        if (res.error) {
-            toast.error(res.error)
-        } else {
-            toast.success('Shortlink created!')
-            setIsCreateOpen(false)
-            resetForm()
-            loadLinks()
-        }
-        setCreating(false)
-    }
-
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this link?')) return
         const res = await deleteShortlink(id)
@@ -71,14 +46,6 @@ export default function ShortlinksPage() {
             toast.success('Deleted')
             loadLinks()
         }
-    }
-
-    const resetForm = () => {
-        setTargetUrl('')
-        setSlug('')
-        setPassword('')
-        setUsePassword(false)
-        setExpiresAt(undefined)
     }
 
     const copyLink = (slug: string) => {
@@ -94,84 +61,7 @@ export default function ShortlinksPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Shortlinks</h1>
                     <p className="text-muted-foreground">Manage your custom URL shorteners.</p>
                 </div>
-                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                    <DialogTrigger asChild>
-                        <Button onClick={resetForm}>
-                            <Plus className="h-4 w-4 mr-2" /> Create New
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Create Shortlink</DialogTitle>
-                            <DialogDescription>
-                                Create a shortened URL with optional security.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-2">
-                            <div className="space-y-2">
-                                <Label>Target URL</Label>
-                                <Input placeholder="https://very-long-url.com/..." value={targetUrl} onChange={e => setTargetUrl(e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Custom Slug (Optional)</Label>
-                                <div className="flex items-center">
-                                    <span className="bg-muted px-3 py-2 rounded-l-md text-sm border border-r-0 text-muted-foreground">/</span>
-                                    <Input
-                                        placeholder="my-link"
-                                        value={slug}
-                                        onChange={e => setSlug(e.target.value)}
-                                        className="rounded-l-none"
-                                    />
-                                </div>
-                                <p className="text-[10px] text-muted-foreground">Letters, numbers, hyphens only.</p>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <Label>Password Protection</Label>
-                                <Switch checked={usePassword} onCheckedChange={setUsePassword} />
-                            </div>
-                            {usePassword && (
-                                <div className="space-y-2">
-                                    <Label>Password</Label>
-                                    <Input type="password" placeholder="***" value={password} onChange={e => setPassword(e.target.value)} />
-                                </div>
-                            )}
-
-                            <div className="flex flex-col gap-2">
-                                <Label>Expiration Date (Optional)</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                                "w-full justify-start text-left font-normal",
-                                                !expiresAt && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {expiresAt ? format(expiresAt, "PPP") : <span>Pick a date</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar
-                                            mode="single"
-                                            selected={expiresAt}
-                                            onSelect={setExpiresAt}
-                                            initialFocus
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                            <Button onClick={handleCreate} disabled={creating}>
-                                {creating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                                Create
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <ShortlinkCreateDialog onCreated={loadLinks} />
             </div>
 
             <Card>

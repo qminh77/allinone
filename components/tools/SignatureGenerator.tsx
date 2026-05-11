@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Download, Eraser, PenTool } from 'lucide-react'
 import { toast } from 'sonner'
-import { saveToolOutput } from '@/lib/client/tool-files'
 
 export function SignatureGenerator() {
     const padRef = useRef<InstanceType<typeof SignatureCanvas> | null>(null)
@@ -45,6 +44,7 @@ export function SignatureGenerator() {
 
         const dataURL = exportCanvas.toDataURL(mimeType)
         const blob = await (await fetch(dataURL)).blob()
+        const { saveToolOutput } = await import('@/lib/client/tool-files')
         await saveToolOutput({
             moduleKey: 'signature-generator',
             blob,

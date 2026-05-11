@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,28 +24,15 @@ export function LoginForm() {
         setLoading(true)
 
         try {
-            const supabase = createClient()
-
-            const { data: loginSetting, error: settingError } = await (supabase
-                .from('settings' as any) as any)
-                .select('value')
-                .eq('key', 'allow_login')
-                .maybeSingle()
-
-            if (!settingError && loginSetting && (loginSetting.value as { enabled?: boolean })?.enabled === false) {
-                setError("Đăng nhập đang tạm thời đóng")
-                setLoading(false)
-                return
-            }
-
-            // Authenticate
-            const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password,
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
             })
+            const data = await response.json()
 
-            if (signInError) {
-                setError("Email hoặc mật khẩu không chính xác")
+            if (!response.ok) {
+                setError(data.error || "Email hoặc mật khẩu không chính xác")
                 setLoading(false)
                 return
             }
@@ -62,7 +48,7 @@ export function LoginForm() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             action: 'login',
-                            userId: data.user?.id,
+                            userId: data.userId,
                         }),
                     }),
                 ])

@@ -3,7 +3,8 @@ import { getCurrentUser, getCurrentUserProfile } from '@/lib/auth/session'
 import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { getModuleCatalog } from '@/lib/modules/catalog'
-import { AiAssistantDock } from '@/components/ai/AiAssistantDock'
+import { getUserPermissions } from '@/lib/permissions/check'
+import { AiAssistantDockClient } from '@/components/ai/AiAssistantDockClient'
 
 export default async function DashboardLayout({
     children,
@@ -20,10 +21,13 @@ export default async function DashboardLayout({
         getCurrentUserProfile(user.id),
         getModuleCatalog(),
     ])
+    const permissions = moduleCatalog.some(moduleItem => moduleItem.permission)
+        ? await getUserPermissions(user.id)
+        : []
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
-            <Sidebar modules={moduleCatalog} />
+            <Sidebar modules={moduleCatalog} permissions={permissions} />
 
             <div className="flex flex-col flex-1 overflow-hidden">
                 <Navbar
@@ -32,12 +36,13 @@ export default async function DashboardLayout({
                         fullName: profile?.full_name,
                     }}
                     modules={moduleCatalog}
+                    permissions={permissions}
                     isAdmin={profile?.role?.name === 'Admin'}
                 />
                 <main className="flex-1 overflow-y-auto bg-muted/20 p-3 sm:p-4 lg:p-6">
                     {children}
                 </main>
-                <AiAssistantDock />
+                <AiAssistantDockClient />
             </div>
         </div>
     )

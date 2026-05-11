@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
 import { categories, getCategoryName, type ModuleCatalogItem } from '@/config/module-metadata'
 import { ModuleCard } from './ModuleCard'
@@ -15,7 +16,14 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, X } from 'lucide-react'
-import { DashboardAiCommand } from '@/components/ai/DashboardAiCommand'
+
+const DashboardAiCommand = dynamic(
+    () => import('@/components/ai/DashboardAiCommand').then(module => module.DashboardAiCommand),
+    {
+        ssr: false,
+        loading: () => null,
+    }
+)
 
 const ALL_CATEGORIES = 'all'
 const DEFAULT_CATEGORY_LIMIT = 12

@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { QRCodeRenderersOptions, QRCodeToStringOptions } from 'qrcode'
 import { toast } from 'sonner'
@@ -19,6 +20,7 @@ import {
     Save,
     Search,
     Settings2,
+    Sparkles,
     Tag,
     Trash2,
 } from 'lucide-react'
@@ -57,8 +59,20 @@ import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { AiQrCodeDialog } from '@/components/tools/AiQrCodeDialog'
 import { loadPdfLib, loadQRCode } from '@/lib/client/lazy-libraries'
+
+const AiQrCodeDialog = dynamic(
+    () => import('@/components/tools/AiQrCodeDialog').then(module => module.AiQrCodeDialog),
+    {
+        ssr: false,
+        loading: () => (
+            <Button type="button" variant="outline" disabled>
+                <Sparkles className="size-4" />
+                AI tạo QR
+            </Button>
+        ),
+    }
+)
 
 const STORAGE_KEY = 'allinone.qr-codes.v1'
 const MAX_HISTORY_ITEMS = 100

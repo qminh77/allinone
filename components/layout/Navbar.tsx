@@ -5,8 +5,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -27,8 +25,6 @@ import {
 } from '@/components/ui/sheet'
 import { SidebarContent } from '@/components/layout/Sidebar'
 import type { ModuleCatalogItem } from '@/config/module-metadata'
-import { resetPermissionStateCache } from '@/lib/permissions/hooks'
-// Removed server action import as it cannot be used in client component directly without prop passing
 
 
 interface NavbarProps {
@@ -37,20 +33,11 @@ interface NavbarProps {
         fullName?: string | null
     }
     modules: ModuleCatalogItem[]
+    permissions: string[]
     isAdmin?: boolean
 }
 
-export function Navbar({ user, modules, isAdmin = false }: NavbarProps) {
-    const router = useRouter()
-    const supabase = createClient()
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut()
-        resetPermissionStateCache()
-        router.push('/login')
-        router.refresh()
-    }
-
+export function Navbar({ user, modules, permissions, isAdmin = false }: NavbarProps) {
     const initials = user.fullName
         ? user.fullName
             .split(' ')
@@ -76,7 +63,7 @@ export function Navbar({ user, modules, isAdmin = false }: NavbarProps) {
                                 <SheetTitle>Điều hướng</SheetTitle>
                             </SheetHeader>
                             <div className="min-h-0 flex-1">
-                                <SidebarContent modules={modules} />
+                                <SidebarContent modules={modules} permissions={permissions} />
                             </div>
                         </SheetContent>
                     </Sheet>
@@ -115,9 +102,13 @@ export function Navbar({ user, modules, isAdmin = false }: NavbarProps) {
                                     <Link href="/admin" prefetch={false}>Admin CP</Link>
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={handleLogout}>
-                                Đăng xuất
-                            </DropdownMenuItem>
+                            <form action="/api/auth/logout" method="post">
+                                <DropdownMenuItem asChild>
+                                    <button type="submit" className="w-full text-left">
+                                        Đăng xuất
+                                    </button>
+                                </DropdownMenuItem>
+                            </form>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

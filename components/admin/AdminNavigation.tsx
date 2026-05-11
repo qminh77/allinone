@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRouter } from 'next/navigation'
 import {
     Activity,
     BrainCircuit,
@@ -17,9 +16,7 @@ import {
     Wrench,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { resetPermissionStateCache } from '@/lib/permissions/hooks'
 
 const navItems = [
     { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
@@ -40,15 +37,6 @@ interface AdminNavigationProps {
 
 export function AdminNavigation({ userName, userEmail }: AdminNavigationProps) {
     const pathname = usePathname()
-    const router = useRouter()
-    const supabase = createClient()
-
-    const handleLogout = async () => {
-        await supabase.auth.signOut()
-        resetPermissionStateCache()
-        router.push('/login')
-        router.refresh()
-    }
 
     return (
         <aside className="border-b bg-background lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
@@ -105,15 +93,16 @@ export function AdminNavigation({ userName, userEmail }: AdminNavigationProps) {
                             <Home className="size-4" />
                             Dashboard
                         </Link>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="h-9"
-                            onClick={handleLogout}
-                        >
-                            <LogOut className="size-4" />
-                            Đăng xuất
-                        </Button>
+                        <form action="/api/auth/logout" method="post">
+                            <Button
+                                type="submit"
+                                variant="outline"
+                                className="h-9 w-full"
+                            >
+                                <LogOut className="size-4" />
+                                Đăng xuất
+                            </Button>
+                        </form>
                     </div>
                 </div>
             </div>

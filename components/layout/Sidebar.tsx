@@ -7,7 +7,6 @@
 import { cn } from '@/lib/utils'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ProtectedFeature } from '@/components/auth/ProtectedFeature'
 import {
     ChevronRight,
     GripVertical,
@@ -26,7 +25,6 @@ import {
     Layers,
 } from 'lucide-react'
 import { categories, getModuleIcon, type ModuleCatalogItem } from '@/config/module-metadata'
-import { PermissionKey } from '@/types/permissions'
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -36,10 +34,12 @@ import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent, t
 
 interface SidebarProps {
     modules: ModuleCatalogItem[]
+    permissions: string[]
 }
 
 interface SidebarContentProps {
     modules: ModuleCatalogItem[]
+    permissions: string[]
     collapsed?: boolean
     onToggleCollapsed?: () => void
 }
@@ -56,7 +56,7 @@ function clampSidebarWidth(width: number) {
     return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width))
 }
 
-export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }: SidebarContentProps) {
+export function SidebarContent({ modules, permissions, collapsed = false, onToggleCollapsed }: SidebarContentProps) {
     const pathname = usePathname()
     // Default open all categories
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
@@ -75,6 +75,7 @@ export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }
     }
 
     const moduleByKey = useMemo(() => new Map(modules.map(moduleItem => [moduleItem.key, moduleItem])), [modules])
+    const permissionSet = useMemo(() => new Set(permissions), [permissions])
     const activeModules = useMemo(
         () => modules.filter(moduleItem => moduleItem.isEnabled !== false && !FEATURE_MODULE_KEYS.has(moduleItem.key)),
         [modules]
@@ -397,12 +398,8 @@ export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }
                                                     item.href
                                                 )
 
-                                                if (item.permission) {
-                                                    return (
-                                                        <ProtectedFeature key={item.href} permission={item.permission as PermissionKey}>
-                                                            {linkContent}
-                                                        </ProtectedFeature>
-                                                    )
+                                                if (item.permission && !permissionSet.has(item.permission)) {
+                                                    return null
                                                 }
 
                                                 return linkContent
@@ -419,7 +416,7 @@ export function SidebarContent({ modules, collapsed = false, onToggleCollapsed }
     )
 }
 
-export function Sidebar({ modules }: SidebarProps) {
+export function Sidebar({ modules, permissions }: SidebarProps) {
     const [width, setWidth] = useState(() => {
         if (typeof window === 'undefined') return SIDEBAR_DEFAULT_WIDTH
 
@@ -475,6 +472,7 @@ export function Sidebar({ modules }: SidebarProps) {
         >
             <SidebarContent
                 modules={modules}
+                permissions={permissions}
                 collapsed={collapsed}
                 onToggleCollapsed={() => setCollapsed(value => !value)}
             />

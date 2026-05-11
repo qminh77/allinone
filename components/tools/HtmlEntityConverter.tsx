@@ -6,7 +6,50 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { ArrowRightLeft, Code, Copy, Trash2 } from 'lucide-react'
-import he from 'he'
+
+const ENCODE_MAP: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+}
+
+const DECODE_MAP: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    '#39': "'",
+    nbsp: ' ',
+}
+
+function encodeHtml(text: string) {
+    return text.replace(/[&<>"']/g, char => ENCODE_MAP[char] || char)
+}
+
+function safeCodePoint(codePoint: number, fallback: string) {
+    return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+        ? String.fromCodePoint(codePoint)
+        : fallback
+}
+
+function decodeHtml(text: string) {
+    return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+        if (entity.startsWith('#x') || entity.startsWith('#X')) {
+            const codePoint = Number.parseInt(entity.slice(2), 16)
+            return safeCodePoint(codePoint, match)
+        }
+
+        if (entity.startsWith('#')) {
+            const codePoint = Number.parseInt(entity.slice(1), 10)
+            return safeCodePoint(codePoint, match)
+        }
+
+        return DECODE_MAP[entity] || match
+    })
+}
 
 export function HtmlEntityConverter() {
     const [input, setInput] = useState('')
@@ -15,11 +58,11 @@ export function HtmlEntityConverter() {
     const process = (text: string, currentMode: 'encode' | 'decode') => {
         try {
             if (currentMode === 'encode') {
-                return he.encode(text, { useNamedReferences: true })
+                return encodeHtml(text)
             } else {
-                return he.decode(text)
+                return decodeHtml(text)
             }
-        } catch (e) {
+        } catch {
             return 'Error processing text'
         }
     }
